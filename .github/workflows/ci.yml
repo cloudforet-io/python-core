@@ -1,0 +1,66 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set environment virables
+      run: |
+        echo "::set-env name=SERVICE::api"
+        echo "::set-env name=IMAGE_PREFIX::spaceone"
+
+        echo "::set-env name=DOCKER_UPLOAD::false"
+        echo "::set-env name=PYPI_UPLOAD::true"
+        echo "::set-env name=LOCATION_DOCKERFILE::."
+        echo "::set-env name=LOCATION_SETUP_PY::src"
+
+        echo "::set-env name=SUDO::false"
+        version=$(cat src/VERSION)${{ github.run_id }}
+        echo "::set-env name=VERSION::$version"
+    #        echo "::set-env name=POST_BRANCH::master"
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+    - name: Build
+      if: env.PYPI_UPLOAD == 'true'
+      run: |
+        echo "Building pypi ..."
+        cd $LOCATION_SETUP_PY
+        python3 setup.py bdist_wheel
+
+    - name: Test
+      id: test
+      run: |
+        echo "Running test ... None"
+        # fail test or pass test
+
+    - name: Upload pypi
+      id: upload_pypi
+      if: ${{ steps.test.outcome == 'success' && env.PYPI_UPLOAD == 'true' }}
+      run: |
+        echo "Uploading pypi ..."
+        cd $LOCATION_SETUP_PY
+        twine upload dist/*.whl --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --verbose
+
+    - name: Upload docker
+      if: ${{ always() && steps.test.conclusion == 'success' && env.DOCKER_UPLOAD == 'true' }}
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: ${{ env.IMAGE_PREFIX }}/${{ env.SERVICE }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        workdir: ${{ env.LOCATION_DOCKERFILE }}
+        tags: latest,${{ env.VERSION }}

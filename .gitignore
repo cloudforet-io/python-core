@@ -1,0 +1,8 @@
+*.swp
+*.bak
+dist
+build
+*.egg-info
+.idea
+__pycache__
+venv

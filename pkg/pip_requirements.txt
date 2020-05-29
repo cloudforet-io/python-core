@@ -1,0 +1,15 @@
+grpcio
+grpcio-reflection
+grpcio-health-checking
+google-api-core
+PyYAML
+unittest-xml-reporting>=3.0.0
+pycryptodome==3.8.2
+schedule
+cachetools
+jwcrypto==0.7
+python-jose==3.1.0
+factory-boy
+jsonschema
+python-dateutil
+python-consul
