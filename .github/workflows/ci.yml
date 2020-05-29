@@ -14,7 +14,7 @@ jobs:
 
     - name: Set environment virables
       run: |
-        echo "::set-env name=SERVICE::api"
+        echo "::set-env name=SERVICE::core"
         echo "::set-env name=IMAGE_PREFIX::spaceone"
 
         echo "::set-env name=DOCKER_UPLOAD::false"
