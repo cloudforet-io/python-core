@@ -44,8 +44,7 @@ jobs:
         cmp --silent master_branch/$LOCATION_VERSION/VERSION $LOCATION_VERSION/VERSION || \
         echo "::set-env name=IS_NEW_VERSION::true"
 
-        version=$(cat $LOCATION_VERSION/VERSION)-${{ github.run_id }}
-        echo "::set-env name=VERSION::$version"
+        echo "$(cat $LOCATION_VERSION/VERSION)-${{ github.run_id }}">$LOCATION_VERSION/VERSION
 
     - name: Set up Python
       uses: actions/setup-python@v2
