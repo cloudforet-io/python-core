@@ -1,66 +1,112 @@
-name: Continuous Integration
+name: SpaceONE CI
 
 on:
-  push:
+  pull_request:
     branches:
       - master
-
 jobs:
-  deploy:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
 
     - name: Set environment virables
+      env:
+        SERVICE: python-core
+        PYPI_UPLOAD: true # upload pypi if this is true
+        # LOCATION points the parent directory
+        LOCATION_SETUP_PY: src # optional. for pypi upload
+        LOCATION_VERSION: src # the location for VERSION file (ex- . means the location of VERSION is ./VERSION)
+        IS_SUDO: false
       run: |
-        echo "::set-env name=SERVICE::core"
-        echo "::set-env name=IMAGE_PREFIX::spaceone"
+        echo "::set-env name=SERVICE::$SERVICE"
+        echo "::set-env name=PYPI_UPLOAD::$PYPI_UPLOAD"
+        echo "::set-env name=LOCATION_SETUP_PY::$LOCATION_SETUP_PY"
+        echo "::set-env name=LOCATION_VERSION::$LOCATION_VERSION"
+        echo "::set-env name=IS_SUDO::$IS_SUDO"
+    - name: Clone master branch
+      uses: actions/checkout@v2
+      with:
+        ref: master
+        path: master_branch
+    - name: Compare version
+      run: |
+        echo "MASTER BRANCH VERSION"
+        cat master_branch/$LOCATION_VERSION/VERSION
+        echo -e "\n\n"
 
-        echo "::set-env name=DOCKER_UPLOAD::false"
-        echo "::set-env name=PYPI_UPLOAD::true"
-        echo "::set-env name=LOCATION_DOCKERFILE::."
-        echo "::set-env name=LOCATION_SETUP_PY::src"
+        echo "PR VERSION"
+        cat $LOCATION_VERSION/VERSION
+        echo -e "\n\n"
 
-        echo "::set-env name=SUDO::false"
-        version=$(cat src/VERSION)${{ github.run_id }}
+        echo "::set-env name=IS_NEW_VERSION::false"
+        cmp --silent master_branch/$LOCATION_VERSION/VERSION $LOCATION_VERSION/VERSION || \
+        echo "::set-env name=IS_NEW_VERSION::true"
+
+        version=$(cat $LOCATION_VERSION/VERSION)-${{ github.run_id }}
         echo "::set-env name=VERSION::$version"
-    #        echo "::set-env name=POST_BRANCH::master"
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.8'
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+        if [ $IS_SUDO = true ]
+          then
+            sudo python -m pip install --upgrade pip
+            sudo pip install setuptools wheel twine
+          else
+            python -m pip install --upgrade pip
+            pip install setuptools wheel twine
+        fi
     - name: Build
-      if: env.PYPI_UPLOAD == 'true'
       run: |
-        echo "Building pypi ..."
+        if test -f "Makefile"; then
+          make all
+        fi
         cd $LOCATION_SETUP_PY
-        python3 setup.py bdist_wheel
-
+        if [ $IS_SUDO = true ]
+          then
+            sudo python setup.py sdist bdist_wheel
+          else
+            python setup.py sdist bdist_wheel
+        fi
     - name: Test
       id: test
       run: |
         echo "Running test ... None"
         # fail test or pass test
-
-    - name: Upload pypi
-      id: upload_pypi
-      if: ${{ steps.test.outcome == 'success' && env.PYPI_UPLOAD == 'true' }}
+    - name: Upload Pypi
+      id: upload
+      if: env.PYPI_UPLOAD == 'true'
       run: |
-        echo "Uploading pypi ..."
         cd $LOCATION_SETUP_PY
-        twine upload dist/*.whl --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --verbose
+        if [ $IS_SUDO = true ]
+          then
+            sudo twine upload dist/*.whl --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --verbose
+          else
+            twine upload dist/*.whl --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --verbose
+        fi
+      continue-on-error: true
 
-    - name: Upload docker
-      if: ${{ always() && steps.test.conclusion == 'success' && env.DOCKER_UPLOAD == 'true' }}
-      uses: elgohr/Publish-Docker-Github-Action@master
+    - name: Merge branch automatically
+      if: steps.test.outcome == 'success'
+      uses: pascalgn/automerge-action@v0.8.3
+      env:
+        # repository token으로는 새로운 workflow run시킬 수 없음.
+        GITHUB_TOKEN: ${{secrets.REPOSITORY_ACCESS_KEY}}
+        #        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}
+        MERGE_LABELS: ""
+
+    - name: Notify to slack
+      if: always() # Pick up events even if the job fails or is canceled.
+      uses: 8398a7/action-slack@v3
       with:
-        name: ${{ env.IMAGE_PREFIX }}/${{ env.SERVICE }}
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        workdir: ${{ env.LOCATION_DOCKERFILE }}
-        tags: latest,${{ env.VERSION }}
+        status: ${{ job.status }}
+        author_name: "[BOT]"
+        fields: repo,message,commit,author,action,eventName,ref,workflow # selectable (default: repo,message)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # optional
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
