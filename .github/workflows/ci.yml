@@ -38,6 +38,7 @@ jobs:
           EOF
 
           bash set_env.sh
+          
       - name: save envs
         uses: actions/upload-artifact@v2
         with:
