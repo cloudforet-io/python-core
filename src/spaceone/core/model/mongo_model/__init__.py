@@ -301,13 +301,11 @@ class MongoModel(Document, BaseModel):
             raise ERROR_DB_QUERY(reason='Filter condition should have key, value and operator.')
 
     @classmethod
-    def query(cls, *args, only=None, exclude=None, all_fields=False, distinct=None,
-              filter=[], filter_or=[], sort={}, page={}, minimal=False, count_only=False, **kwargs):
+    def query(cls, *args, only=None, exclude=None, all_fields=False, filter=[], filter_or=[], sort={}, page={}, minimal=False, count_only=False, **kwargs):
         _filter = None
         _filter_or = None
         _order_by = None
         minimal_fields = cls._meta.get('minimal_fields')
-
 
         if len(filter) > 0:
             _filter = reduce(lambda x, y: x & y, map(cls._make_condition, filter))
@@ -344,11 +342,7 @@ class MongoModel(Document, BaseModel):
             if all_fields:
                 vos = vos.all_fields()
 
-            if distinct:
-                vos = vos.distinct(distinct)
-                total_count = len(vos)
-            else:
-                total_count = vos.count()
+            total_count = vos.count()
 
             if count_only:
                 vos = []
@@ -360,8 +354,6 @@ class MongoModel(Document, BaseModel):
                         start = 1
 
                     vos = vos[start - 1:start + page['limit'] - 1]
-
-                # vos.select_related(3)
 
             return vos, total_count
 
@@ -555,25 +547,8 @@ class MongoModel(Document, BaseModel):
         return _aggregation_rules
 
     @classmethod
-    def stat(cls, *args, aggregate=None, filter=[], filter_or=[], sort={}, page={}, limit=None, **kwargs):
-        if aggregate is None:
-            raise ERROR_REQUIRED_PARAMETER(key='aggregate')
-
+    def _stat_aggregate(cls, vos, aggregate, sort, page, limit):
         pipeline = []
-        _filter = None
-        _filter_or = None
-
-        if len(filter) > 0:
-            _filter = reduce(lambda x, y: x & y, map(cls._make_condition, filter))
-
-        if len(filter_or) > 0:
-            _filter_or = reduce(lambda x, y: x | y, map(cls._make_condition, filter_or))
-
-        if _filter and _filter_or:
-            _filter = _filter & _filter_or
-        else:
-            _filter = _filter or _filter_or
-
         _aggregation_rules = cls._make_aggregation_rules(aggregate)
 
         for rule in _aggregation_rules:
@@ -608,10 +583,41 @@ class MongoModel(Document, BaseModel):
                     '$limit': limit
                 })
 
+        cursor = vos.aggregate(pipeline)
+        return cls._make_stat_values(cursor)
+
+    @classmethod
+    def _stat_distinct(cls, vos, distinct, sort, page, limit):
+        pass
+
+    @classmethod
+    def stat(cls, *args, aggregate=None, distinct=None, filter=[], filter_or=[],
+             sort={}, page={}, limit=None, **kwargs):
+        if not (aggregate or distinct):
+            raise ERROR_REQUIRED_PARAMETER(key='aggregate')
+
+        _filter = None
+        _filter_or = None
+
+        if len(filter) > 0:
+            _filter = reduce(lambda x, y: x & y, map(cls._make_condition, filter))
+
+        if len(filter_or) > 0:
+            _filter_or = reduce(lambda x, y: x | y, map(cls._make_condition, filter_or))
+
+        if _filter and _filter_or:
+            _filter = _filter & _filter_or
+        else:
+            _filter = _filter or _filter_or
+
         try:
             vos = cls.objects.filter(_filter)
-            cursor = vos.aggregate(pipeline)
-            return cls._make_stat_values(cursor)
+
+            if aggregate:
+                return cls._stat_aggregate(vos, aggregate, sort, page, limit)
+
+            elif distinct:
+                return cls._stat_distinct(vos, distinct, sort, page, limit)
 
         except Exception as e:
             raise ERROR_DB_QUERY(reason=e)
