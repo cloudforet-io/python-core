@@ -301,11 +301,9 @@ class MongoModel(Document, BaseModel):
             raise ERROR_DB_QUERY(reason='Filter condition should have key, value and operator.')
 
     @classmethod
-    def query(cls, *args, only=None, exclude=None, all_fields=False, filter=[], filter_or=[], sort={}, page={}, minimal=False, count_only=False, **kwargs):
+    def _make_filter(cls, filter, filter_or):
         _filter = None
         _filter_or = None
-        _order_by = None
-        minimal_fields = cls._meta.get('minimal_fields')
 
         if len(filter) > 0:
             _filter = reduce(lambda x, y: x & y, map(cls._make_condition, filter))
@@ -317,6 +315,17 @@ class MongoModel(Document, BaseModel):
             _filter = _filter & _filter_or
         else:
             _filter = _filter or _filter_or
+
+        return _filter
+
+    @classmethod
+    def query(cls, *args, only=None, exclude=None, all_fields=False, filter=[], filter_or=[],
+              sort={}, page={}, minimal=False, count_only=False, **kwargs):
+
+        _order_by = None
+        minimal_fields = cls._meta.get('minimal_fields')
+
+        _filter = cls._make_filter(filter, filter_or)
 
         if 'key' in sort:
             if sort.get('desc', False):
@@ -564,21 +573,21 @@ class MongoModel(Document, BaseModel):
                     '$sort': {sort['name']: 1}
                 })
 
-        if 'limit' in page and page['limit'] > 0:
-            limit = page['limit']
-            start = page.get('start', 1)
-            start = 1 if start < 1 else start
-
-            if start > 1:
-                pipeline.append({
-                    '$skip': start - 1
-                })
-
+        if limit:
             pipeline.append({
                 '$limit': limit
             })
         else:
-            if limit:
+            if 'limit' in page and page['limit'] > 0:
+                limit = page['limit']
+                start = page.get('start', 1)
+                start = 1 if start < 1 else start
+
+                if start > 1:
+                    pipeline.append({
+                        '$skip': start - 1
+                    })
+
                 pipeline.append({
                     '$limit': limit
                 })
@@ -588,27 +597,34 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def _stat_distinct(cls, vos, distinct, sort, page, limit):
-        pass
+        values = vos.distinct(distinct)
+
+        if 'desc' in sort:
+            if sort.get('desc', False):
+                values.sort(reverse=True)
+            else:
+                values.sort()
+
+        if limit:
+            values = values[:limit]
+        else:
+            if 'limit' in page and page['limit'] > 0:
+                start = page.get('start', 1)
+                if start < 1:
+                    start = 1
+
+                values = values[start - 1:start + page['limit'] - 1]
+
+        return values
 
     @classmethod
     def stat(cls, *args, aggregate=None, distinct=None, filter=[], filter_or=[],
              sort={}, page={}, limit=None, **kwargs):
+
         if not (aggregate or distinct):
             raise ERROR_REQUIRED_PARAMETER(key='aggregate')
 
-        _filter = None
-        _filter_or = None
-
-        if len(filter) > 0:
-            _filter = reduce(lambda x, y: x & y, map(cls._make_condition, filter))
-
-        if len(filter_or) > 0:
-            _filter_or = reduce(lambda x, y: x | y, map(cls._make_condition, filter_or))
-
-        if _filter and _filter_or:
-            _filter = _filter & _filter_or
-        else:
-            _filter = _filter or _filter_or
+        _filter = cls._make_filter(filter, filter_or)
 
         try:
             vos = cls.objects.filter(_filter)
