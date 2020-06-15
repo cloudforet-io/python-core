@@ -301,13 +301,9 @@ class MongoModel(Document, BaseModel):
             raise ERROR_DB_QUERY(reason='Filter condition should have key, value and operator.')
 
     @classmethod
-    def query(cls, *args, only=None, exclude=None, all_fields=False, distinct=None,
-              filter=[], filter_or=[], sort={}, page={}, minimal=False, count_only=False, **kwargs):
+    def _make_filter(cls, filter, filter_or):
         _filter = None
         _filter_or = None
-        _order_by = None
-        minimal_fields = cls._meta.get('minimal_fields')
-
 
         if len(filter) > 0:
             _filter = reduce(lambda x, y: x & y, map(cls._make_condition, filter))
@@ -319,6 +315,17 @@ class MongoModel(Document, BaseModel):
             _filter = _filter & _filter_or
         else:
             _filter = _filter or _filter_or
+
+        return _filter
+
+    @classmethod
+    def query(cls, *args, only=None, exclude=None, all_fields=False, filter=[], filter_or=[],
+              sort={}, page={}, minimal=False, count_only=False, **kwargs):
+
+        _order_by = None
+        minimal_fields = cls._meta.get('minimal_fields')
+
+        _filter = cls._make_filter(filter, filter_or)
 
         if 'key' in sort:
             if sort.get('desc', False):
@@ -344,11 +351,7 @@ class MongoModel(Document, BaseModel):
             if all_fields:
                 vos = vos.all_fields()
 
-            if distinct:
-                vos = vos.distinct(distinct)
-                total_count = len(vos)
-            else:
-                total_count = vos.count()
+            total_count = vos.count()
 
             if count_only:
                 vos = []
@@ -361,8 +364,6 @@ class MongoModel(Document, BaseModel):
 
                     vos = vos[start - 1:start + page['limit'] - 1]
 
-                # vos.select_related(3)
-
             return vos, total_count
 
         except Exception as e:
@@ -372,13 +373,13 @@ class MongoModel(Document, BaseModel):
     def _check_well_known_type(cls, value):
         if isinstance(value, datetime):
             return f'{value.isoformat()}Z'
-        elif isinstance(value, bson.objectid.ObjectId):
+        elif isinstance(value, bson.objectid.ObjectId) or isinstance(value, Document):
             return str(value)
         else:
             return value
 
     @classmethod
-    def _make_stat_values(cls, cursor):
+    def _make_aggregate_values(cls, cursor):
         values = []
         for row in cursor:
             data = {}
@@ -392,6 +393,14 @@ class MongoModel(Document, BaseModel):
             values.append(data)
 
         return values
+
+    @classmethod
+    def _make_distinct_values(cls, values):
+        changed_values = []
+        for value in values:
+            changed_values.append(cls._check_well_known_type(value))
+
+        return changed_values
 
     @classmethod
     def _get_group_fields(cls, condition):
@@ -555,25 +564,8 @@ class MongoModel(Document, BaseModel):
         return _aggregation_rules
 
     @classmethod
-    def stat(cls, *args, aggregate=None, filter=[], filter_or=[], sort={}, page={}, limit=None, **kwargs):
-        if aggregate is None:
-            raise ERROR_REQUIRED_PARAMETER(key='aggregate')
-
+    def _stat_aggregate(cls, vos, aggregate, sort, page, limit):
         pipeline = []
-        _filter = None
-        _filter_or = None
-
-        if len(filter) > 0:
-            _filter = reduce(lambda x, y: x & y, map(cls._make_condition, filter))
-
-        if len(filter_or) > 0:
-            _filter_or = reduce(lambda x, y: x | y, map(cls._make_condition, filter_or))
-
-        if _filter and _filter_or:
-            _filter = _filter & _filter_or
-        else:
-            _filter = _filter or _filter_or
-
         _aggregation_rules = cls._make_aggregation_rules(aggregate)
 
         for rule in _aggregation_rules:
@@ -589,29 +581,67 @@ class MongoModel(Document, BaseModel):
                     '$sort': {sort['name']: 1}
                 })
 
-        if 'limit' in page and page['limit'] > 0:
-            limit = page['limit']
-            start = page.get('start', 1)
-            start = 1 if start < 1 else start
-
-            if start > 1:
-                pipeline.append({
-                    '$skip': start - 1
-                })
-
+        if limit:
             pipeline.append({
                 '$limit': limit
             })
         else:
-            if limit:
+            if 'limit' in page and page['limit'] > 0:
+                limit = page['limit']
+                start = page.get('start', 1)
+                start = 1 if start < 1 else start
+
+                if start > 1:
+                    pipeline.append({
+                        '$skip': start - 1
+                    })
+
                 pipeline.append({
                     '$limit': limit
                 })
 
+        cursor = vos.aggregate(pipeline)
+        return cls._make_aggregate_values(cursor)
+
+    @classmethod
+    def _stat_distinct(cls, vos, distinct, sort, page, limit):
+        values = vos.distinct(distinct)
+
+        if 'desc' in sort:
+            if sort.get('desc', False):
+                values.sort(reverse=True)
+            else:
+                values.sort()
+
+        if limit:
+            values = values[:limit]
+        else:
+            if 'limit' in page and page['limit'] > 0:
+                start = page.get('start', 1)
+                if start < 1:
+                    start = 1
+
+                values = values[start - 1:start + page['limit'] - 1]
+
+        return cls._make_distinct_values(values)
+
+    @classmethod
+    def stat(cls, *args, aggregate=None, distinct=None, filter=[], filter_or=[],
+             sort={}, page={}, limit=None, **kwargs):
+
+        if not (aggregate or distinct):
+            raise ERROR_REQUIRED_PARAMETER(key='aggregate')
+
+        _filter = cls._make_filter(filter, filter_or)
+
         try:
             vos = cls.objects.filter(_filter)
-            cursor = vos.aggregate(pipeline)
-            return cls._make_stat_values(cursor)
+
+            if aggregate:
+                return cls._stat_aggregate(vos, aggregate, sort, page, limit)
+
+            elif distinct:
+                return cls._stat_distinct(vos, distinct, sort, page, limit)
 
         except Exception as e:
             raise ERROR_DB_QUERY(reason=e)
