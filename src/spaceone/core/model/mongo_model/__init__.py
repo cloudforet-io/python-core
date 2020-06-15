@@ -373,13 +373,13 @@ class MongoModel(Document, BaseModel):
     def _check_well_known_type(cls, value):
         if isinstance(value, datetime):
             return f'{value.isoformat()}Z'
-        elif isinstance(value, bson.objectid.ObjectId):
+        elif isinstance(value, bson.objectid.ObjectId) or isinstance(value, Document):
             return str(value)
         else:
             return value
 
     @classmethod
-    def _make_stat_values(cls, cursor):
+    def _make_aggregate_values(cls, cursor):
         values = []
         for row in cursor:
             data = {}
@@ -393,6 +393,14 @@ class MongoModel(Document, BaseModel):
             values.append(data)
 
         return values
+
+    @classmethod
+    def _make_distinct_values(cls, values):
+        changed_values = []
+        for value in values:
+            changed_values.append(cls._check_well_known_type(value))
+
+        return changed_values
 
     @classmethod
     def _get_group_fields(cls, condition):
@@ -593,7 +601,7 @@ class MongoModel(Document, BaseModel):
                 })
 
         cursor = vos.aggregate(pipeline)
-        return cls._make_stat_values(cursor)
+        return cls._make_aggregate_values(cursor)
 
     @classmethod
     def _stat_distinct(cls, vos, distinct, sort, page, limit):
@@ -615,7 +623,7 @@ class MongoModel(Document, BaseModel):
 
                 values = values[start - 1:start + page['limit'] - 1]
 
-        return values
+        return cls._make_distinct_values(values)
 
     @classmethod
     def stat(cls, *args, aggregate=None, distinct=None, filter=[], filter_or=[],
