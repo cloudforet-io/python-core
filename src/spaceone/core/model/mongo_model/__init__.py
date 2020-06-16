@@ -373,8 +373,10 @@ class MongoModel(Document, BaseModel):
     def _check_well_known_type(cls, value):
         if isinstance(value, datetime):
             return f'{value.isoformat()}Z'
-        elif isinstance(value, bson.objectid.ObjectId) or isinstance(value, Document):
+        elif isinstance(value, bson.objectid.ObjectId):
             return str(value)
+        elif isinstance(value, Document):
+            return str(value.id)
         else:
             return value
 
@@ -608,10 +610,13 @@ class MongoModel(Document, BaseModel):
         values = vos.distinct(distinct)
 
         if 'desc' in sort:
-            if sort.get('desc', False):
-                values.sort(reverse=True)
-            else:
-                values.sort()
+            try:
+                if sort.get('desc', False):
+                    values.sort(reverse=True)
+                else:
+                    values.sort()
+            except Exception as e:
+                pass
 
         if limit:
             values = values[:limit]
