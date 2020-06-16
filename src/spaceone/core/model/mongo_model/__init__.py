@@ -567,6 +567,7 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def _stat_aggregate(cls, vos, aggregate, sort, page, limit):
+        result = {}
         pipeline = []
         _aggregation_rules = cls._make_aggregation_rules(aggregate)
 
@@ -593,6 +594,9 @@ class MongoModel(Document, BaseModel):
                 start = page.get('start', 1)
                 start = 1 if start < 1 else start
 
+                cursor = vos.aggregate(pipeline + [{'$count': 'total_count'}])
+                result['total_count'] = cursor.next()['total_count']
+
                 if start > 1:
                     pipeline.append({
                         '$skip': start - 1
@@ -603,10 +607,12 @@ class MongoModel(Document, BaseModel):
                 })
 
         cursor = vos.aggregate(pipeline)
-        return cls._make_aggregate_values(cursor)
+        result['results'] = cls._make_aggregate_values(cursor)
+        return result
 
     @classmethod
     def _stat_distinct(cls, vos, distinct, sort, page, limit):
+        result = {}
         values = vos.distinct(distinct)
 
         if 'desc' in sort:
@@ -615,7 +621,7 @@ class MongoModel(Document, BaseModel):
                     values.sort(reverse=True)
                 else:
                     values.sort()
-            except Exception as e:
+            except:
                 pass
 
         if limit:
@@ -626,9 +632,11 @@ class MongoModel(Document, BaseModel):
                 if start < 1:
                     start = 1
 
+                result['total_count'] = len(values)
                 values = values[start - 1:start + page['limit'] - 1]
 
-        return cls._make_distinct_values(values)
+        result['results'] = cls._make_distinct_values(values)
+        return result
 
     @classmethod
     def stat(cls, *args, aggregate=None, distinct=None, filter=[], filter_or=[],
