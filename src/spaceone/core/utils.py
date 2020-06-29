@@ -4,9 +4,11 @@ import uuid
 import datetime
 from urllib.parse import urlparse
 import yaml
+import json
 import urllib
 from typing import Tuple
 from functools import reduce
+from pathlib import Path
 
 
 def generate_id(prefix: str = 'id', nbytes: int = 6) -> str:
@@ -16,6 +18,42 @@ def generate_id(prefix: str = 'id', nbytes: int = 6) -> str:
 
 def random_string() -> str:
     return uuid.uuid4().hex
+
+
+def create_dir(path: str):
+    p = Path(path)
+    p.mkdir(parents=True, exist_ok=True)
+
+
+def dump_json(data: dict, indent=None, sort_keys=False) -> str:
+    try:
+        return json.dumps(data, indent=indent, sort_keys=sort_keys)
+    except Exception as e:
+        raise ValueError(f'JSON Dump Error: {str(e)}')
+
+
+def load_json(json_str: str) -> dict:
+    try:
+        return json.loads(json_str)
+    except Exception:
+        raise ValueError(f'JSON Load Error: {json_str}')
+
+
+def dump_yaml(data: dict) -> str:
+    try:
+        return yaml.dump(data)
+    except Exception as e:
+        raise ValueError(f'YAML Dump Error: {str(e)}')
+
+
+def save_yaml_to_file(data: dict, yaml_file: str):
+    try:
+        yaml_str = dump_yaml(data)
+        with open(yaml_file, 'w') as f:
+            f.write(yaml_str)
+            f.close()
+    except Exception as e:
+        raise ValueError(f'YAML Save Error: {str(e)}')
 
 
 def load_yaml(yaml_str: str) -> dict:
@@ -33,7 +71,7 @@ def load_yaml_from_file(yaml_file: str) -> dict:
         raise Exception(f'YAML Load Error: {yaml_file}')
 
 
-def load_yaml_from_url(url: str):
+def load_yaml_from_url(url: str) -> dict:
     try:
         f = urllib.urlopen(url)
         return load_yaml(f.read())

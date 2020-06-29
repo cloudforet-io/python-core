@@ -211,6 +211,7 @@ class _ClientInterceptor(
 class _GRPCClient:
 
     def __init__(self, version, channel, options, channel_key):
+        self.api_resources = {}
         self._well_known_types = get_well_known_types()
         self._related_message_types = {}
         self._client_interceptor = _ClientInterceptor(options, channel_key)
@@ -309,6 +310,7 @@ class _GRPCClient:
             self._related_message_types[module_name]['message_types'][message_type_name] = message_type
 
     def _preload_message_type(self, package, module_name, api_class_name, file_descriptor_proto):
+        self.api_resources[api_class_name] = []
         methods = file_descriptor_proto.service[0].method
         for method in methods:
             self._client_interceptor.add_message_type(
@@ -317,6 +319,8 @@ class _GRPCClient:
                 api_class_name,
                 method.name,
                 method.input_type)
+
+            self.api_resources[api_class_name].append(method.name)
 
     def _get_file_descriptor(self, reflection_stub, service):
         # Get File Descriptor
@@ -365,9 +369,15 @@ def client(**client_opts):
     endpoint = client_opts['endpoint']
     version = client_opts['version']
     channel_key = f'{endpoint}/{version}'
+    options = []
 
     if channel_key not in _GRPC_CHANNEL:
-        channel = grpc.insecure_channel(endpoint)
+        if 'max_message_length' in client_opts:
+            max_message_length = client_opts['max_message_length']
+            options.append(('grpc.max_send_message_length', max_message_length))
+            options.append(('grpc.max_receive_message_length', max_message_length))
+
+        channel = grpc.insecure_channel(endpoint, options=options)
         try:
             _GRPC_CHANNEL[channel_key] = _GRPCClient(version, channel, client_opts, channel_key)
         except Exception as e:
