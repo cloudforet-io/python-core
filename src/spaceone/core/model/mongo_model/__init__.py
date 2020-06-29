@@ -615,13 +615,13 @@ class MongoModel(Document, BaseModel):
         result = {}
         values = vos.distinct(distinct)
 
-        if 'desc' in sort:
+        if sort:
             try:
                 if sort.get('desc', False):
                     values.sort(reverse=True)
                 else:
                     values.sort()
-            except:
+            except Exception:
                 pass
 
         if limit:

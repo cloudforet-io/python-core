@@ -85,8 +85,4 @@ FILTER_OPERATORS = {
     'timediff_lt': (_timediff_resolver, 'lt', False),
     'timediff_gte': (_timediff_resolver, 'gte', False),
     'timediff_lte': (_timediff_resolver, 'lte', False),
-    'timedelta_gt': (_timediff_resolver, 'gt', False),
-    'timedelta_lt': (_timediff_resolver, 'lt', False),
-    'timedelta_gte': (_timediff_resolver, 'gte', False),
-    'timedelta_lte': (_timediff_resolver, 'lte', False),
 }
