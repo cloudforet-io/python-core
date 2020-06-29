@@ -12,9 +12,11 @@ from spaceone.core.error import *
 from spaceone.core.locator import Locator
 from spaceone.core.logger import set_logger
 from spaceone.core.transaction import Transaction
+from spaceone.core import utils
 
-__all__ = ['BaseService', 'check_required', 'append_query_filter', 'change_timestamp_value', 'change_timestamp_filter',
-           'append_keyword_filter', 'transaction', 'authentication_handler', 'authorization_handler', 'event_handler']
+__all__ = ['BaseService', 'check_required', 'append_query_filter', 'change_timestamp_value',
+           'change_timestamp_filter', 'append_keyword_filter', 'change_only_key', 'transaction',
+           'authentication_handler', 'authorization_handler', 'event_handler']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +52,29 @@ class BaseService(object):
     def __del__(self):
         if self.transaction.state == 'IN-PROGRESS':
             self.transaction.state = 'SUCCESS'
+
+
+def change_only_key(change_rule, key_path='only'):
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped_func(cls, params):
+            only_keys = change_rule.keys()
+            only = utils.get_dict_value(params, key_path, [])
+            new_only = []
+            for key in only:
+                key_match = key.split('.', 1)[0]
+                if key_match in only_keys:
+                    if change_rule[key_match] not in new_only:
+                        new_only.append(change_rule[key_match])
+                else:
+                    new_only.append(key)
+
+            utils.change_dict_value(params, key_path, new_only)
+            return func(cls, params)
+
+        return wrapped_func
+
+    return wrapper
 
 
 def check_required(required_keys):
