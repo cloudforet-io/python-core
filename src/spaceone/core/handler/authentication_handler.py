@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 
@@ -20,7 +19,7 @@ class AuthenticationGRPCHandler(object):
     def _validate(self, config):
         pass
 
-    def notify(self, transaction: Transaction, params: dict) -> dict:
+    def notify(self, transaction: Transaction):
         token = self._get_token(transaction.meta)
         domain_id = self._extract_domain_id(token)
         meta: list = transaction.get_connection_meta()
@@ -28,8 +27,6 @@ class AuthenticationGRPCHandler(object):
         token_info = self._authenticate(token, domain_id, meta)
 
         self._update_meta(transaction, token_info)
-
-        return params
 
     @cacheable(key='public-key:{domain_id}', backend='local')
     def _get_public_key(self, domain_id, meta):

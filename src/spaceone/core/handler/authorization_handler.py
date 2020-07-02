@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import copy
 import logging
 
@@ -22,8 +21,8 @@ class AuthorizationGRPCHandler(object):
     def _validate(self, config):
         pass
 
-    def notify(self, transaction: Transaction, params: dict) -> dict:
-        return params
+    def notify(self, transaction: Transaction):
+        pass
         # token_type = transaction.get_meta('token_type')
         #
         # if token_type == 'DOMAIN_OWNER':

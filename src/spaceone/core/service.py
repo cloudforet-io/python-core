@@ -271,17 +271,17 @@ def _pipeline(func, self, params):
         # 1. Authentication
         if _check_handler_method(self, 'authentication'):
             for handler in self.handler['authentication']['handlers']:
-                params = handler.notify(self.transaction, params)
+                handler.notify(self.transaction, params)
 
         # 2. Authorization
         if _check_handler_method(self, 'authorization'):
             for handler in self.handler['authorization']['handlers']:
-                params = handler.notify(self.transaction, params)
+                handler.notify(self.transaction, params)
 
         # 3. Start Event
         if _check_handler_method(self, 'event'):
             for handler in self.handler['event']['handlers']:
-                handler.notify(self.transaction, 'START', params)
+                handler.notify(self.transaction, 'STARTED', params)
 
         # 4. Service Body
         self.transaction.state = 'IN-PROGRESS'
