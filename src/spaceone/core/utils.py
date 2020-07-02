@@ -100,7 +100,7 @@ def parse_grpc_uri(uri: str) -> dict:
         if endpoint_info['scheme'] != 'grpc':
             raise ValueError(f'gRPC endpoint type is invalid. ({uri})')
 
-        version, api_class, method = \
+        version, service, method = \
             filter(lambda x: x.strip() != '', endpoint_info['path'].split('/'))
     except Exception:
         raise ValueError(f'gRPC URI is invalid. ({uri})')
@@ -108,7 +108,7 @@ def parse_grpc_uri(uri: str) -> dict:
     return {
         'endpoint': f'{endpoint_info["hostname"]}:{endpoint_info["port"]}',
         'version': version,
-        'api_class': api_class,
+        'service': service,
         'method': method
     }
 

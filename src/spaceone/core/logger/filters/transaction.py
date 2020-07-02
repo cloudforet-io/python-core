@@ -13,8 +13,8 @@ class TransactionFilter(logging.Filter):
             record.tnx_state = self.transaction.state
             record.peer = self.transaction.get_meta('peer')
 
-            if self.transaction.api_class and self.transaction.method:
-                record.tnx_method = f'{self.transaction.api_class}.{self.transaction.method}'
+            if self.transaction.resource and self.transaction.verb:
+                record.tnx_method = f'{self.transaction.resource}.{self.transaction.verb}'
             else:
                 record.tnx_method = ''
         else:

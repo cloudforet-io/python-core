@@ -1,5 +1,3 @@
-[]# -*- coding: utf-8 -*-
-
 from google.protobuf.json_format import MessageToDict
 from spaceone.core import pygrpc
 from spaceone.core import utils
@@ -23,8 +21,8 @@ class EventGRPCHandler(object):
             grpc_method = pygrpc.get_grpc_method(self.uri_info)
             grpc_method({
                 'service': transaction.service,
-                'api_class': transaction.api_class,
-                'method': transaction.method,
+                'resource': transaction.resource,
+                'verb': transaction.verb,
                 'event_type': event_type,
                 'message': message
             })

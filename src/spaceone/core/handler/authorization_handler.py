@@ -48,8 +48,8 @@ class AuthorizationGRPCHandler(object):
         response = grpc_method(
             {
                 'service': transaction.service,
-                'api_class': transaction.api_class,
-                'method': transaction.method,
+                'resource': transaction.resource,
+                'verb': transaction.verb,
                 'parameter': params
             },
             metadata=transaction.get_connection_meta()

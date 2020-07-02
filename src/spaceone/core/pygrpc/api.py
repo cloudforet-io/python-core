@@ -40,7 +40,7 @@ class BaseAPI(object):
                 grpc_servicer = base_class
 
         if grpc_servicer is None:
-            raise Exception(f'gRPC servicer is not set. (api_class={self.__class__.__name__})')
+            raise Exception(f'gRPC servicer is not set. (servicer={self.__class__.__name__})')
 
         return grpc_servicer
 
@@ -86,8 +86,8 @@ class BaseAPI(object):
             try:
                 context.api_info = {
                     'service': service_name,
-                    'api_class': self.__class__.__name__,
-                    'method': func.__name__
+                    'resource': self.__class__.__name__,
+                    'verb': func.__name__
                 }
 
                 response_or_iterator = func(self, request_or_iterator, context)

@@ -20,7 +20,7 @@ class Transaction(object):
         self._event_handlers = []
 
     def __repr__(self):
-        return f"<Transaction ({self.api_class}.{self.method})>"
+        return f"<Transaction ({self.resource}.{self.verb})>"
 
     def _set_transaction_id(self):
         if 'transaction_id' not in self._meta:
@@ -39,20 +39,20 @@ class Transaction(object):
         self._meta['service'] = value
 
     @property
-    def api_class(self):
-        return self._meta.get('api_class')
+    def resource(self):
+        return self._meta.get('resource')
 
-    @api_class.setter
-    def api_class(self, value):
-        self._meta['api_class'] = value
+    @resource.setter
+    def resource(self, value):
+        self._meta['resource'] = value
 
     @property
-    def method(self):
-        return self._meta.get('method')
+    def verb(self):
+        return self._meta.get('verb')
 
-    @method.setter
-    def method(self, value):
-        self._meta['method'] = value
+    @verb.setter
+    def verb(self, value):
+        self._meta['verb'] = value
 
     @property
     def state(self):
