@@ -179,7 +179,7 @@ class ERROR_GRPC_CONNECTION(ERROR_BASE):
 
 
 class ERROR_GRPC_CONFIGURATION(ERROR_BASE):
-    _message = 'gRPC client configuration is invalid. ({endpoint}/{version}/{api_class}/{method})'
+    _message = 'gRPC client configuration is invalid. ({endpoint}/{version}/{service}/{method})'
 
 
 class ERROR_HANDLER(ERROR_BASE):

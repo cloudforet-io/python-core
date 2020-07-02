@@ -46,9 +46,9 @@ class _ClientInterceptor(
         self._MESSAGE_TYPE_MAP = {}
         self._FIELD_TYPE_MAP = {}
 
-    def add_message_type(self, package, module_name, api_class_name, method_name, input_type):
+    def add_message_type(self, package, module_name, service_name, method_name, input_type):
         message_name = input_type.split('.')[-1:][0]
-        method_key = f'/{package}.{api_class_name}/{method_name}'
+        method_key = f'/{package}.{service_name}/{method_name}'
         pb2_module = __import__(f'{package}.{module_name}_pb2', fromlist=[f'{module_name}_pb2'])
 
         if method_key not in self._MESSAGE_TYPE_MAP:
@@ -224,11 +224,11 @@ class _GRPCClient:
     def _parse_proto_name(proto_name, package):
         return re.findall(r'%s/(.*?).proto' % package, proto_name)[0]
 
-    def _create_grpc_stub(self, package, module_name, api_class_name):
+    def _create_grpc_stub(self, package, module_name, service_name):
         grpc_pb2_module = __import__(f'{package}.{module_name}_pb2_grpc', fromlist=['{module_name}_pb2_grpc'])
 
-        setattr(self, api_class_name,
-                getattr(grpc_pb2_module, f'{api_class_name}Stub')(self._intercept_channel))
+        setattr(self, service_name,
+                getattr(grpc_pb2_module, f'{service_name}Stub')(self._intercept_channel))
 
     def _change_message_field_type(self, module_name, message_type_name, field, is_repeated=False):
         pb2_module = self._related_message_types[module_name]['module']
@@ -309,18 +309,18 @@ class _GRPCClient:
             message_type_name = f'.{package}.{message_type.name}'
             self._related_message_types[module_name]['message_types'][message_type_name] = message_type
 
-    def _preload_message_type(self, package, module_name, api_class_name, file_descriptor_proto):
-        self.api_resources[api_class_name] = []
+    def _preload_message_type(self, package, module_name, service_name, file_descriptor_proto):
+        self.api_resources[service_name] = []
         methods = file_descriptor_proto.service[0].method
         for method in methods:
             self._client_interceptor.add_message_type(
                 package,
                 module_name,
-                api_class_name,
+                service_name,
                 method.name,
                 method.input_type)
 
-            self.api_resources[api_class_name].append(method.name)
+            self.api_resources[service_name].append(method.name)
 
     def _get_file_descriptor(self, reflection_stub, service):
         # Get File Descriptor
@@ -334,14 +334,14 @@ class _GRPCClient:
             package = file_descriptor_proto.package
             version = package.split('.')[-1:][0]
             if version == self._version:
-                api_class_name = file_descriptor_proto.service[0].name
+                service_name = file_descriptor_proto.service[0].name
                 module_name = self._parse_proto_name(file_descriptor_proto.name, package)
 
-                self._create_grpc_stub(package, module_name, api_class_name)
+                self._create_grpc_stub(package, module_name, service_name)
                 self._preload_message_type(
                     package,
                     module_name,
-                    api_class_name,
+                    service_name,
                     file_descriptor_proto)
 
                 self._preload_related_message_type(file_descriptor_proto, module_name)
@@ -392,10 +392,10 @@ def client(**client_opts):
 def get_grpc_method(uri_info):
     try:
         conn = client(endpoint=uri_info['endpoint'], version=uri_info['version'])
-        return getattr(getattr(conn, uri_info['api_class']), uri_info['method'])
+        return getattr(getattr(conn, uri_info['service']), uri_info['method'])
 
     except Exception as e:
         raise ERROR_GRPC_CONFIGURATION(endpoint=uri_info.get('endpoint'),
                                        version=uri_info.get('version'),
-                                       api_class=uri_info.get('api_class'),
+                                       service=uri_info.get('service'),
                                        method=uri_info.get('method'))

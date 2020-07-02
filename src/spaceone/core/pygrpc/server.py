@@ -64,10 +64,10 @@ def _add_app_services(server, service_names: list):
     service = config.get_service()
     apis_spec = _get_proto_conf(config.get_service())
     for version, apis in apis_spec.items():
-        for module_name, apis_class_name in apis.items():
-            for api_class_name in apis_class_name:
-                api_module = _get_api_module(service, version, module_name, api_class_name)
-                servicer = getattr(api_module, api_class_name)()
+        for module_name, servicer_names in apis.items():
+            for servicer_name in servicer_names:
+                api_module = _get_api_module(service, version, module_name, servicer_name)
+                servicer = getattr(api_module, servicer_name)()
 
                 getattr(servicer.pb2_grpc_module, f'add_{servicer.name}Servicer_to_server')(servicer, server)
                 service_names.append(servicer.service_name)
@@ -75,18 +75,18 @@ def _add_app_services(server, service_names: list):
     return server, service_names
 
 
-def _get_api_module(service: str, version: str, module_name: str, api_class_name: str):
-    return __import__(f'spaceone.{service}.api.{version}.{module_name}', fromlist=[api_class_name])
+def _get_api_module(service: str, version: str, module_name: str, servicer_name: str):
+    return __import__(f'spaceone.{service}.api.{version}.{module_name}', fromlist=[servicer_name])
 
 
 def _add_core_services(server, service_names: list):
     apis_spec = config.get_core_default_apis()
 
-    for module_path, apis_class_name in apis_spec.items():
-        for api_class_name in apis_class_name:
-            api_module = _import_module(module_path, api_class_name)
+    for module_path, servicer_names in apis_spec.items():
+        for servicer_name in servicer_names:
+            api_module = _import_module(module_path, servicer_name)
             if api_module:
-                servicer = getattr(api_module, api_class_name)()
+                servicer = getattr(api_module, servicer_name)()
 
                 getattr(servicer.pb2_grpc_module, f'add_{servicer.name}Servicer_to_server')(servicer, server)
                 service_names.append(servicer.service_name)
@@ -94,10 +94,10 @@ def _add_core_services(server, service_names: list):
     return server, service_names
 
 
-def _import_module(module_path, api_class_name):
+def _import_module(module_path, servicer_name):
     module = None
     try:
-        module = __import__(module_path, fromlist=[api_class_name])
+        module = __import__(module_path, fromlist=[servicer_name])
     except Exception as e:
         _LOGGER.warning(f'[_import_module] Cannot import core module. (e={e})')
 
