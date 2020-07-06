@@ -19,7 +19,7 @@ class AuthenticationGRPCHandler(object):
     def _validate(self, config):
         pass
 
-    def notify(self, transaction: Transaction):
+    def notify(self, transaction: Transaction, params=None):
         token = self._get_token(transaction.meta)
         domain_id = self._extract_domain_id(token)
         meta: list = transaction.get_connection_meta()
