@@ -21,7 +21,7 @@ class AuthorizationGRPCHandler(object):
     def _validate(self, config):
         pass
 
-    def notify(self, transaction: Transaction):
+    def notify(self, transaction: Transaction, params=None):
         pass
         # token_type = transaction.get_meta('token_type')
         #
