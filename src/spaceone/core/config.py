@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 
 from spaceone.core import utils
@@ -7,12 +5,12 @@ from spaceone.core import utils
 _REMOTE_URL = []
 _GLOBAL = {
     'PORT': 50051,
+    'MODULE_PATH': None,
     'SERVICE': None,
     'SERVER_TYPE': None,
-    'ENDPOINTS': {},
     'MAX_WORKERS': 100,
     'MAX_MESSAGE_LENGTH': 1024*1024*1024,
-    'CORE_DEFAULT_APIS': {
+    'EXTENSION_APIS': {
         'spaceone.core.api.grpc_health': ['GRPCHealth'],
         'spaceone.core.api.server_info': ['ServerInfo']
     }
@@ -20,36 +18,45 @@ _GLOBAL = {
 _LOGGER = logging.getLogger(__name__)
 
 
-def init_conf(service, server_type='grpc', port=50051):
-    _GLOBAL['SERVICE'] = service
-    _GLOBAL['SERVER_TYPE'] = server_type
-    _GLOBAL['PORT'] = port
+def init_conf(module_path, **kwargs):
+    _GLOBAL['MODULE_PATH'] = module_path
+    _GLOBAL['SERVICE'] = module_path.rsplit('.', 1)[-1:][0]
+
+    if 'server_type' in kwargs:
+        _GLOBAL['SERVER_TYPE'] = kwargs['server_type']
+
+    if 'port' in kwargs:
+        _GLOBAL['PORT'] = kwargs['port']
+
+
+def get_module_path():
+    return _GLOBAL['MODULE_PATH']
 
 
 def get_service():
     return _GLOBAL['SERVICE']
 
 
-def get_core_default_apis():
-    return _GLOBAL.get('CORE_DEFAULT_APIS', {})
+def get_extension_apis():
+    return _GLOBAL.get('EXTENSION_APIS', {})
 
 
 def set_default_conf():
     """
-    Get Config from module (spaceone.{service}.conf.global_conf)
+    Get Config from module ({module_path}.conf.global_conf)
     """
-    service = _GLOBAL['SERVICE']
-    if service is None:
-        raise ValueError(f'service is undefined.')
-    global_module = __import__(f'spaceone.{service}.conf.global_conf', fromlist=['global_conf'])
+    module_path = _GLOBAL['MODULE_PATH']
+    if module_path is None:
+        raise ValueError(f'Module path is undefined.')
+    global_module = __import__(f'{module_path}.conf.global_conf', fromlist=['global_conf'])
     for key, value in vars(global_module).items():
         if not key.startswith('__'):
             _GLOBAL[key] = value
 
 
-def get_global(key=None):
+def get_global(key=None, default=None):
     if key:
-        return _GLOBAL.get(key)
+        return _GLOBAL.get(key, default)
     else:
         return _GLOBAL
 
@@ -69,7 +76,7 @@ def set_global(**config):
                 global_conf[key] = value
 
 
-def set_remote_conf_from_file(config_yml):
+def set_remote_conf_from_file(config_yml: str):
     file_conf = utils.load_yaml_from_file(config_yml)
     url_conf: list = file_conf.get('REMOTE_URL', [])
 
@@ -84,39 +91,9 @@ def set_remote_conf_from_file(config_yml):
             set_global(**conf_to_merge)
 
 
-def set_file_conf(config_yml):
+def set_file_conf(config_yml: str):
     file_conf = utils.load_yaml_from_file(config_yml)
 
     global_conf = file_conf.get('GLOBAL', {})
 
     set_global(**global_conf)
-
-
-def load_config(config_yaml_file, service=None):
-    file_conf = utils.load_yaml_from_file(config_yaml_file)
-    conf_to_merge = file_conf.get('GLOBAL', {})
-
-    if service is None:
-        service = conf_to_merge.get('SERVICE', None)
-
-    init_conf(
-        service=service,
-        server_type=conf_to_merge.get('SERVER_TYPE', None),
-        port=conf_to_merge.get('PORT', None)
-    )
-
-    set_default_conf()
-
-    set_global(**conf_to_merge)
-
-    return get_global()
-
-
-def get_handlers(handler_type):
-    global_conf = get_global()
-    return global_conf.get('HANDLERS', {}).get(handler_type, [])
-
-
-def get_connector(connector):
-    global_conf = get_global()
-    return global_conf.get('CONNECTORS', {}).get(connector, {})

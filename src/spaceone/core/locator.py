@@ -43,7 +43,7 @@ class Locator(object):
 
     def get_connector(self, name, **kwargs):
         service = config.get_service()
-        connector_conf = config.get_connector(name)
+        connector_conf = config.get_global('CONNECTORS', {}).get(name, {})
         try:
             connector_module = _get_module(service, 'connector')
             return getattr(connector_module, name)(self.transaction, connector_conf, **kwargs)

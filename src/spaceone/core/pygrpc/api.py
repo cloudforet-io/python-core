@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import grpc
 import traceback
 import collections
@@ -11,7 +9,6 @@ from spaceone.core import config
 from spaceone.core.error import *
 from spaceone.core.locator import Locator
 
-_API_MODULE_NAME = 'spaceone.api'
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -19,6 +16,7 @@ class BaseAPI(object):
     locator = Locator()
 
     def __init__(self):
+        self._check_variables()
         self._set_grpc_method()
 
     @property
@@ -33,10 +31,17 @@ class BaseAPI(object):
     def service_name(self):
         return self.pb2.DESCRIPTOR.services_by_name[self.__class__.__name__].full_name
 
+    def _check_variables(self):
+        if not hasattr(self, 'pb2'):
+            raise Exception(f'gRPC Servicer has not set <pb2> variable. (servicer={self.__class__.__name__})')
+
+        if not hasattr(self, 'pb2_grpc'):
+            raise Exception(f'gRPC Servicer has not set <pb2_grpc> variable. (servicer={self.__class__.__name__})')
+
     def _get_grpc_servicer(self):
         grpc_servicer = None
         for base_class in self.__class__.__bases__:
-            if base_class.__module__.startswith(_API_MODULE_NAME):
+            if base_class.__module__ == self.pb2_grpc.__name__:
                 grpc_servicer = base_class
 
         if grpc_servicer is None:

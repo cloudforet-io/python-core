@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import argparse
 import os
@@ -26,7 +25,7 @@ def _set_grpc_command(subparsers, env):
     parser = subparsers.add_parser('grpc', description='Run a gRPC server',
                                    help='Run a gRPC server',
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('service', metavar='SERVICE', help='service name (identity, inventory, etc.)')
+    parser.add_argument('module_path', metavar='MODULE_PATH', help='module path (ex: spaceone.identity)')
     parser.add_argument('-p', '--port', type=int, help='port of gRPC server', default=env['PORT'] or 50051)
     parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
                         default=env['CONFIG_FILE'])
@@ -36,7 +35,7 @@ def _set_rest_command(subparsers, env):
     parser = subparsers.add_parser('rest', description='Run a REST server',
                                    help='Run a REST server',
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('service', metavar='SERVICE', help='service name (identity, inventory, etc.)')
+    parser.add_argument('module_path', metavar='MODULE_PATH', help='module path (ex: spaceone.identity)')
     parser.add_argument('-p', '--port', type=int, help='port of REST server', default=env['PORT'] or 8080)
     parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
                         default=env['CONFIG_FILE'])
@@ -46,7 +45,7 @@ def _set_scheduler_command(subparsers, env):
     parser = subparsers.add_parser('scheduler', description='Run a scheduler server',
                                    help='Run a scheduler server',
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('service', metavar='SERVICE', help='service name (identity, inventory, etc.)')
+    parser.add_argument('module_path', metavar='MODULE_PATH', help='module path (ex: spaceone.identity)')
     parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
                         default=env['CONFIG_FILE'])
 
@@ -66,6 +65,7 @@ def _set_test_command(subparsers, env):
                         help="custom parameters to override a scenario file. "
                              "ex) -p domain.domain.name=new_name options.update_mode=false")
     parser.add_argument('-v', '--verbose', help='verbosity level', type=int, default=1)
+
 
 def _set_default_config():
     config.set_default_conf()
@@ -88,7 +88,7 @@ def _set_server_config(args):
 
     # set server type
     config.init_conf(
-        service=params['service'],
+        module_path=params['module_path'],
         server_type=params['command'],
         port=params.get('port')
     )
@@ -133,7 +133,6 @@ def _run_tests(args):
 
 def _run_command(args):
     command = args.command
-
     if command == 'grpc':
         pygrpc.serve()
     elif command == 'scheduler':
