@@ -1,14 +1,10 @@
-# -*- coding: utf-8 -*-
-
 import re
 import logging
-import functools
 import types
 import grpc
 from google.protobuf import descriptor_pb2
 from grpc_reflection.v1alpha import reflection_pb2
 from grpc_reflection.v1alpha import reflection_pb2_grpc
-from spaceone.core import config
 from spaceone.core import utils
 from spaceone.core.error import *
 from spaceone.core.pygrpc.message_type import get_well_known_types
@@ -210,12 +206,11 @@ class _ClientInterceptor(
 
 class _GRPCClient:
 
-    def __init__(self, version, channel, options, channel_key):
+    def __init__(self, channel, options, channel_key):
         self.api_resources = {}
         self._well_known_types = get_well_known_types()
         self._related_message_types = {}
         self._client_interceptor = _ClientInterceptor(options, channel_key)
-        self._version = version
         self._channel = channel
         self._intercept_channel = grpc.intercept_channel(channel, self._client_interceptor)
         self._get_server_reflection_info()
@@ -332,20 +327,18 @@ class _GRPCClient:
 
             # Parse File Descriptor
             package = file_descriptor_proto.package
-            version = package.split('.')[-1:][0]
-            if version == self._version:
-                service_name = file_descriptor_proto.service[0].name
-                module_name = self._parse_proto_name(file_descriptor_proto.name, package)
+            service_name = file_descriptor_proto.service[0].name
+            module_name = self._parse_proto_name(file_descriptor_proto.name, package)
 
-                self._create_grpc_stub(package, module_name, service_name)
-                self._preload_message_type(
-                    package,
-                    module_name,
-                    service_name,
-                    file_descriptor_proto)
+            self._create_grpc_stub(package, module_name, service_name)
+            self._preload_message_type(
+                package,
+                module_name,
+                service_name,
+                file_descriptor_proto)
 
-                self._preload_related_message_type(file_descriptor_proto, module_name)
-                self._preload_field_type(file_descriptor_proto.message_type, module_name)
+            self._preload_related_message_type(file_descriptor_proto, module_name)
+            self._preload_field_type(file_descriptor_proto.message_type, module_name)
 
     def _get_server_reflection_info(self):
         reflection_stub = reflection_pb2_grpc.ServerReflectionStub(self._channel)
@@ -363,12 +356,8 @@ def client(**client_opts):
     if not client_opts.get('endpoint'):
         raise Exception("Client's endpoint is undefined.")
 
-    if 'version' not in client_opts:
-        client_opts['version'] = 'v1'
-
     endpoint = client_opts['endpoint']
-    version = client_opts['version']
-    channel_key = f'{endpoint}/{version}'
+    channel_key = f'{endpoint}'
     options = []
 
     if channel_key not in _GRPC_CHANNEL:
@@ -379,7 +368,7 @@ def client(**client_opts):
 
         channel = grpc.insecure_channel(endpoint, options=options)
         try:
-            _GRPC_CHANNEL[channel_key] = _GRPCClient(version, channel, client_opts, channel_key)
+            _GRPC_CHANNEL[channel_key] = _GRPCClient(channel, client_opts, channel_key)
         except Exception as e:
             if hasattr(e, 'details'):
                 raise ERROR_GRPC_CONNECTION(channel=channel_key, message=e.details())
@@ -391,11 +380,10 @@ def client(**client_opts):
 
 def get_grpc_method(uri_info):
     try:
-        conn = client(endpoint=uri_info['endpoint'], version=uri_info['version'])
+        conn = client(endpoint=uri_info['endpoint'])
         return getattr(getattr(conn, uri_info['service']), uri_info['method'])
 
     except Exception as e:
         raise ERROR_GRPC_CONFIGURATION(endpoint=uri_info.get('endpoint'),
-                                       version=uri_info.get('version'),
                                        service=uri_info.get('service'),
                                        method=uri_info.get('method'))
