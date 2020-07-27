@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 
 from spaceone.core import config
@@ -8,8 +6,8 @@ from spaceone.core.error import *
 _LOGGER = logging.getLogger(__name__)
 
 
-def _get_module(service, target):
-    return __import__(f'spaceone.{service}.{target}', fromlist=[f'{target}'])
+def _get_module(package, target):
+    return __import__(f'{package}.{target}', fromlist=[f'{target}'])
 
 
 class Locator(object):
@@ -18,9 +16,9 @@ class Locator(object):
         self.transaction = transaction
 
     def get_service(self, name, metadata={}):
-        service = config.get_service()
+        package = config.get_package()
         try:
-            service_module = _get_module(service, 'service')
+            service_module = _get_module(package, 'service')
             return getattr(service_module, name)(metadata)
 
         except ERROR_BASE as e:
@@ -30,9 +28,9 @@ class Locator(object):
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'service'})
 
     def get_manager(self, name, **kwargs):
-        service = config.get_service()
+        package = config.get_package()
         try:
-            manager_module = _get_module(service, 'manager')
+            manager_module = _get_module(package, 'manager')
             return getattr(manager_module, name)(self.transaction, **kwargs)
 
         except ERROR_BASE as e:
@@ -42,10 +40,10 @@ class Locator(object):
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'manager'})
 
     def get_connector(self, name, **kwargs):
-        service = config.get_service()
-        connector_conf = config.get_global('CONNECTORS', {}).get(name, {})
+        package = config.get_package()
+        connector_conf = config.get_handler(name)
         try:
-            connector_module = _get_module(service, 'connector')
+            connector_module = _get_module(package, 'connector')
             return getattr(connector_module, name)(self.transaction, connector_conf, **kwargs)
 
         except ERROR_BASE as e:
@@ -55,9 +53,9 @@ class Locator(object):
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'connector'})
 
     def get_info(self, name, *args, **kwargs):
-        service = config.get_service()
+        package = config.get_package()
         try:
-            info_module = _get_module(service, 'info')
+            info_module = _get_module(package, 'info')
             return getattr(info_module, name)(*args, **kwargs)
 
         except ERROR_BASE as e:
@@ -67,9 +65,9 @@ class Locator(object):
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'info'})
 
     def get_model(self, name):
-        service = config.get_service()
+        package = config.get_package()
         try:
-            model_module = _get_module(service, 'model')
+            model_module = _get_module(package, 'model')
             model = getattr(model_module, name)
             model.connect()
             return model
@@ -79,31 +77,3 @@ class Locator(object):
 
         except Exception as e:
             raise ERROR_LOCATOR(name=f'{name} Model', reason=e, _meta={'type': 'info'})
-
-    def get_actuator(self, name, *args, **kwargs):
-        service = config.get_service()
-        actuator = self._load_actuator('core', name, *args, **kwargs)
-        try:
-            service_actuator = self._load_actuator(service, name, *args, **kwargs)
-            if issubclass(service_actuator.__class__, actuator.__class__):
-                actuator = service_actuator
-        except Exception as e:
-            message = getattr(e, 'message', e)
-            _LOGGER.warning(f'Actuator Load Error: {message}')
-
-        return actuator
-
-    @staticmethod
-    def _load_actuator(service, name, *args, **kwargs):
-        actuator_instance = None
-        try:
-            actuator_module = _get_module(service, 'actuator')
-            actuator_instance = getattr(actuator_module, name)(*args, **kwargs)
-
-        except ERROR_BASE as e:
-            raise e
-
-        except Exception as e:
-            raise ERROR_LOCATOR(name=f'{name} Actuator', reason=e, meta={'type': 'actuator'})
-
-        return actuator_instance
