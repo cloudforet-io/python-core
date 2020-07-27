@@ -38,8 +38,8 @@ class _ServerInterceptor(grpc.ServerInterceptor):
         return response
 
 
-def _get_proto_conf(module_path):
-    proto_module = __import__(f'{module_path}.conf.proto_conf', fromlist=['proto_conf'])
+def _get_proto_conf(package):
+    proto_module = __import__(f'{package}.conf.proto_conf', fromlist=['proto_conf'])
     return getattr(proto_module, 'PROTO', {})
 
 
@@ -47,7 +47,7 @@ def _init_services(server):
     service_names = []
 
     # Set Core Services
-    proto_conf = _get_proto_conf(config.get_module_path())
+    proto_conf = _get_proto_conf(config.get_package())
     server, service_names = _add_services(server, service_names, proto_conf)
 
     # Set Extension Services

@@ -1,26 +1,19 @@
 import logging
+import sys
 
 from spaceone.core import utils
+from spaceone.core.config import default_conf
 
 _REMOTE_URL = []
-_GLOBAL = {
-    'PORT': 50051,
-    'MODULE_PATH': None,
-    'SERVICE': None,
-    'SERVER_TYPE': None,
-    'MAX_WORKERS': 100,
-    'MAX_MESSAGE_LENGTH': 1024*1024*1024,
-    'EXTENSION_APIS': {
-        'spaceone.core.api.grpc_health': ['GRPCHealth'],
-        'spaceone.core.api.server_info': ['ServerInfo']
-    }
-}
+_GLOBAL = {}
 _LOGGER = logging.getLogger(__name__)
 
 
-def init_conf(module_path, **kwargs):
-    _GLOBAL['MODULE_PATH'] = module_path
-    _GLOBAL['SERVICE'] = module_path.rsplit('.', 1)[-1:][0]
+def init_conf(package, **kwargs):
+    set_default_conf()
+
+    _GLOBAL['PACKAGE'] = package
+    _GLOBAL['SERVICE'] = package.rsplit('.', 1)[-1:][0]
 
     if 'server_type' in kwargs:
         _GLOBAL['SERVER_TYPE'] = kwargs['server_type']
@@ -29,8 +22,14 @@ def init_conf(module_path, **kwargs):
         _GLOBAL['PORT'] = kwargs['port']
 
 
-def get_module_path():
-    return _GLOBAL['MODULE_PATH']
+def set_default_conf():
+    for key, value in vars(default_conf).items():
+        if not key.startswith('__'):
+            _GLOBAL[key] = value
+
+
+def get_package():
+    return _GLOBAL['PACKAGE']
 
 
 def get_service():
@@ -41,14 +40,24 @@ def get_extension_apis():
     return _GLOBAL.get('EXTENSION_APIS', {})
 
 
-def set_default_conf():
+def get_handler(name):
+    return _GLOBAL.get('HANDLERS', {}).get(name, {})
+
+
+def get_connector(name):
+    return _GLOBAL.get('CONNECTORS', {}).get(name, {})
+
+
+def set_service_config():
     """
-    Get Config from module ({module_path}.conf.global_conf)
+    Get config from service ({package}.conf.global_conf)
     """
-    module_path = _GLOBAL['MODULE_PATH']
-    if module_path is None:
-        raise ValueError(f'Module path is undefined.')
-    global_module = __import__(f'{module_path}.conf.global_conf', fromlist=['global_conf'])
+
+    package = _GLOBAL['PACKAGE']
+    if package is None:
+        raise ValueError(f'Package is undefined.')
+
+    global_module = __import__(f'{package}.conf.global_conf', fromlist=['global_conf'])
     for key, value in vars(global_module).items():
         if not key.startswith('__'):
             _GLOBAL[key] = value
@@ -93,7 +102,5 @@ def set_remote_conf_from_file(config_yml: str):
 
 def set_file_conf(config_yml: str):
     file_conf = utils.load_yaml_from_file(config_yml)
-
     global_conf = file_conf.get('GLOBAL', {})
-
     set_global(**global_conf)
