@@ -42,7 +42,7 @@ class Locator(object):
 
     def get_connector(self, name, **kwargs):
         package = config.get_package()
-        connector_conf = config.get_handler(name)
+        connector_conf = config.get_connector(name)
         try:
             connector_module = _get_module(package, 'connector')
             return getattr(connector_module, name)(self.transaction, connector_conf, **kwargs)
