@@ -34,6 +34,10 @@ class ERROR_BASE(Exception):
     def meta(self):
         return self._meta
 
+    @meta.setter
+    def set_meta(self, key, value):
+        self._meta[key] = value
+
     def _repr(self):
         return ('\n'
                 f'\terror_code = {self._error_code}\n'
