@@ -339,7 +339,7 @@ def _set_handler(func, handler_type, methods, exclude):
 
 def _load_handler(self, handler_type):
     try:
-        handlers = config.get_global('HANDLERS', {}).get(handler_type, [])
+        handlers = config.get_handler(handler_type)
         for handler in handlers:
             module_name, class_name = handler['backend'].rsplit('.', 1)
             handler_module = __import__(module_name, fromlist=[class_name])

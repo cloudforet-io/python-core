@@ -157,7 +157,7 @@ def _set_filters(filters):
 
 
 def _set_config(transaction):
-    global_log_conf = config.get_global('LOG') or {}
+    global_log_conf = config.get_global('LOG', {})
 
     _set_default_logger(DEFAULT_LOGGER)
 
