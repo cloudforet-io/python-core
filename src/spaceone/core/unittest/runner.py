@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from xmlrunner import XMLTestRunner
 from spaceone.core.unittest.result import RichTestResult
 

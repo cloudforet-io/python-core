@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import argparse
 import os
+import sys
+import pkg_resources
 import unittest
 
 from spaceone.core import config
@@ -26,29 +27,32 @@ def _set_grpc_command(subparsers, env):
     parser = subparsers.add_parser('grpc', description='Run a gRPC server',
                                    help='Run a gRPC server',
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('service', metavar='SERVICE', help='service name (identity, inventory, etc.)')
-    parser.add_argument('-p', '--port', type=int, help='port of gRPC server', default=env['PORT'] or 50051)
+    parser.add_argument('package', metavar='PACKAGE', help='Package (ex: spaceone.identity)')
+    parser.add_argument('-p', '--port', type=int, help='Port of gRPC server', default=env['PORT'] or 50051)
     parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
                         default=env['CONFIG_FILE'])
+    parser.add_argument('-m', '--module-path', help='Module path')
 
 
 def _set_rest_command(subparsers, env):
     parser = subparsers.add_parser('rest', description='Run a REST server',
                                    help='Run a REST server',
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('service', metavar='SERVICE', help='service name (identity, inventory, etc.)')
-    parser.add_argument('-p', '--port', type=int, help='port of REST server', default=env['PORT'] or 8080)
+    parser.add_argument('package', metavar='PACKAGE', help='Package (ex: spaceone.identity)')
+    parser.add_argument('-p', '--port', type=int, help='Port of REST server', default=env['PORT'] or 8080)
     parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
                         default=env['CONFIG_FILE'])
+    parser.add_argument('-m', '--module-path', help='Module path')
 
 
 def _set_scheduler_command(subparsers, env):
     parser = subparsers.add_parser('scheduler', description='Run a scheduler server',
                                    help='Run a scheduler server',
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('service', metavar='SERVICE', help='service name (identity, inventory, etc.)')
+    parser.add_argument('package', metavar='PACKAGE', help='Package (ex: spaceone.identity)')
     parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
                         default=env['CONFIG_FILE'])
+    parser.add_argument('-m', '--module-path', help='Module path')
 
 
 def _set_test_command(subparsers, env):
@@ -67,9 +71,6 @@ def _set_test_command(subparsers, env):
                              "ex) -p domain.domain.name=new_name options.update_mode=false")
     parser.add_argument('-v', '--verbose', help='verbosity level', type=int, default=1)
 
-def _set_default_config():
-    config.set_default_conf()
-
 
 def _set_file_config(conf_file):
     if conf_file and conf_file.name:
@@ -86,20 +87,33 @@ def _set_remote_config(conf_file):
 def _set_server_config(args):
     params = vars(args)
 
-    # set server type
+    module_path = params.get('module_path')
+    if module_path and module_path not in sys.path:
+        sys.path.insert(0, module_path)
+
+        if '.' in params.get('package'):
+            pkg_resources.declare_namespace(params['package'])
+
+    try:
+        __import__(params['package'])
+    except Exception:
+        raise Exception(f'The package({params["package"]}) can not imported. '
+                        'Please check the module path.')
+
+    # Initialize config from command argument
     config.init_conf(
-        service=params['service'],
+        package=params['package'],
         server_type=params['command'],
         port=params.get('port')
     )
 
-    # 1. get default config from global_conf.py
-    _set_default_config()
+    # 1. Get service config from global_conf.py
+    config.set_service_config()
 
-    # 2. merge file conf
+    # 2. Merge file conf
     _set_file_config(params['config'])
 
-    # 3. merge remote conf
+    # 3. Merge remote conf
     _set_remote_config(params['config'])
 
 
@@ -133,7 +147,6 @@ def _run_tests(args):
 
 def _run_command(args):
     command = args.command
-
     if command == 'grpc':
         pygrpc.serve()
     elif command == 'scheduler':

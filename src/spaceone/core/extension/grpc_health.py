@@ -1,8 +1,7 @@
 import logging
+from enum import Enum
 
 from spaceone.core import config
-from spaceone.core.locator import Locator
-from spaceone.core.actuator.health import Health
 from grpc_health.v1.health import HealthServicer, SERVICE_NAME
 from grpc_health.v1 import health_pb2, health_pb2_grpc
 
@@ -14,10 +13,9 @@ class GRPCHealth(HealthServicer):
     def __init__(self, experimental_non_blocking=True,
                  experimental_thread_pool=None):
         super().__init__(experimental_non_blocking, experimental_thread_pool)
-        locator = Locator()
-        self.actuator = locator.get_actuator('Health')
-        self.actuator.add_health_update(self)
-        self.actuator.check()
+        self.health_mgr = HealthManager()
+        self.health_mgr.add_health_update(self)
+        self.health_mgr.check()
 
     @property
     def name(self):
@@ -32,20 +30,42 @@ class GRPCHealth(HealthServicer):
         return SERVICE_NAME
 
     def Check(self, request, context):
-
         try:
-            status = self.actuator.check()
+            status = self.health_mgr.check()
+            status = status.value
+            self.update_status(status)
 
-            if isinstance(status, Health.Status):
-                status = status.value
-                self.update_status(status)
-            else:
-                _LOGGER.debug(f'[Check] status is not type of Health.Status. (status={type(status)})')
         except Exception as e:
             _LOGGER.error(f'[Check] Health Check Error: {e}')
+            status = 'UNKNOWN'
 
         return health_pb2.HealthCheckResponse(status=status)
 
     def update_status(self, status):
         service_name = config.get_service()
         self.set(service_name, status)
+
+
+class HealthManager(object):
+    _checkers = []
+
+    class Status(Enum):
+        UNKNOWN = 'UNKNOWN'
+        """When your application's status is indeterminable."""
+
+        SERVING = 'SERVING'
+        """When your application is ready."""
+
+        NOT_SERVING = 'NOT_SERVING'
+        """When your application is not ready."""
+
+    def check(self):
+        status = self.Status.SERVING
+        return status
+
+    def add_health_update(self, obj):
+        self._checkers.append(obj)
+
+    def update_status(self, status):
+        for obj in self._checkers:
+            obj.update_status(status.value)
