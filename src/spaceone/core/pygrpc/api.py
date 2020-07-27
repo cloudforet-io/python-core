@@ -66,7 +66,7 @@ class BaseAPI(object):
         if not isinstance(error, ERROR_BASE):
             error = ERROR_UNKNOWN(message=error)
             is_logging = True
-        elif isinstance(error, ERROR_LOCATOR) and error.meta.get('type') == 'service':
+        elif error.meta.get('type') == 'service':
             is_logging = True
 
         if is_logging:

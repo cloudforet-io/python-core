@@ -22,6 +22,7 @@ class Locator(object):
             return getattr(service_module, name)(metadata)
 
         except ERROR_BASE as e:
+            e.set_meta['type'] = 'service'
             raise e
 
         except Exception as e:
@@ -76,4 +77,4 @@ class Locator(object):
             raise e
 
         except Exception as e:
-            raise ERROR_LOCATOR(name=f'{name} Model', reason=e, _meta={'type': 'info'})
+            raise ERROR_LOCATOR(name=f'{name} Model', reason=e, _meta={'type': 'model'})
