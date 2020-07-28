@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import shutil
 import os
 import sys
 import pkg_resources
@@ -21,6 +22,21 @@ def _get_env():
 
     env['CONFIG_FILE'] = env['CONFIG_FILE'].strip() if env['CONFIG_FILE'] else None
     return env
+
+
+def dir_path(string):
+    if os.path.isdir(string):
+        return string
+    else:
+        raise NotADirectoryError(string)
+
+
+def _set_start_project_command(subparsers, env):
+    parser = subparsers.add_parser('create-project', description='Create a new project directory',
+                                   help='Create a new project directory',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('project_name', metavar='PROJECT_NAME', help='Project name')
+    parser.add_argument('-d', '--directory', type=dir_path, help='Project directory')
 
 
 def _set_grpc_command(subparsers, env):
@@ -129,7 +145,9 @@ def _set_test_config(args):
 
 
 def _initialize_config(args):
-    if args.command == 'test':
+    if args.command == 'create-project':
+        pass
+    elif args.command == 'test':
         _set_test_config(args)
     else:
         _set_server_config(args)
@@ -145,9 +163,37 @@ def _run_tests(args):
     RichTestRunner(verbosity=args.verbose, failfast=args.failfast).run(full_suite)
 
 
+def init_project_file(path, text):
+    with open(path, 'w') as f:
+        f.write(text)
+
+
+def _create_project(args):
+    project_name = args.project_name
+    project_directory = args.directory or os.getcwd()
+    project_path = os.path.join(project_directory, project_name)
+    skeleton_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skeleton')
+    shutil.copytree(skeleton_path, project_path)
+    init_project_file(os.path.join(project_path, 'service', '__init__.py'),
+                      f'from {project_name}.service.helloworld_service import *\n')
+    init_project_file(os.path.join(project_path, 'manager', '__init__.py'),
+                      f'from {project_name}.manager.helloworld_manager import *\n')
+    init_project_file(os.path.join(project_path, 'info', '__init__.py'),
+                      f'from {project_name}.info.helloworld_info import *\n')
+
+    proto_conf = (
+        "PROTO = {\n"
+        f"    '{project_name}.api.helloworld': ['HelloWorld']\n"
+        "}\n"
+    )
+    init_project_file(os.path.join(project_path, 'conf', 'proto_conf.py'), proto_conf)
+
+
 def _run_command(args):
     command = args.command
-    if command == 'grpc':
+    if command == 'create-project':
+        _create_project(args)
+    elif command == 'grpc':
         pygrpc.serve()
     elif command == 'scheduler':
         scheduler.serve()
@@ -162,6 +208,7 @@ def _parse_argument():
     parser = argparse.ArgumentParser(description='Command line interface for SpaceONE', prog='spaceone')
     subparsers = parser.add_subparsers(dest='command', metavar='COMMAND')
 
+    _set_start_project_command(subparsers, env)
     _set_grpc_command(subparsers, env)
     _set_scheduler_command(subparsers, env)
     #_set_rest_command(subparsers, env)
