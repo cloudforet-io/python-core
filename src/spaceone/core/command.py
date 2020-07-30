@@ -100,36 +100,45 @@ def _set_remote_config(conf_file):
         config.set_remote_conf_from_file(path)
 
 
-def _set_server_config(args):
-    params = vars(args)
+def _set_python_path(package, module_path):
+    current_path = os.getcwd()\
 
-    module_path = params.get('module_path')
+    if current_path not in sys.path:
+        sys.path.insert(0, current_path)
+
     if module_path and module_path not in sys.path:
         sys.path.insert(0, module_path)
 
-        if '.' in params.get('package'):
-            pkg_resources.declare_namespace(params['package'])
+        if '.' in package:
+            pkg_resources.declare_namespace(package)
 
     try:
-        __import__(params['package'])
+        __import__(package)
     except Exception:
-        raise Exception(f'The package({params["package"]}) can not imported. '
+        raise Exception(f'The package({package}) can not imported. '
                         'Please check the module path.')
 
-    # Initialize config from command argument
+
+def _set_server_config(args):
+    params = vars(args)
+
+    # 1. Set a python path
+    _set_python_path(params['package'], params.get('module_path'))
+
+    # 2. Initialize config from command argument
     config.init_conf(
         package=params['package'],
         server_type=params['command'],
         port=params.get('port')
     )
 
-    # 1. Get service config from global_conf.py
+    # 3. Get service config from global_conf.py
     config.set_service_config()
 
-    # 2. Merge file conf
+    # 4. Merge file conf
     _set_file_config(params['config'])
 
-    # 3. Merge remote conf
+    # 5. Merge remote conf
     _set_remote_config(params['config'])
 
 
