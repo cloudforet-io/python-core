@@ -163,7 +163,7 @@ def _initialize_config(args):
 
 
 def _run_tests(args):
-    # suites are not hashable, need to use list
+    # Suites are not hashable, need to use list
     loader = unittest.TestLoader()
     suites = loader.discover(args.dir)
 
@@ -178,18 +178,22 @@ def init_project_file(path, text):
 
 
 def _create_project(args):
+    # Initialize path
     project_name = args.project_name
     project_directory = args.directory or os.getcwd()
     project_path = os.path.join(project_directory, project_name)
+
+    # Copy skeleton source code
     skeleton_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skeleton')
-    shutil.copytree(skeleton_path, project_path)
+    shutil.copytree(skeleton_path, project_path, ignore=shutil.ignore_patterns('__pycache__'))
+
+    # Change source code for new project environment
     init_project_file(os.path.join(project_path, 'service', '__init__.py'),
                       f'from {project_name}.service.helloworld_service import *\n')
     init_project_file(os.path.join(project_path, 'manager', '__init__.py'),
                       f'from {project_name}.manager.helloworld_manager import *\n')
     init_project_file(os.path.join(project_path, 'info', '__init__.py'),
                       f'from {project_name}.info.helloworld_info import *\n')
-
     proto_conf = (
         "PROTO = {\n"
         f"    '{project_name}.api.helloworld': ['HelloWorld']\n"
