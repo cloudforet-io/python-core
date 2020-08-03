@@ -16,7 +16,7 @@ from spaceone.core import utils
 
 __all__ = ['BaseService', 'check_required', 'append_query_filter', 'change_timestamp_value',
            'change_timestamp_filter', 'append_keyword_filter', 'change_only_key', 'transaction',
-           'authentication_handler', 'authorization_handler', 'event_handler']
+           'authentication_handler', 'authorization_handler', 'mutation_handler', 'event_handler']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ class BaseService(object):
         self.handler = {
             'authentication': {'handlers': [], 'methods': []},
             'authorization': {'handlers': [], 'methods': []},
+            'mutation': {'handlers': [], 'methods': []},
             'event': {'handlers': [], 'methods': []},
         }
 
@@ -257,8 +258,17 @@ def _success_handler(self, response):
             handler.notify(self.transaction, 'SUCCESS', response)
 
 
+def _response_mutation_handler(self, response):
+    if _check_handler_method(self, 'mutation'):
+        for handler in self.handler['mutation']['handlers']:
+            response = handler.response(self.transaction, response)
+
+    return response
+
+
 def _generate_response(self, response_iterator):
     for response in response_iterator:
+        response = _response_mutation_handler(self, response)
         _success_handler(self, response)
         yield response
 
@@ -271,26 +281,32 @@ def _pipeline(func, self, params):
         # 1. Authentication
         if _check_handler_method(self, 'authentication'):
             for handler in self.handler['authentication']['handlers']:
-                handler.notify(self.transaction, params)
+                handler.verify(self.transaction, params)
 
         # 2. Authorization
         if _check_handler_method(self, 'authorization'):
             for handler in self.handler['authorization']['handlers']:
-                handler.notify(self.transaction, params)
+                handler.verify(self.transaction, params)
 
-        # 3. Start Event
+        # 3. Mutation
+        if _check_handler_method(self, 'mutation'):
+            for handler in self.handler['mutation']['handlers']:
+                params = handler.request(self.transaction, params)
+
+        # 4. Start Event
         if _check_handler_method(self, 'event'):
             for handler in self.handler['event']['handlers']:
                 handler.notify(self.transaction, 'STARTED', params)
 
-        # 4. Service Body
+        # 5. Service Body
         self.transaction.state = 'IN-PROGRESS'
         response_or_iterator = func(self, params)
 
-        # 5. Success Event
+        # 6. Response Handlers
         if isinstance(response_or_iterator, types.GeneratorType):
             return _generate_response(self, response_or_iterator)
         else:
+            response_or_iterator = _response_mutation_handler(self, response_or_iterator)
             _success_handler(self, response_or_iterator)
             return response_or_iterator
 
@@ -315,6 +331,10 @@ def authentication_handler(func=None, methods='*', exclude=[]):
 
 def authorization_handler(func=None, methods='*', exclude=[]):
     return _set_handler(func, 'authorization', methods, exclude)
+
+
+def mutation_handler(func=None, methods='*', exclude=[]):
+    return _set_handler(func, 'mutation', methods, exclude)
 
 
 def event_handler(func=None, methods='*', exclude=[]):
