@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import traceback
 import logging
 from spaceone.core import utils
 from spaceone.core.error import *
-from spaceone.core.locator import Locator
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -12,9 +9,13 @@ _LOGGER = logging.getLogger(__name__)
 
 class Transaction(object):
 
-    def __init__(self, meta={}):
+    def __init__(self, meta=None):
+        if meta:
+            self._meta = meta.copy()
+        else:
+            self._meta = {}
+
         self._rollbacks = []
-        self._meta = meta.copy()
         self._state = 'STARTED'
         self._set_transaction_id()
         self._event_handlers = []
