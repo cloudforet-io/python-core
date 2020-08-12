@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 from spaceone.core import config
 from spaceone.core.error import *
 
@@ -9,9 +10,12 @@ __init__ = ['put', 'get']
 _QUEUE_CONNECTIONS = {}
 LOGGER = logging.getLogger(__name__)
 
+print('outside', config.get_global())
+
 
 def _create_connection(topic):
     global_conf = config.get_global()
+    print('inside', global_conf)
     if 'QUEUES' not in global_conf:
         raise ERROR_CONFIGURATION(key='QUEUES')
 
@@ -46,6 +50,7 @@ def put(queue_cls, key):
 
 class BaseQueue(object):
     initialized = None
+
     def initialize(self):
         """
         Re initilize if there are problem

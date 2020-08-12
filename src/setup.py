@@ -45,7 +45,8 @@ setup(
         "factory-boy",
         "jsonschema",
         "python-dateutil",
-        "python-consul"
+        "python-consul",
+        "scheduler-cron",
     ],
     zip_safe=False,
     entry_points={

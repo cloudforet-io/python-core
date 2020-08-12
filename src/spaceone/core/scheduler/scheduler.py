@@ -2,14 +2,16 @@
 
 import json
 import logging
-import schedule
 import time
-
-from jsonschema import validate
+from datetime import datetime
 from multiprocessing import Process
+from uuid import uuid4
 
-from spaceone.core.error import ERROR_CONFIGURATION
+import schedule
+from jsonschema import validate
+from scheduler import Scheduler as CronSchedulerServer
 from spaceone.core import queue
+from spaceone.core.error import ERROR_CONFIGURATION
 from spaceone.core.scheduler.task_schema import SPACEONE_TASK_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,8 +32,10 @@ class BaseScheduler(Process):
                 validate(task, schema=SPACEONE_TASK_SCHEMA)
                 json_task = json.dumps(task)
                 _LOGGER.debug(f'[push_task] Task schema: {task}')
+                print(self.queue)
                 queue.put(self.queue, json_task)
             except Exception as e:
+                print(e)
                 _LOGGER.debug(f'[push_task] Task schema: {task}, {e}')
 
     def run(self):
@@ -99,47 +103,33 @@ class CronScheduler(BaseScheduler):
     cronjob: min hour day month week
     """
     def __init__(self, queue, rule):
-        super().__init__(queue, rule)
+        super().__init__(queue)
         self.config = self.parse_config(rule)
 
     def parse_config(self, expr):
-        """ expr
+        """ exprd
           format: min hour day month week
           * * * * *
         """
-        items = expr.split(' ')
-        if len(items) != 5:
-            return False
         # TODO: verify format
-        return items
+        return expr
 
     def run(self):
         if self.config is False:
             # May be error format
             return
+        scheduler = CronSchedulerServer(10)
 
-        # Minute
-        if self.config[0] == '*':
-            schedule.every().minutes.do(self.push_task)
-        else:
-            schedule.every(int(self.config[0])).minutes.do(self.push_task)
+        # def push():
+        #     print('push', datetime.now())
+        #     return self.push_task()
 
-        # Hour
-        if self.config[1] == '*':
-            schedule.every().hour.do(self.push_task)
-        else:
-            schedule.every(int(self.config[1])).hour.do(self.push_task)
+        scheduler.add(f"{uuid4()}", self.config, self.push_task)
 
-        # Day
-        if self.config[2] == '*':
-            schedule.every().day.do(self.push_task)
-        else:
-            schedule.every(int(self.config[2])).day.do(self.push_task)
+        def test_now():
+            print(datetime.now())
 
-        # Month
-        if self.config[3] != '*':
-            _LOGGER.warn("Month is not applicable")
-
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
+        scheduler.add(f"{uuid4()}_test", self.config, test_now)
+        print('start server', self.config)
+        print('_do')
+        scheduler._do()
