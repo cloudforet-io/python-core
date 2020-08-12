@@ -5,6 +5,7 @@ from datetime import datetime
 from functools import reduce
 from mongoengine import EmbeddedDocumentField, Document, QuerySet, register_connection
 from pymongo.errors import *
+from pymongo import ReadPreference
 from mongoengine.errors import *
 from spaceone.core import config
 from spaceone.core import utils
@@ -54,6 +55,14 @@ class MongoModel(Document, BaseModel):
                 raise ERROR_DB_CONFIGURATION(backend=db_alias)
 
             db_conf = global_conf['DATABASES'][db_alias].copy()
+
+            if 'read_preference' in db_conf:
+                read_preference = getattr(ReadPreference, db_conf['read_preference'], None)
+                if read_preference:
+                    db_conf['read_preference'] = read_preference
+                else:
+                    del db_conf['read_preference']
+
             register_connection(db_alias, **db_conf)
 
             _MONGO_CONNECTIONS.append(db_alias)
