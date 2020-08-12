@@ -3,7 +3,6 @@
 import json
 import logging
 import time
-from datetime import datetime
 from multiprocessing import Process
 from uuid import uuid4
 
@@ -32,7 +31,6 @@ class BaseScheduler(Process):
                 validate(task, schema=SPACEONE_TASK_SCHEMA)
                 json_task = json.dumps(task)
                 _LOGGER.debug(f'[push_task] Task schema: {task}')
-                print(self.queue)
                 queue.put(self.queue, json_task)
             except Exception as e:
                 print(e)
@@ -119,17 +117,5 @@ class CronScheduler(BaseScheduler):
             # May be error format
             return
         scheduler = CronSchedulerServer(10)
-
-        # def push():
-        #     print('push', datetime.now())
-        #     return self.push_task()
-
         scheduler.add(f"{uuid4()}", self.config, self.push_task)
-
-        def test_now():
-            print(datetime.now())
-
-        scheduler.add(f"{uuid4()}_test", self.config, test_now)
-        print('start server', self.config)
-        print('_do')
-        scheduler._do()
+        scheduler.start()

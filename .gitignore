@@ -7,5 +7,3 @@ build
 __pycache__
 venv
 .venv/
-
-#sample/
