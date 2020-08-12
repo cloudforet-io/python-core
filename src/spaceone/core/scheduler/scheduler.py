@@ -17,7 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class BaseScheduler(Process):
-    def __init__(self, queue):
+    def __init__(self, queue, **kwargs):
         super().__init__()
         self.queue = queue
         self.config = None
