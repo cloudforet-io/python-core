@@ -82,7 +82,7 @@ class SpaceoneTask:
 
 class BaseWorker(Process):
 
-    def __init__(self, queue):
+    def __init__(self, queue, **kwargs):
         super().__init__()
         self._name_ = 'worker-%s' % randomString()
         self.queue = queue
