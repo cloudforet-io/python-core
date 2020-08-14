@@ -1,18 +1,11 @@
-# -*- coding: utf-8 -*-
-from spaceone.core.locator import Locator
+from spaceone.core.base import CoreObject
 from spaceone.core.transaction import Transaction
 
 
-class BaseManager(object):
+class BaseManager(CoreObject):
 
-    def __init__(self, transaction=None, **kwargs):
+    def __init__(self, transaction: Transaction = None, **kwargs):
+        super().__init__(transaction=transaction)
 
-        if transaction:
-            self.transaction = transaction
-        else:
-            self.transaction = Transaction()
-
-        self.locator = Locator(self.transaction)
-
-        for k,v in kwargs.items():
-            setattr(self, k, v)
+        for key, value in kwargs.items():
+            setattr(self, key, value)

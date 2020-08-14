@@ -23,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class BaseService(object):
 
-    def __init__(self, metadata={}, transaction=None):
+    def __init__(self, metadata: dict = {}, transaction: Transaction = None, **kwargs):
         self.func_name = None
         self.is_with_statement = False
 
@@ -281,12 +281,12 @@ def _pipeline(func, self, params):
         # 1. Authentication
         if _check_handler_method(self, 'authentication'):
             for handler in self.handler['authentication']['handlers']:
-                handler.verify(self.transaction, params)
+                handler.notify(self.transaction, params)
 
         # 2. Authorization
         if _check_handler_method(self, 'authorization'):
             for handler in self.handler['authorization']['handlers']:
-                handler.verify(self.transaction, params)
+                handler.notify(self.transaction, params)
 
         # 3. Mutation
         if _check_handler_method(self, 'mutation'):
