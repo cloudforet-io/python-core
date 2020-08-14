@@ -7,6 +7,7 @@ from spaceone.core.logger import set_logger
 
 _LOGGER = logging.getLogger(__name__)
 
+DEFAULT_POOL = 8
 
 class Server(object):
     def __init__(self, service, config):
@@ -68,8 +69,14 @@ class Server(object):
             if 'queue' not in conf:
                 _LOGGER.debug('Queue is not specified')
                 # TODO: ERROR
+            # Support Worker pool (default: 8)
             # self.queue is instance of Queue
-            self.workers[name] = self._create_process(backend, params)
+            pool = params.get('pool', DEFAULT_POOL)
+            _LOGGER.debug(f'[start] create thread pool: {pool}')
+            for index in range(pool):
+                worker_name = f'{name}_{index}'
+                _LOGGER.debug(f'[start] create {worker_name}')
+                self.workers[worker_name] = self._create_process(backend, params)
 
         # Start All threads
         # start worker

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 from spaceone.core import config
 from spaceone.core.error import *
 
@@ -46,6 +47,7 @@ def put(queue_cls, key):
 
 class BaseQueue(object):
     initialized = None
+
     def initialize(self):
         """
         Re initilize if there are problem
