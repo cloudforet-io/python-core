@@ -1,19 +1,13 @@
-# -*- coding: utf-8 -*-
-
+from spaceone.core.base import CoreObject
 from spaceone.core.transaction import Transaction
 
-class BaseConnector(object):
 
-    def __init__(self, transaction=None, conf=None, **kwargs):
-        if transaction:
-            self.transaction = transaction
-        else:
-            self.transaction = Transaction()
+class BaseConnector(CoreObject):
 
-        self.config = conf
+    def __init__(self, transaction: Transaction = None, config: dict = None, **kwargs):
+        super().__init__(transaction=transaction)
 
-        for k,v in kwargs.items():
-            setattr(self, k, v)
+        self.config = config
 
-        # Connector is last mile entity
-        # This does not have locator
+        for key, value in kwargs.items():
+            setattr(self, key, value)

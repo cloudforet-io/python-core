@@ -15,11 +15,11 @@ class Locator(object):
     def __init__(self, transaction=None):
         self.transaction = transaction
 
-    def get_service(self, name, metadata={}):
+    def get_service(self, name: str, metadata: dict = {}, **kwargs):
         package = config.get_package()
         try:
             service_module = _get_module(package, 'service')
-            return getattr(service_module, name)(metadata)
+            return getattr(service_module, name)(metadata=metadata, **kwargs)
 
         except ERROR_BASE as e:
             e.set_meta['type'] = 'service'
@@ -28,11 +28,11 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'service'})
 
-    def get_manager(self, name, **kwargs):
+    def get_manager(self, name: str, **kwargs):
         package = config.get_package()
         try:
             manager_module = _get_module(package, 'manager')
-            return getattr(manager_module, name)(self.transaction, **kwargs)
+            return getattr(manager_module, name)(transaction=self.transaction, **kwargs)
 
         except ERROR_BASE as e:
             raise e
@@ -40,12 +40,13 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'manager'})
 
-    def get_connector(self, name, **kwargs):
+    def get_connector(self, name: str, **kwargs):
         package = config.get_package()
         connector_conf = config.get_connector(name)
         try:
             connector_module = _get_module(package, 'connector')
-            return getattr(connector_module, name)(self.transaction, connector_conf, **kwargs)
+            return getattr(connector_module, name)(
+                transaction=self.transaction, config=connector_conf, **kwargs)
 
         except ERROR_BASE as e:
             raise e
@@ -53,7 +54,7 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'connector'})
 
-    def get_info(self, name, *args, **kwargs):
+    def get_info(self, name: str, *args, **kwargs):
         package = config.get_package()
         try:
             info_module = _get_module(package, 'info')
@@ -65,7 +66,7 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'info'})
 
-    def get_model(self, name):
+    def get_model(self, name: str):
         package = config.get_package()
         try:
             model_module = _get_module(package, 'model')
