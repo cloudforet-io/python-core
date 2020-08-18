@@ -90,7 +90,7 @@ class HourlyScheduler(BaseScheduler):
 
     def run(self):
         # Call push_task in every hour
-        schedule.every(self.config).hour.at(self.minute).do(self.push_task)
+        schedule.every(self.config).hours.at(self.minute).do(self.push_task)
         while True:
             schedule.run_pending()
             time.sleep(1)
