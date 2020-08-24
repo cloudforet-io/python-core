@@ -74,7 +74,7 @@ def set_global(**config):
     global_conf = get_global()
 
     for key, value in config.items():
-        if global_conf.get(key, None) is not None:
+        if key in global_conf:
             if not isinstance(value, type(global_conf[key])):
                 value_type_name = type(global_conf[key]).__name__
                 raise ValueError(f'Value type is invalid. (GLOBAL.{key} = {value_type_name})')
