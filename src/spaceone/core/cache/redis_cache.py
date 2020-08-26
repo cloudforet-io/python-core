@@ -45,6 +45,18 @@ class RedisCache(BaseCache):
         except Exception as e:
             raise ERROR_UNKNOWN(message=e)
 
+    def incr(self, key, amount=1, expire=None):
+        try:
+            return self.conn.incr(key, amount, ex=expire)
+        except Exception as e:
+            raise ERROR_UNKNOWN(message=e)
+
+    def decr(self, key, amount=1, expire=None):
+        try:
+            return self.conn.decr(key, amount, ex=expire)
+        except Exception as e:
+            raise ERROR_UNKNOWN(message=e)
+
     def keys(self, pattern):
         return self.conn.keys(pattern)
 
