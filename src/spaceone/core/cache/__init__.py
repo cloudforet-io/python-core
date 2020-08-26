@@ -125,6 +125,13 @@ def get(cache_cls, key):
 def set(cache_cls, key, value, expire=None):
     return cache_cls.set(key, value, expire=expire)
 
+@connection
+def incr(cache_cls, key, amount=1, expire=None):
+    return cache_cls.incr(key, expire=expire)
+
+@connection
+def decr(cache_cls, key, amount=1, expire=None):
+    return cache_cls.decr(key, expire=expire)
 
 @connection
 def keys(cache_cls, pattern):
@@ -174,6 +181,30 @@ class BaseCache(object):
             True | False
         """
         raise NotImplementedError('cache.set not implemented!')
+
+    def incr(self, key, amount=1, **kwargs):
+        """
+        Args:
+            key(str)
+            kwargs(dict)
+                - expire (int: seconds)
+
+        Returns:
+            True | False
+        """
+        raise NotImplementedError('cache.incr not implemented!')
+
+    def decr(self, key, amount=1, **kwargs):
+        """
+        Args:
+            key(str)
+            kwargs(dict)
+                - expire (int: seconds)
+
+        Returns:
+            True | False
+        """
+        raise NotImplementedError('cache.decr not implemented!')
 
     def keys(self, pattern='*'):
         """
