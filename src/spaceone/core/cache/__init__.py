@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
 import logging
 import inspect
 from spaceone.core import config
 from spaceone.core.error import *
 
-__init__ = ['is_set', 'get', 'set', 'keys', 'ttl', 'delete', 'delete_pattern', 'flush', 'cacheable']
+__init__ = ['is_set', 'get', 'set', 'increment', 'decrement', 'keys', 'ttl', 'delete', 'delete_pattern', 'flush', 'cacheable']
 
 _CACHE_CONNECTIONS = {}
 _LOGGER = logging.getLogger(__name__)
@@ -117,21 +115,21 @@ def is_set(backend='default'):
 
 
 @connection
-def get(cache_cls, key):
-    return cache_cls.get(key)
+def get(cache_cls, key, data_format='json'):
+    return cache_cls.get(key, data_format=data_format)
 
 
 @connection
-def set(cache_cls, key, value, expire=None):
-    return cache_cls.set(key, value, expire=expire)
+def set(cache_cls, key, value, expire=None, data_format='json'):
+    return cache_cls.set(key, value, expire=expire, data_format=data_format)
 
 @connection
-def incr(cache_cls, key, amount=1, expire=None):
-    return cache_cls.incr(key, expire=expire)
+def increment(cache_cls, key, amount=1):
+    return cache_cls.increment(key, amount)
 
 @connection
-def decr(cache_cls, key, amount=1, expire=None):
-    return cache_cls.decr(key, expire=expire)
+def decrement(cache_cls, key, amount=1):
+    return cache_cls.decrement(key, amount)
 
 @connection
 def keys(cache_cls, pattern):
@@ -160,33 +158,37 @@ def flush(cache_cls, is_async=False):
 
 class BaseCache(object):
 
-    def get(self, key):
+    def get(self, key, **kwargs):
         """
         Args:
-            key(str)
+            key (str)
+            **kwargs (dict)
+                - data_format (str)
         Returns:
-            cache_value(any)
+            cache_value (any)
         """
         raise NotImplementedError('cache.get not implemented!')
 
     def set(self, key, value, **kwargs):
         """
         Args:
-            key(str)
-            value(str)
-            kwargs(dict)
+            key (str)
+            value (str)
+            **kwargs (dict)
                 - expire (int: seconds)
+                - data_format (str)
 
         Returns:
             True | False
         """
         raise NotImplementedError('cache.set not implemented!')
 
-    def incr(self, key, amount=1, **kwargs):
+    def increment(self, key, amount, **kwargs):
         """
         Args:
-            key(str)
-            kwargs(dict)
+            key (str)
+            amount (int)
+            **kwargs (dict)
                 - expire (int: seconds)
 
         Returns:
@@ -194,11 +196,12 @@ class BaseCache(object):
         """
         raise NotImplementedError('cache.incr not implemented!')
 
-    def decr(self, key, amount=1, **kwargs):
+    def decrement(self, key, amount, **kwargs):
         """
         Args:
-            key(str)
-            kwargs(dict)
+            key (str)
+            amount (int)
+            **kwargs (dict)
                 - expire (int: seconds)
 
         Returns:
@@ -209,27 +212,27 @@ class BaseCache(object):
     def keys(self, pattern='*'):
         """
         Args:
-            pattern(str)
+            pattern (str)
 
         Returns:
-            keys(list)
+            keys (list)
         """
         raise NotImplementedError('cache.keys not implemented!')
 
     def ttl(self, key):
         """
         Args:
-            key(str)
+            key (str)
 
         Returns:
-            expire_time(int: seconds)
+            expire_time (int: seconds)
         """
         raise NotImplementedError('cache.ttl not implemented!')
 
     def delete(self, *keys):
         """
         Args:
-            keys(list)
+            keys (list)
 
         Returns:
             None
@@ -239,7 +242,7 @@ class BaseCache(object):
     def delete_pattern(self, pattern):
         """
         Args:
-            pattern(str)
+            pattern (str)
 
         Returns:
             None
@@ -249,11 +252,9 @@ class BaseCache(object):
     def flush(self, is_async=False):
         """
         Args:
-            is_async(bool)
+            is_async (bool)
 
         Returns:
             None
         """
         raise NotImplementedError('cache.flush not implemented!')
-
-
