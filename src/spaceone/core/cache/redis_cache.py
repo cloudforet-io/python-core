@@ -27,33 +27,40 @@ class RedisCache(BaseCache):
     def _get_connection(self, pool):
         return redis.Redis(connection_pool=pool)
 
-    def get(self, key):
+    def get(self, key, data_format='json'):
         try:
             cache_value = self.conn.get(key)
 
             if cache_value:
-                return json.loads(cache_value)
+                if data_format == 'json':
+                    return json.loads(cache_value)
+                else:
+                    return cache_value
             else:
                 return cache_value
 
         except Exception as e:
             raise ERROR_CACHE_DECODE(reason=e)
 
-    def set(self, key, value, expire=None):
+    def set(self, key, value, expire=None, data_format='json'):
         try:
-            return self.conn.set(key, json.dumps(value), ex=expire)
+            if data_format == 'json':
+                cache_value = json.dumps(value)
+            else:
+                cache_value = value
+            return self.conn.set(key, cache_value, ex=expire)
         except Exception as e:
             raise ERROR_UNKNOWN(message=e)
 
-    def incr(self, key, amount=1, expire=None):
+    def increment(self, key, amount=1):
         try:
-            return self.conn.incr(key, amount, ex=expire)
+            return self.conn.incr(key, amount)
         except Exception as e:
             raise ERROR_UNKNOWN(message=e)
 
-    def decr(self, key, amount=1, expire=None):
+    def decrement(self, key, amount=1):
         try:
-            return self.conn.decr(key, amount, ex=expire)
+            return self.conn.decr(key, amount)
         except Exception as e:
             raise ERROR_UNKNOWN(message=e)
 

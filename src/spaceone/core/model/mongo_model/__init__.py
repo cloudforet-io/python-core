@@ -150,20 +150,20 @@ class MongoModel(Document, BaseModel):
     def terminate(self):
         super().delete()
 
-    def increment(self, key, value=1):
+    def increment(self, key, amount=1):
         key = key.replace('.', '__')
         inc_data = {
-            f'inc__{key}': value
+            f'inc__{key}': amount
         }
 
         super().update(**inc_data)
         self.reload()
         return self
 
-    def decrement(self, key, value=1):
+    def decrement(self, key, amount=1):
         key = key.replace('.', '__')
         dec_data = {
-            f'dec__{key}': value
+            f'dec__{key}': amount
         }
 
         super().update(**dec_data)
