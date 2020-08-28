@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from cachetools import TTLCache
 
 from spaceone.core.error import *
@@ -16,10 +14,10 @@ class LocalCache(BaseCache):
         except Exception:
             raise ERROR_CACHE_CONFIGURATION(backend=backend)
 
-    def get(self, key):
+    def get(self, key, **kwargs):
         return self.cache.get(key)
 
-    def set(self, key, value, expire=None):
+    def set(self, key, value, expire=None, **kwargs):
         if expire:
             raise ERROR_CACHE_OPTION(method='cache.set', option='expire')
 
