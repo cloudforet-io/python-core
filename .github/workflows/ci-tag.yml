@@ -86,7 +86,7 @@ jobs:
 
   branch:
     if: github.repository_owner == 'spaceone-dev'
-    needs: [initialize,pypi]
+    needs: [initialize]
     env:
       VERSION: ${{ needs.initialize.outputs.VERSION }}
       LATEST_TAG: ${{ needs.initialize.outputs.LATEST_TAG }}
