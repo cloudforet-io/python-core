@@ -455,6 +455,7 @@ class MongoModel(Document, BaseModel):
     def _get_group_keys(cls, condition):
         key = condition.get('key', condition.get('k'))
         name = condition.get('name', condition.get('n'))
+        date_format = condition.get('date_format')
 
         if key is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.keys' condition requires a key: {condition}")
@@ -462,7 +463,17 @@ class MongoModel(Document, BaseModel):
         if name is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.keys' condition requires a name: {condition}")
 
-        return key, name
+        if date_format:
+            rule = {
+                '$dateToString': {
+                    'format': date_format,
+                    'date': f'${key}'
+                }
+            }
+        else:
+            rule = f'${key}'
+
+        return key, name, rule
 
     @classmethod
     def _make_group_rule(cls, options):
@@ -483,10 +494,10 @@ class MongoModel(Document, BaseModel):
             raise ERROR_REQUIRED_PARAMETER(key='aggregate.group.keys')
 
         for condition in _keys:
-            key, name = cls._get_group_keys(condition)
+            key, name, rule = cls._get_group_keys(condition)
             _all_keys.append(key)
             _group_keys.append(name)
-            _group_rule['$group']['_id'][name] = f'${key}'
+            _group_rule['$group']['_id'][name] = rule
 
         for condition in _fields:
             key, name, operator = cls._get_group_fields(condition)
@@ -564,12 +575,6 @@ class MongoModel(Document, BaseModel):
         return rules
 
     @classmethod
-    def _make_project_rule(cls, options):
-        return {
-            '$project': options
-        }
-
-    @classmethod
     def _make_aggregation_rules(cls, aggregate):
         _aggregation_rules = []
         _group_keys = []
@@ -597,10 +602,6 @@ class MongoModel(Document, BaseModel):
         if 'lookup' in _aggregate_meta:
             rules = cls._make_lookup_rules(_aggregate_meta['lookup'], _all_keys)
             _aggregation_rules = rules + _aggregation_rules
-
-        if 'project' in aggregate:
-            rule = cls._make_project_rule(aggregate['project'])
-            _aggregation_rules.append(rule)
 
         return _aggregation_rules
 
