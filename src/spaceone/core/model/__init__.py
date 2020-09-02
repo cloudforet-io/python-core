@@ -155,8 +155,8 @@ class BaseModel(object):
                     {
                         'key' : 'field (str)',
                         'value' : 'value (any)',
-                        'operator' : 'lt | lte | gt | gte | eq | not | exists | contain |
-                        not_contain | in | not_in | not_contain_in | match | regex | regex_in |
+                        'operator' : 'lt | lte | gt | gte | eq | not | exists | contain | not_contain |
+                        in | not_in | contain_in | not_contain_in | match | regex | regex_in |
                         datetime_lt | datetime_lte | datetime_gt | datetime_gte |
                         timediff_lt | timediff_lte | timediff_gt | timediff_gte'
                     },
@@ -167,10 +167,10 @@ class BaseModel(object):
                     {
                         'key' : 'field (str)',
                         'value' : 'value (any)',
-                        'operator' : 'lt | lte | gt | gte | eq | not | exists |
-                        contain | not_contain | in | not_in | not_contain_in | match | regex | regex_in
-                        datetime_lt | datetime_lte | datetime_gt | datetime_gte | timediff_lt | timediff_lte
-                        timediff_gt | timediff_gte'
+                        'operator' : 'lt | lte | gt | gte | eq | not | exists | contain | not_contain |
+                        in | not_in | contain_in | not_contain_in | match | regex | regex_in |
+                        datetime_lt | datetime_lte | datetime_gt | datetime_gte |
+                        timediff_lt | timediff_lte | timediff_gt | timediff_gte'
                     },
                     ...
                 ]
