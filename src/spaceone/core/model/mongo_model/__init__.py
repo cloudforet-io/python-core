@@ -564,6 +564,12 @@ class MongoModel(Document, BaseModel):
         return rules
 
     @classmethod
+    def _make_project_rule(cls, options):
+        return {
+            '$project': options
+        }
+
+    @classmethod
     def _make_aggregation_rules(cls, aggregate):
         _aggregation_rules = []
         _group_keys = []
@@ -591,6 +597,10 @@ class MongoModel(Document, BaseModel):
         if 'lookup' in _aggregate_meta:
             rules = cls._make_lookup_rules(_aggregate_meta['lookup'], _all_keys)
             _aggregation_rules = rules + _aggregation_rules
+
+        if 'project' in aggregate:
+            rule = cls._make_project_rule(aggregate['project'])
+            _aggregation_rules.append(rule)
 
         return _aggregation_rules
 
