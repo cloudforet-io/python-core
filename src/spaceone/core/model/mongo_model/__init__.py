@@ -438,18 +438,23 @@ class MongoModel(Document, BaseModel):
         key = condition.get('key', condition.get('k'))
         name = condition.get('name', condition.get('n'))
         operator = condition.get('operator', condition.get('o'))
+        value = condition.get('value', condition.get('v'))
+        date_format = condition.get('date_format')
 
         if operator not in STAT_OPERATORS:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' operator is not supported. "
                                         f"(operator = {STAT_OPERATORS.keys()})")
 
-        if operator != 'count' and key is None:
+        if operator not in ['count', 'date'] and key is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
 
         if name is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a name: {condition}")
 
-        return key, name, operator
+        if operator == 'date' and value is None:
+            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a value: {condition}")
+
+        return key, name, operator, value, date_format
 
     @classmethod
     def _get_group_keys(cls, condition):
@@ -480,7 +485,10 @@ class MongoModel(Document, BaseModel):
         _group_keys = []
         _all_keys = []
         _include_project = False
+        _include_second_project = False
         _project_fields = {}
+        _second_project_fields = {}
+        _project_rules = []
         _rules = []
         _group_rule = {
             '$group': {
@@ -500,24 +508,38 @@ class MongoModel(Document, BaseModel):
             _group_rule['$group']['_id'][name] = rule
 
         for condition in _fields:
-            key, name, operator = cls._get_group_fields(condition)
+            key, name, operator, value, date_format = cls._get_group_fields(condition)
 
             if key:
                 _all_keys.append(key)
-            _group_rule['$group'].update(STAT_OPERATORS[operator](key, operator, name))
-            _project_fields[name] = 1
 
-            if operator == 'size':
+            rule = STAT_OPERATORS[operator](key, operator, name, value, date_format)
+
+            if rule.get('group') is not None:
+                _group_rule['$group'].update(rule['group'])
+
+            if rule.get('project') is not None:
                 _include_project = True
-                _project_fields[name] = {
-                    '$size': f'${name}'
-                }
+                _project_fields.update(rule['project'])
+            else:
+                _project_fields[name] = 1
+
+            if rule.get('second_project') is not None:
+                _include_second_project = True
+                _second_project_fields.update(rule['second_project'])
+            else:
+                _second_project_fields[name] = 1
 
         _rules.append(_group_rule)
 
         if _include_project:
             _rules.append({
                 '$project': _project_fields
+            })
+
+        if _include_second_project:
+            _rules.append({
+                '$project': _second_project_fields
             })
 
         return _rules, _group_keys, _all_keys
