@@ -115,21 +115,24 @@ def is_set(backend='default'):
 
 
 @connection
-def get(cache_cls, key, data_format='json'):
-    return cache_cls.get(key, data_format=data_format)
+def get(cache_cls, key):
+    return cache_cls.get(key)
 
 
 @connection
-def set(cache_cls, key, value, expire=None, data_format='json'):
-    return cache_cls.set(key, value, expire=expire, data_format=data_format)
+def set(cache_cls, key, value, expire=None):
+    return cache_cls.set(key, value, expire=expire)
+
 
 @connection
 def increment(cache_cls, key, amount=1):
     return cache_cls.increment(key, amount)
 
+
 @connection
 def decrement(cache_cls, key, amount=1):
     return cache_cls.decrement(key, amount)
+
 
 @connection
 def keys(cache_cls, pattern):
@@ -163,7 +166,6 @@ class BaseCache(object):
         Args:
             key (str)
             **kwargs (dict)
-                - data_format (str)
         Returns:
             cache_value (any)
         """
@@ -176,33 +178,28 @@ class BaseCache(object):
             value (str)
             **kwargs (dict)
                 - expire (int: seconds)
-                - data_format (str)
 
         Returns:
             True | False
         """
         raise NotImplementedError('cache.set not implemented!')
 
-    def increment(self, key, amount, **kwargs):
+    def increment(self, key, amount):
         """
         Args:
             key (str)
             amount (int)
-            **kwargs (dict)
-                - expire (int: seconds)
 
         Returns:
             True | False
         """
         raise NotImplementedError('cache.incr not implemented!')
 
-    def decrement(self, key, amount, **kwargs):
+    def decrement(self, key, amount):
         """
         Args:
             key (str)
             amount (int)
-            **kwargs (dict)
-                - expire (int: seconds)
 
         Returns:
             True | False

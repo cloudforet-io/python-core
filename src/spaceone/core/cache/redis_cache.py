@@ -27,27 +27,20 @@ class RedisCache(BaseCache):
     def _get_connection(self, pool):
         return redis.Redis(connection_pool=pool)
 
-    def get(self, key, data_format='json'):
+    def get(self, key, **kwargs):
         try:
             cache_value = self.conn.get(key)
-
             if cache_value:
-                if data_format == 'json':
-                    return json.loads(cache_value)
-                else:
-                    return cache_value
+                return json.loads(cache_value)
             else:
                 return cache_value
 
         except Exception as e:
             raise ERROR_CACHE_DECODE(reason=e)
 
-    def set(self, key, value, expire=None, data_format='json'):
+    def set(self, key, value, expire=None, **kwargs):
         try:
-            if data_format == 'json':
-                cache_value = json.dumps(value)
-            else:
-                cache_value = value
+            cache_value = json.dumps(value)
             return self.conn.set(key, cache_value, ex=expire)
         except Exception as e:
             raise ERROR_UNKNOWN(message=e)
@@ -64,7 +57,7 @@ class RedisCache(BaseCache):
         except Exception as e:
             raise ERROR_UNKNOWN(message=e)
 
-    def keys(self, pattern):
+    def keys(self, pattern='*'):
         return self.conn.keys(pattern)
 
     def ttl(self, key):
