@@ -35,6 +35,14 @@ def _not_in_resolver(key, value, operator, is_multiple, is_exact_field):
     return Q(**{f'{key}__nin': value})
 
 
+def _match_resolver(key, value, operator, is_multiple, is_exact_field):
+    if not isinstance(value, dict):
+        raise ERROR_OPERATOR_DICT_VALUE_TYPE(operator=operator,
+                                             condition={'key': key, 'value': value, 'operator': operator})
+
+    return Q(**{f'{key}__match': value})
+
+
 def _regex_resolver(key, value, operator, is_multiple, is_exact_field):
     if is_multiple:
         return reduce(lambda x, y: x | y,
@@ -74,7 +82,7 @@ FILTER_OPERATORS = {
     'not_in': (_not_in_resolver, None, True),
     'contain_in': (_default_resolver, 'icontains', True),
     'not_contain_in': (_default_resolver, 'not__icontains', True),
-    'match': (_default_resolver, 'match', False),
+    'match': (_match_resolver, 'match', False),
     'regex': (_regex_resolver, None, False),
     'regex_in': (_regex_resolver, None, True),
     'datetime_gt': (_datetime_resolver, 'gt', False),
