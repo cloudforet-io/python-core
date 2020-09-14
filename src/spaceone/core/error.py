@@ -100,6 +100,10 @@ class ERROR_OPERATOR_LIST_VALUE_TYPE(ERROR_INVALID_ARGUMENT):
     _message = 'The value of \'{operator} operator\' must be a list type. ({condition})'
 
 
+class ERROR_OPERATOR_DICT_VALUE_TYPE(ERROR_INVALID_ARGUMENT):
+    _message = 'The value of \'{operator} operator\' must be a dictionary type. ({condition})'
+
+
 class ERROR_OPERATOR_BOOLEAN_TYPE(ERROR_INVALID_ARGUMENT):
     _message = 'The value of \'{operator} operator\' must be a boolean type. ({condition})'
 
