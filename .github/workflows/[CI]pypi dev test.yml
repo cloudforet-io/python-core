@@ -40,7 +40,7 @@ jobs:
 
   pypi:
     if: github.repository_owner == 'spaceone-dev'
-    needs: [condition_check, update_local_version_file]
+    needs: [condition_check]
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.condition_check.outputs.TAG }}
