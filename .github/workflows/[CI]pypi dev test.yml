@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: '`x.y.zdeva` 형태로 버전을 입력해주세요.'
+        description: '`vx.y.zdeva` 형태로 버전을 입력해주세요.'
         required: true
         default: v1.2.3-dev1
 
