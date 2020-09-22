@@ -34,7 +34,7 @@ jobs:
           fi
       - name: if not test release, exit
         run: |
-          if [[ !(${{ env.VERSION }} =~ ^v[0-9]\.[0-9]\.[0-9]dev(.*)$) ]];
+          if [[ !(${{ env.TAG }} =~ ^v[0-9]\.[0-9]\.[0-9]dev(.*)$) ]];
             then exit 1
           fi
 
@@ -102,7 +102,7 @@ jobs:
 
   notify_to_slack:
     if: github.repository_owner == 'spaceone-dev'
-    needs: [condition_check, update_local_version_file, pypi]
+    needs: [condition_check, pypi]
     runs-on: ubuntu-latest
     steps:
       - name: Slack
