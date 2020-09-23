@@ -13,3 +13,4 @@ factory-boy
 jsonschema
 python-dateutil
 python-consul
+celery[redis]

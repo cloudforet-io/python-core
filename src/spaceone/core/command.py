@@ -7,10 +7,14 @@ import sys
 import pkg_resources
 import unittest
 
+from celery.bin.celery import CeleryCommand
 from spaceone.core import config
 from spaceone.core import pygrpc
 from spaceone.core import scheduler
 from spaceone.core.unittest.runner import RichTestRunner
+from spaceone.core.celery import app as celery_app
+
+from spaceone.core.celery.app import app
 
 
 def _get_env():
@@ -69,6 +73,23 @@ def _set_scheduler_command(subparsers, env):
     parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
                         default=env['CONFIG_FILE'])
     parser.add_argument('-m', '--module-path', help='Module path')
+
+
+
+
+def _set_celery_command(subparsers, env):
+    parser = subparsers.add_parser('celery', description='Run a celery worker server',
+                                   help='Run a celery worker server',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('package', metavar='PACKAGE', help='Package (ex: spaceone.identity)')
+    parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
+                        default=env['CONFIG_FILE'])
+    parser.add_argument('-m', '--module-path', help='Module path')
+    celery_cmd = parser.add_subparsers(dest='celery_cmd', metavar='celery_cmd')
+    for cmd,cmd_klass in CeleryCommand.commands.items() :
+        sub_parse = celery_cmd.add_parser(cmd)
+        cmd_klass(app).add_arguments(sub_parse)
+
 
 
 def _set_test_command(subparsers, env):
@@ -210,6 +231,10 @@ def _run_command(args):
         pygrpc.serve()
     elif command == 'scheduler':
         scheduler.serve()
+    elif command == 'celery-worker':
+        celery_app.serve_worker()
+    elif command == 'celery':
+        celery_app.serve(args)
     elif command == 'test':
         _run_tests(args)
     else:
@@ -219,11 +244,12 @@ def _run_command(args):
 def _parse_argument():
     env = _get_env()
     parser = argparse.ArgumentParser(description='Command line interface for SpaceONE', prog='spaceone')
-    subparsers = parser.add_subparsers(dest='command', metavar='COMMAND')
+    subparsers = parser.add_subparsers(dest='command', metavar='COMMAND',required=False)
 
     _set_start_project_command(subparsers, env)
     _set_grpc_command(subparsers, env)
     _set_scheduler_command(subparsers, env)
+    _set_celery_command(subparsers,env)
     #_set_rest_command(subparsers, env)
     _set_test_command(subparsers, env)
 
