@@ -83,6 +83,8 @@ STAT_OPERATORS = {
     'average': _stat_average_resolver,
     'max': _stat_default_resolver,
     'min': _stat_default_resolver,
+    'first': _stat_default_resolver,
+    'last': _stat_default_resolver,
     'size': _stat_size_resolver,
     'add_to_set': _stat_add_to_set_resolver,
     'merge_objects': _stat_merge_objects_resolver,
