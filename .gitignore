@@ -9,3 +9,7 @@ __pycache__
 venv
 .venv/
 /custom/
+
+example/celery/src/celerybeat-schedule
+
+example/celery/src/celerybeat.pid

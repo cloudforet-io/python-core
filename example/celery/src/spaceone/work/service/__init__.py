@@ -1,0 +1,1 @@
+from spaceone.work.service.domain_service import DomainService

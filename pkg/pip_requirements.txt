@@ -13,4 +13,4 @@ factory-boy
 jsonschema
 python-dateutil
 python-consul
-celery[redis]
+celery[redis]==4.4.7
