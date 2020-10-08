@@ -31,6 +31,14 @@ def _in_resolver(key, value, operator, is_multiple, is_exact_field):
                       map(lambda i: Q(**{f'{key}__iexact': i}), value))
 
 
+def _exists_resolver(key, value, operator, is_multiple, is_exact_field):
+    if not isinstance(value, bool):
+        raise ERROR_OPERATOR_BOOLEAN_TYPE(operator=operator,
+                                          condition={'key': key, 'value': value, 'operator': operator})
+
+    return Q(**{f'{key}__exists': value})
+
+
 def _not_in_resolver(key, value, operator, is_multiple, is_exact_field):
     return Q(**{f'{key}__nin': value})
 
@@ -75,7 +83,7 @@ FILTER_OPERATORS = {
     'gte': (_default_resolver, 'gte', False),
     'eq': (_eq_resolver, None, False),
     'not': (_default_resolver, 'ne', False),
-    'exists': (_default_resolver, 'exists', False),
+    'exists': (_exists_resolver, 'exists', False),
     'contain': (_default_resolver, 'icontains', False),
     'not_contain': (_default_resolver, 'not__icontains', False),
     'in': (_in_resolver, None, True),
