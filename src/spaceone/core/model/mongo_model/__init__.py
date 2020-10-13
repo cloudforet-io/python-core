@@ -577,7 +577,7 @@ class MongoModel(Document, BaseModel):
         for ref_key, lookup_conf in options.items():
             if cls._check_lookup_field(ref_key, all_keys):
                 lookup_from = lookup_conf['from']
-                lookup_local = lookup_conf.get('localField', ref_key)
+                lookup_local = lookup_conf.get('localField', f'ref_{ref_key}')
                 lookup_foreign = lookup_conf.get('foreignField', '_id')
                 rules.append({
                     '$lookup': {
