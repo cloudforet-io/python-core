@@ -23,9 +23,10 @@ GLOBAL:
 
 
   CELERY:
-    mode: WORKER
+    mode: BEAT
     broker_url: redis://localhost:6379
     beat_schedule:
       every_30seconds:
         task: spaceone.work.scheduler.domain_scheduler
         schedule: 5.0
+

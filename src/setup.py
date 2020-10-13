@@ -46,6 +46,7 @@ setup(
         "jsonschema",
         "python-dateutil",
         "python-consul",
+        "celery",
         "scheduler-cron",
     ],
     zip_safe=False,

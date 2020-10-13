@@ -1,10 +1,14 @@
-import sys
+from enum import Enum
 
 from celery import Celery
 from spaceone.core import config
 from spaceone.core.logger import set_logger
 
 app = Celery('spaceone')
+
+class SERVER_MODE_ENUM(Enum):
+    WORKER = 'WORKER'
+    BEAT = 'BEAT'
 
 
 @app.task()
@@ -27,11 +31,13 @@ def update_celery_config(app):
     app.autodiscover_tasks([conf["PACKAGE"]], related_name='scheduler', force=True)
 
 
-def serve(args=None):
+
+def serve():
     set_logger()
     update_celery_config(app)
-    celery_argv = ['celery', '-A', 'spaceone.core.celery.app.app']
-    if args.celery_cmd:
-        _index = sys.argv.index(args.celery_cmd)
-        celery_argv += sys.argv[_index:]
-    app.start(argv=celery_argv)
+    server_mode = app.conf.get('mode',SERVER_MODE_ENUM.WORKER.value)
+    if server_mode == SERVER_MODE_ENUM.WORKER:
+        app.Beat().run()
+    else:
+        app.Worker().start()
+

@@ -7,12 +7,16 @@ __all__ = ['domain_scheduler']
 
 from spaceone.core.celery.tasks import BaseSchedulerTask
 
+from spaceone.core import config
+
 _LOGGER = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, base=BaseSchedulerTask,name='spaceone.work.scheduler.domain_scheduler')
 def domain_scheduler(self):
     print(self.locator)
+    conf = config.get_global()
+    print(conf)
     return [
         {
             'name': 'domain_schedule',
@@ -24,7 +28,7 @@ def domain_scheduler(self):
                 'method': 'enable',
                 'params': {
                     'params': {
-                        'domain_id': ''
+                        'domain_id': 'asdf'
                     }
                 }
             }]

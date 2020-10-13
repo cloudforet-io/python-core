@@ -85,10 +85,7 @@ def _set_celery_command(subparsers, env):
     parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
                         default=env['CONFIG_FILE'])
     parser.add_argument('-m', '--module-path', help='Module path')
-    celery_cmd = parser.add_subparsers(dest='celery_cmd', metavar='celery_cmd')
-    for cmd,cmd_klass in CeleryCommand.commands.items() :
-        sub_parse = celery_cmd.add_parser(cmd)
-        cmd_klass(app).add_arguments(sub_parse)
+
 
 
 
@@ -231,10 +228,8 @@ def _run_command(args):
         pygrpc.serve()
     elif command == 'scheduler':
         scheduler.serve()
-    elif command == 'celery-worker':
-        celery_app.serve_worker()
     elif command == 'celery':
-        celery_app.serve(args)
+        celery_app.serve()
     elif command == 'test':
         _run_tests(args)
     else:
