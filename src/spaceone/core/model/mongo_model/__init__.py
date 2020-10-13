@@ -273,14 +273,14 @@ class MongoModel(Document, BaseModel):
     @classmethod
     def _get_reference_model(cls, key):
         for ref_key, ref_conf in cls._meta.get('reference_query_keys', {}).items():
-            if isinstance(ref_conf, dict):
-                ref_model = ref_conf.get('model')
-                foreign_key = ref_conf.get('foreign_key')
-            else:
-                ref_model = ref_conf
-                foreign_key = None
-
             if key.startswith(ref_key) and key[len(ref_key)] == '.':
+                if isinstance(ref_conf, dict):
+                    ref_model = ref_conf.get('model')
+                    foreign_key = ref_conf.get('foreign_key')
+                else:
+                    ref_model = ref_conf
+                    foreign_key = None
+
                 ref_query_key = key.replace(f'{ref_key}.', '')
                 if ref_model == 'self':
                     ref_model = cls
@@ -591,17 +591,17 @@ class MongoModel(Document, BaseModel):
         all_keys = list(set(all_keys))
         rules = []
         for ref_key, ref_conf in cls._meta.get('reference_query_keys', {}).items():
-            if isinstance(ref_conf, dict):
-                ref_model = ref_conf.get('model')
-                foreign_key = ref_conf.get('foreign_key', '_id')
-            else:
-                ref_model = ref_conf
-                foreign_key = '_id'
-
-            if ref_model == 'self':
-                ref_model = cls
-
             if cls._check_lookup_field(ref_key, all_keys):
+                if isinstance(ref_conf, dict):
+                    ref_model = ref_conf.get('model')
+                    foreign_key = ref_conf.get('foreign_key', '_id')
+                else:
+                    ref_model = ref_conf
+                    foreign_key = '_id'
+
+                if ref_model == 'self':
+                    ref_model = cls
+
                 rules.append({
                     '$lookup': {
                         'from': ref_model._meta['collection'],
