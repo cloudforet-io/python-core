@@ -1,7 +1,7 @@
 grpcio
 grpcio-reflection
-grpcio-health-checking
 google-api-core
+grpcio-health-checking
 PyYAML
 unittest-xml-reporting>=3.0.0
 pycryptodome==3.8.2
@@ -13,3 +13,4 @@ factory-boy
 jsonschema
 python-dateutil
 python-consul
+scheduler-cron
