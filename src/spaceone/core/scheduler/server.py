@@ -106,8 +106,11 @@ def serve():
     # Load scheduler config
     # Create Scheduler threads
     # start Scheduler
-    set_logger()
     conf = config.get_global()
+
+    # Enable logging configuration
+    if conf.get('SET_LOGGING', True):
+        set_logger()
 
     server = Server(config.get_service(), conf)
     server.start()

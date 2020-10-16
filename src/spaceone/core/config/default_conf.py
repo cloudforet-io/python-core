@@ -13,3 +13,6 @@ EXTENSION_APIS = {
     'spaceone.core.extension.grpc_health': ['GRPCHealth'],
     'spaceone.core.extension.server_info': ['ServerInfo']
 }
+
+# Logging Configuration
+SET_LOGGING = True

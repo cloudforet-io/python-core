@@ -32,7 +32,9 @@ class BaseService(object):
         else:
             self.transaction = Transaction(metadata)
 
-        set_logger(transaction=self.transaction)
+        if config.get_global('SET_LOGGING', True):
+            set_logger(transaction=self.transaction)
+
         self.locator = Locator(self.transaction)
         self.handler = {
             'authentication': {'handlers': [], 'methods': []},

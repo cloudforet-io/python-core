@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import logging
 import logging.config
 import copy
-
 
 from spaceone.core import config
 from spaceone.core.error import *
