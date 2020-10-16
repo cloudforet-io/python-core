@@ -272,26 +272,42 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def _get_reference_model(cls, key):
-        for ref_key, ref_model in cls._meta.get('reference_query_keys', {}).items():
+        for ref_key, ref_conf in cls._meta.get('reference_query_keys', {}).items():
             if key.startswith(ref_key) and key[len(ref_key)] == '.':
-                ref_model_key = key.replace(f'{ref_key}.', '')
-                if ref_model == 'self':
-                    return cls, ref_key, ref_model_key
+                if isinstance(ref_conf, dict):
+                    ref_model = ref_conf.get('model')
+                    foreign_key = ref_conf.get('foreign_key')
                 else:
-                    return ref_model, ref_key, ref_model_key
+                    ref_model = ref_conf
+                    foreign_key = None
 
-        return None, None, None
+                ref_query_key = key.replace(f'{ref_key}.', '')
+                if ref_model == 'self':
+                    ref_model = cls
+
+                return ref_model, ref_key, ref_query_key, foreign_key
+
+        return None, None, None, None
 
     @classmethod
     def _change_reference_condition(cls, key, value, operator, is_exact_field):
-        ref_model, ref_key, ref_model_key = cls._get_reference_model(key)
+        ref_model, ref_key, ref_query_key, foreign_key = cls._get_reference_model(key)
         if ref_model:
             if value is None:
                 return ref_key, value, operator, is_exact_field
             else:
                 ref_vos, total_count = ref_model.query(
-                    filter=[{'k': ref_model_key, 'v': value, 'o': operator}])
-                return ref_key, list(ref_vos), 'in', True
+                    filter=[{'k': ref_query_key, 'v': value, 'o': operator}])
+
+                if foreign_key:
+                    ref_values = []
+                    for ref_vo in ref_vos:
+                        ref_value = getattr(ref_vo, foreign_key)
+                        if ref_value:
+                            ref_values.append(ref_value)
+                else:
+                    ref_values = list(ref_vos)
+                return ref_key, ref_values, 'in', True
 
         else:
             return key, value, operator, is_exact_field
@@ -571,19 +587,26 @@ class MongoModel(Document, BaseModel):
         return False
 
     @classmethod
-    def _make_lookup_rules(cls, options, all_keys):
+    def _make_lookup_rules(cls, all_keys):
         all_keys = list(set(all_keys))
         rules = []
-        for ref_key, lookup_conf in options.items():
+        for ref_key, ref_conf in cls._meta.get('reference_query_keys', {}).items():
             if cls._check_lookup_field(ref_key, all_keys):
-                lookup_from = lookup_conf['from']
-                lookup_local = lookup_conf.get('localField', ref_key)
-                lookup_foreign = lookup_conf.get('foreignField', '_id')
+                if isinstance(ref_conf, dict):
+                    ref_model = ref_conf.get('model')
+                    foreign_key = ref_conf.get('foreign_key', '_id')
+                else:
+                    ref_model = ref_conf
+                    foreign_key = '_id'
+
+                if ref_model == 'self':
+                    ref_model = cls
+
                 rules.append({
                     '$lookup': {
-                        'from': lookup_from,
-                        'localField': lookup_local,
-                        'foreignField': lookup_foreign,
+                        'from': ref_model._meta['collection'],
+                        'localField': ref_key,
+                        'foreignField': foreign_key,
                         'as': ref_key
                     }
                 })
@@ -622,7 +645,7 @@ class MongoModel(Document, BaseModel):
             _aggregation_rules.append(rule)
 
         if 'lookup' in _aggregate_meta:
-            rules = cls._make_lookup_rules(_aggregate_meta['lookup'], _all_keys)
+            rules = cls._make_lookup_rules(_all_keys)
             _aggregation_rules = rules + _aggregation_rules
 
         return _aggregation_rules
