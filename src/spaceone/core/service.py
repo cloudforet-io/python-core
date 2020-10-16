@@ -131,7 +131,7 @@ def append_keyword_filter(keywords=[]):
                     for key in keywords:
                         query['filter_or'].append({
                             'k': key,
-                            'v': keyword.split(' '),
+                            'v': list(filter(None, keyword.split(' '))),
                             'o': 'contain_in'
                         })
 
