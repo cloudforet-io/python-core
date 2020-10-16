@@ -96,8 +96,11 @@ def _get_grpc_options(conf):
 
 
 def serve():
-    set_logger()
     conf = config.get_global()
+
+    # Enable logging configuration
+    if conf.get('SET_LOGGING', True):
+        set_logger()
 
     server_interceptor = _ServerInterceptor()
     server = grpc.server(
