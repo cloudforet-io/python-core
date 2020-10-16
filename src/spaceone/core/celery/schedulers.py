@@ -1,4 +1,5 @@
 import datetime
+import logging
 import traceback
 
 from celery import current_app, schedules
@@ -7,15 +8,18 @@ from celery.utils.log import get_logger
 from spaceone.core import config
 from spaceone.core.base import CoreObject
 from spaceone.core.celery.service import CeleryScheduleService
-from spaceone.core.celery.types import SpaceoneTask
+from spaceone.core.celery.types import SpaceoneTaskData
+
+from spaceone.core.transaction import Transaction
+
+from spaceone.core.locator import Locator
 
 logger = get_logger(__name__)
-
+logging.basicConfig( level=logging.DEBUG)
 
 class SpaceOneScheduleEntry(ScheduleEntry):
 
-    def __init__(self, task: SpaceoneTask):
-        super(CoreObject, self).__init__()
+    def __init__(self, task: SpaceoneTaskData):
         self._task = task
 
         self.app = current_app._get_current_object()
@@ -52,6 +56,14 @@ class SpaceOneScheduleEntry(ScheduleEntry):
         new_entry = Scheduler.reserve(self, entry)
         return new_entry
 
+    def next(self):
+        self._task.last_run_at = self.app.now()
+        self._task.total_run_count += 1
+        self._task.run_immediately = False
+        return self.__class__(self._task)
+
+    __next__ = next
+
     def save(self, service_obj: CeleryScheduleService):
         if self.total_run_count > self._task.total_run_count:
             self._task.total_run_count = self.total_run_count
@@ -72,34 +84,43 @@ class SpaceOneSchedulerError(Exception):
     pass
 
 
-class SpaceOneScheduler(Scheduler, CoreObject):
+class SpaceOneScheduler(Scheduler):
     #: how often should we sync in schedule information
     #: from the backend mongo database
     UPDATE_INTERVAL = datetime.timedelta(seconds=5)
 
     Entry = SpaceOneScheduleEntry
+    Service = None
+    _metadata:dict = None
 
     @property
     def metadata(self):
-        if not self._metadata:
+        if self._metadata is None:
             token = config.get_global('TOKEN')
-            self._metadata = {'token': token, }
+            if token:
+                self._metadata = {'token': token, }
+            else:
+                self._metadata = {}
         return self._metadata
 
-    def __init__(self, *args, **kwargs):
-        super(CoreObject, self).__init__()
+    def __init__(self, *args,**kwargs):
+        self.transaction = Transaction()
+        self.locator = Locator(self.transaction)
         if hasattr(current_app.conf, "spaceone_scheduler_service"):
             self.service_name = current_app.conf.get("spaceone_scheduler_service")
         else:
             raise SpaceOneSchedulerError("can not find CELERY.spaceone_scheduler_service config")
 
-        self.service = self.locator.get_service(self.service_name, metadata=self.metadata)
+        self.Service = self.locator.get_service(self.service_name, metadata=self.metadata)
         self._schedule = {}
         self._last_updated = None
         self._metadata = None
+
         Scheduler.__init__(self, *args, **kwargs)
         self.max_interval = (kwargs.get('max_interval')
                              or self.app.conf.CELERYBEAT_MAX_LOOP_INTERVAL or 5)
+
+
 
     def setup_schedule(self):
         pass
@@ -114,18 +135,24 @@ class SpaceOneScheduler(Scheduler, CoreObject):
     def get_from_service(self):
         self.sync()
         d = {}
-        for task in self.service.list():
+        for task in self.Service.list():
             d[task.schedule_id] = self.Entry(task)
         return d
 
     @property
     def schedule(self):
         if self.requires_update():
-            self._schedule = self.get_from_database()
+            self._schedule = self.get_from_service()
             self._last_updated = datetime.datetime.now()
         return self._schedule
 
+
     def sync(self):
-        logger.debug('Writing entries...')
-        for entry in self._schedule.values():
-            entry.save(self.service)
+        print('Writing entries...')
+        values = self._schedule.values()
+        for entry in values:
+            entry.save(self.Service)
+
+    @property
+    def info(self):
+        return f'    . service -> {self.service_name}'

@@ -51,6 +51,16 @@ class SingleTask:
             raise ERROR_TASK_METHOD(name=self.name, method=self.method, params=self.params)
 
 
+@shared_task(bind=True)
+def test_task(self, *args, **kwargs):
+    print(self, args, kwargs, 'check arguments')
+    return {
+        "name": "test_task",
+        "args": args,
+        "kwargs": kwargs,
+    }
+
+
 @shared_task(bind=True, base=BaseTask)
 def spaceone_task(self, task: dict, *args, **kwargs):
     print(self, task, args, kwargs, '인자 체크')

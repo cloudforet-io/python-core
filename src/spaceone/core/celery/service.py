@@ -2,20 +2,20 @@ from typing import Iterable
 
 from spaceone.core.service import BaseService
 
-from spaceone.core.celery.types import SpaceoneTask
+from spaceone.core.celery.types import SpaceoneTaskData
 
 
 class CeleryScheduleService(BaseService):
 
 
-    def get(self, params)->SpaceoneTask:
+    def get(self, params=None)->SpaceoneTaskData:
         raise NotImplementedError('you must override celery service get method')
 
 
-    def list(self, params)->Iterable[SpaceoneTask]:
+    def list(self, params=None)->Iterable[SpaceoneTaskData]:
         raise NotImplementedError('you must override celery service list method')
 
 
-    def update(self, domain_id:str,schedule_id:str,)->SpaceoneTask:
+    def update(self, domain_id:str,schedule_id:str,)->SpaceoneTaskData:
         raise NotImplementedError('you must override celery service update method')
 

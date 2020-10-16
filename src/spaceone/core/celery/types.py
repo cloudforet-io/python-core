@@ -37,7 +37,7 @@ class Interval():
 
 
 @dataclass
-class SpaceoneTask():
+class SpaceoneTaskData():
     domain_id: str
     schedule_id: str
     enabled: bool

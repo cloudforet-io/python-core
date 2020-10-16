@@ -25,8 +25,12 @@ GLOBAL:
   CELERY:
     mode: BEAT
     broker_url: redis://localhost:6379
+    worker_redirect_stdouts_level: DEBUG
+#    result_backend: redis://localhost:6379
     beat_schedule:
       every_30seconds:
         task: spaceone.work.scheduler.domain_scheduler
         schedule: 5.0
-
+      print_conf:
+        task: spaceone.core.celery.tasks.test_task
+        schedule: 10

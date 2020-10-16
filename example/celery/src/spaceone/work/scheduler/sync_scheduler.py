@@ -14,7 +14,6 @@ _LOGGER = logging.getLogger(__name__)
 
 @shared_task(bind=True, base=BaseSchedulerTask,name='spaceone.work.scheduler.domain_scheduler')
 def domain_scheduler(self):
-    print(self.locator)
     conf = config.get_global()
     print(conf)
     return [

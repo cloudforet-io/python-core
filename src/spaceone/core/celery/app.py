@@ -1,14 +1,30 @@
+import logging
 from enum import Enum
 
+import celery
 from celery import Celery
+from celery.apps.beat import Beat
+from celery.apps.worker import Worker
 from spaceone.core import config
-from spaceone.core.logger import set_logger
+
+DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
+
+@celery.signals.after_setup_logger.connect
+def on_after_setup_logger(**kwargs):
+    logger = logging.getLogger('celery')
+    logger.propagate = True
+    logger.level = logging.DEBUG
+    logger = logging.getLogger('celery.app.trace')
+    logger.propagate = True
+    logger.level = logging.DEBUG
 
 app = Celery('spaceone')
+
 
 class SERVER_MODE_ENUM(Enum):
     WORKER = 'WORKER'
     BEAT = 'BEAT'
+    SPACEONE_BEAT = 'SPACEONE_BEAT'
 
 
 @app.task()
@@ -16,6 +32,9 @@ def print_conf(**kwargs):
     print(kwargs)
     print('get conf')
     print(config.get_global())
+    return {
+        "kwargs": kwargs
+    }
 
 
 def update_celery_config(app):
@@ -31,13 +50,14 @@ def update_celery_config(app):
     app.autodiscover_tasks([conf["PACKAGE"]], related_name='scheduler', force=True)
 
 
-
 def serve():
-    set_logger()
+    # set_logger()
     update_celery_config(app)
     server_mode = app.conf.get('mode',SERVER_MODE_ENUM.WORKER.value)
-    if server_mode == SERVER_MODE_ENUM.WORKER:
-        app.Beat().run()
+    if server_mode == SERVER_MODE_ENUM.BEAT.value:
+        Beat(app=app, loglevel='DEBUG').run()
+    elif server_mode == SERVER_MODE_ENUM.SPACEONE_BEAT.value:
+        app.conf.update(beat_scheduler=DEFAULT_SPACEONE_BEAT)
+        Beat(app=app, loglevel='DEBUG').run()
     else:
-        app.Worker().start()
-
+        Worker(app=app).start()

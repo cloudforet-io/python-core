@@ -7,6 +7,7 @@ DATABASES = {
         'password': ''
     }
 }
+SET_LOGGING = False
 
 CACHES = {
     'default': {},
