@@ -5,17 +5,16 @@ import traceback
 from celery import current_app, schedules
 from celery.beat import ScheduleEntry, Scheduler
 from celery.utils.log import get_logger
+
 from spaceone.core import config
-from spaceone.core.base import CoreObject
 from spaceone.core.celery.service import CeleryScheduleService
 from spaceone.core.celery.types import SpaceoneTaskData
-
+from spaceone.core.locator import Locator
 from spaceone.core.transaction import Transaction
 
-from spaceone.core.locator import Locator
-
 logger = get_logger(__name__)
-logging.basicConfig( level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
+
 
 class SpaceOneScheduleEntry(ScheduleEntry):
 
@@ -72,10 +71,10 @@ class SpaceOneScheduleEntry(ScheduleEntry):
         try:
             service_obj.update(
                 {
-                    'domain_id':self._task.domain_id,
-                    'schedule_id':self._task.schedule_id,
-                   'total_run_count': self._task.total_run_count,
-                    'last_run_at':self._task.last_run_at
+                    'domain_id': self._task.domain_id,
+                    'schedule_id': self._task.schedule_id,
+                    'total_run_count': self._task.total_run_count,
+                    'last_schedule_at': self._task.last_run_at
                 },
             )
         except Exception:
@@ -93,7 +92,7 @@ class SpaceOneScheduler(Scheduler):
 
     Entry = SpaceOneScheduleEntry
     Service = None
-    _metadata:dict = None
+    _metadata: dict = None
 
     @property
     def metadata(self):
@@ -105,7 +104,7 @@ class SpaceOneScheduler(Scheduler):
                 self._metadata = {}
         return self._metadata
 
-    def __init__(self, *args,**kwargs):
+    def __init__(self, *args, **kwargs):
         self.transaction = Transaction()
         self.locator = Locator(self.transaction)
         if hasattr(current_app.conf, "spaceone_scheduler_service"):
@@ -121,8 +120,6 @@ class SpaceOneScheduler(Scheduler):
         Scheduler.__init__(self, *args, **kwargs)
         self.max_interval = (kwargs.get('max_interval')
                              or self.app.conf.CELERYBEAT_MAX_LOOP_INTERVAL or 5)
-
-
 
     def setup_schedule(self):
         pass
@@ -149,7 +146,6 @@ class SpaceOneScheduler(Scheduler):
             self._schedule = self.get_from_service()
             self._last_updated = datetime.datetime.now()
         return self._schedule
-
 
     def sync(self):
         print('Writing entries...')
