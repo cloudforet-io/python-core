@@ -3,18 +3,18 @@
 # run beat server
 ```bash
 cd src
-spaceone celery spaceone.work -m . -c ./spaceone/work/conf/work.yaml  beat
+spaceone celery spaceone.work -m . -c ./spaceone/work/conf/custom_beat.yaml
 
 ```
 
 # run worker server
 ```bash
 cd src
- spaceone celery spaceone.work -m . -c ./spaceone/work/conf/work.yaml  worker -c 8
+ spaceone celery spaceone.work -m . -c ./spaceone/work/conf/work.yaml 
 ```
 
-# purge que
+# add some schedule
 ```
 cd src
-spaceone celery spaceone.work -m . -c ./spaceone/work/conf/work.yaml  purge -f
+python add_schdule
 ```

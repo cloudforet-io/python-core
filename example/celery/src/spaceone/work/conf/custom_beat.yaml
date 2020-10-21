@@ -26,5 +26,3 @@ GLOBAL:
     mode: SPACEONE_BEAT
     spaceone_scheduler_service: ScheduleService
     broker_url: redis://localhost:6379
-    worker_redirect_stdouts_level: DEBUG
-#    result_backend: redis://localhost:6379

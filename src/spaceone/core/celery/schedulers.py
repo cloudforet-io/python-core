@@ -71,10 +71,12 @@ class SpaceOneScheduleEntry(ScheduleEntry):
             self._task.last_run_at = self.last_run_at
         try:
             service_obj.update(
-                self._task.domain_id,
-                self._task.schedule_id,
-                total_run_count=self._task.total_run_count,
-                last_run_at=self._task.last_run_at
+                {
+                    'domain_id':self._task.domain_id,
+                    'schedule_id':self._task.schedule_id,
+                   'total_run_count': self._task.total_run_count,
+                    'last_run_at':self._task.last_run_at
+                },
             )
         except Exception:
             logger.error(traceback.format_exc())
@@ -135,7 +137,9 @@ class SpaceOneScheduler(Scheduler):
     def get_from_service(self):
         self.sync()
         d = {}
-        for task in self.Service.list():
+        schedules = self.Service.list()
+        print(f"Find {len(schedules)} schedules")
+        for task in schedules:
             d[task.schedule_id] = self.Entry(task)
         return d
 

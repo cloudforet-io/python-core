@@ -11,12 +11,13 @@ DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
 
 @celery.signals.after_setup_logger.connect
 def on_after_setup_logger(**kwargs):
-    logger = logging.getLogger('celery')
-    logger.propagate = True
-    logger.level = logging.DEBUG
-    logger = logging.getLogger('celery.app.trace')
-    logger.propagate = True
-    logger.level = logging.DEBUG
+    if config.get_global('CELERY',{}).get('debug_mode'):
+        logger = logging.getLogger('celery')
+        logger.propagate = True
+        logger.level = logging.DEBUG
+        logger = logging.getLogger('celery.app.trace')
+        logger.propagate = True
+        logger.level = logging.DEBUG
 
 app = Celery('spaceone')
 
@@ -27,20 +28,13 @@ class SERVER_MODE_ENUM(Enum):
     SPACEONE_BEAT = 'SPACEONE_BEAT'
 
 
-@app.task()
-def print_conf(**kwargs):
-    print(kwargs)
-    print('get conf')
-    print(config.get_global())
-    return {
-        "kwargs": kwargs
-    }
 
 
 def update_celery_config(app):
     conf = config.get_global()
     default_que = f"{conf.get('SERVICE', 'spaceone')}_q"
     app.conf.update(task_default_queue=default_que)
+    app.conf.update(task_cls='spaceone.core.celery.tasks:BaseTask')
     app.conf.update(**conf.get('CELERY', {}))
 
     # add default tasks

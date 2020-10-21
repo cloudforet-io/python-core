@@ -1,8 +1,11 @@
 from typing import Iterable
 
 from spaceone.core.celery.service import CeleryScheduleService
-from spaceone.core.celery.types import Interval
-from spaceone.core.celery.types import SpaceoneTaskData
+from spaceone.core.celery.types import Interval, SpaceoneTaskData
+from spaceone.core.service import authentication_handler, authorization_handler, check_required, event_handler, \
+    transaction
+
+from spaceone.work.manager import ScheduleManager
 
 mock_data = [
     {
@@ -26,15 +29,28 @@ mock_data = [
 ]
 
 
+@authentication_handler
+@authorization_handler
+@event_handler
 class ScheduleService(CeleryScheduleService):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.manager: ScheduleManager = self.locator.get_manager('ScheduleManager')
 
-    def get(self , params=None)-> SpaceoneTaskData:
-        return SpaceoneTaskData(**mock_data[0])
+    @transaction
+    def add(self,params=None):
+        return self.manager.add_schedule(params)
+
+    @transaction
+    @check_required(["domain_id", "schedule_id"])
+    def get(self, params=None) -> SpaceoneTaskData:
+        sch = self.manager.get_schedule(params['schedule_id'],params['domain_id'])
+        return sch.get_task_data()
 
     def list(self, params=None) -> Iterable[SpaceoneTaskData]:
-        print('request celery list ')
-        return (SpaceoneTaskData(**d) for d in mock_data)
+        schedules,_ = self.manager.list_enabled_schedules()
+        return [s.get_task_data() for s in schedules]
 
-    def update(self, domain_id: str, schedule_id: str, **kwargs) -> SpaceoneTaskData:
-        print('request update')
-        print(domain_id, schedule_id, kwargs)
+    @check_required(["domain_id", "schedule_id"])
+    def update(self, params) -> SpaceoneTaskData:
+        self.manager.update_schedule(params)

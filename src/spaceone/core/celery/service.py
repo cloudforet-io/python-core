@@ -16,6 +16,6 @@ class CeleryScheduleService(BaseService):
         raise NotImplementedError('you must override celery service list method')
 
 
-    def update(self, domain_id:str,schedule_id:str,)->SpaceoneTaskData:
+    def update(self, params=None)->SpaceoneTaskData:
         raise NotImplementedError('you must override celery service update method')
 
