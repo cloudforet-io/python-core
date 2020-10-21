@@ -62,6 +62,23 @@ if __name__ == '__main__':
         }
 
     })
+
+    task2 = 'spaceone.work.scheduler.domain_scheduler'
+    sch_name2 = f"test_sche_{randint(1, 1000)}"
+    svc.add({
+        'domain_id': "sample",
+        'enabled': True,
+        'task': task2,
+        'name': sch_name2,
+        'cron': {
+            'minute':'*',
+            'hour': '*',
+            'day_of_week': '*',
+            'day_of_month': '*',
+            'month_of_year': '*',
+        }
+
+    })
     print(f"Total Schedule : {len(svc.list())}")
 
     while True:
