@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     })
 
-    task2 = 'spaceone.work.scheduler.domain_scheduler'
+    task2 = 'spaceone.work.scheduler.sync_scheduler.domain_scheduler'
     sch_name2 = f"test_sche_{randint(1, 1000)}"
     svc.add({
         'domain_id': "sample",

@@ -68,15 +68,14 @@ class SpaceOneScheduleEntry(ScheduleEntry):
             self._task.total_run_count = self.total_run_count
         if self.last_run_at and self._task.last_run_at and self.last_run_at > self._task.last_run_at:
             self._task.last_run_at = self.last_run_at
+        update_data = {
+            'domain_id': self._task.domain_id,
+            'schedule_id': self._task.schedule_id,
+            'total_run_count': self._task.total_run_count,
+            'last_schedule_at': self._task.last_run_at
+        }
         try:
-            service_obj.update(
-                {
-                    'domain_id': self._task.domain_id,
-                    'schedule_id': self._task.schedule_id,
-                    'total_run_count': self._task.total_run_count,
-                    'last_schedule_at': self._task.last_run_at
-                },
-            )
+            service_obj.update(update_data)
         except Exception:
             logger.error(traceback.format_exc())
 

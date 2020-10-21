@@ -12,10 +12,11 @@ from spaceone.core import config
 _LOGGER = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, base=BaseSchedulerTask,name='spaceone.work.scheduler.domain_scheduler')
+@shared_task(bind=True, base=BaseSchedulerTask,)
 def domain_scheduler(self):
     conf = config.get_global()
     print(conf)
+    print(self.locator)
     return [
         {
             'name': 'domain_schedule',

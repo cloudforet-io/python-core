@@ -33,8 +33,8 @@ class Schedule(MongoModel):
     enabled = BooleanField()
     task = StringField()
     name = StringField(default=None, )
-    interval = EmbeddedDocumentField(IntervalData, default=None)
-    cron = EmbeddedDocumentField(CronData, default=None)
+    interval = EmbeddedDocumentField(IntervalData, default=None, null=True)
+    cron = EmbeddedDocumentField(CronData, default=None, null=True)
 
     created_at = DateTimeField(auto_now_add=True)
     total_run_count = IntField(default=0)
