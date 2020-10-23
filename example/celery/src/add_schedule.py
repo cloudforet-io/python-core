@@ -59,6 +59,10 @@ if __name__ == '__main__':
         'interval': {
             'period': 'seconds',
             'every': randint(6, 12)
+        },
+        'args':['sample'],
+        'kwargs':{
+            "sch_name":sch_name
         }
 
     })

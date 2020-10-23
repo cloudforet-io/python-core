@@ -114,7 +114,6 @@ class SpaceOneScheduler(Scheduler):
         self.Service = self.locator.get_service(self.service_name, metadata=self.metadata)
         self._schedule = {}
         self._last_updated = None
-        self._metadata = None
 
         Scheduler.__init__(self, *args, **kwargs)
         self.max_interval = (kwargs.get('max_interval')

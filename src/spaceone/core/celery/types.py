@@ -52,14 +52,6 @@ class SpaceoneTaskData():
     soft_time_limit:Any = None
     total_run_count: int = 0
     last_run_at:datetime = None
-    # transaction: Transaction = field(default_factory=Transaction)
-    # _locator: Locator = None
-    #
-    # @property
-    # def locator(self) -> Locator:
-    #     if not self._locator:
-    #         self._locator = Locator(self.transaction)
-    #     return self._locator
 
     @property
     def options(self):

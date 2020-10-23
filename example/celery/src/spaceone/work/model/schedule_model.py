@@ -1,6 +1,8 @@
 import logging
 
-from mongoengine import BooleanField, DateTimeField, EmbeddedDocument, EmbeddedDocumentField, IntField, StringField
+from mongoengine import BooleanField, DateTimeField, DictField, EmbeddedDocument, EmbeddedDocumentField, IntField, \
+    ListField, \
+    StringField
 
 from spaceone.core.celery.types import Cron, Interval, SpaceoneTaskData
 from spaceone.core.model.mongo_model import MongoModel
@@ -32,6 +34,8 @@ class Schedule(MongoModel):
     schedule_id = StringField(max_length=40, generate_id='schedule', unique=True)
     enabled = BooleanField()
     task = StringField()
+    args= ListField()
+    kwargs = DictField()
     name = StringField(default=None, )
     interval = EmbeddedDocumentField(IntervalData, default=None, null=True)
     cron = EmbeddedDocumentField(CronData, default=None, null=True)
@@ -44,6 +48,8 @@ class Schedule(MongoModel):
         'updatable_fields': [
             'name',
             'task',
+            'args',
+            'kwargs',
             'enabled',
             'total_run_count',
             'last_schedule_at',
@@ -91,6 +97,6 @@ class Schedule(MongoModel):
             schedule_info=self.get_schedule_info(),
             total_run_count=self.total_run_count,
             last_run_at=self.last_schedule_at,
-            args=[],
-            kwargs={},
+            args=self.args,
+            kwargs=self.kwargs,
         )
