@@ -624,7 +624,6 @@ class MongoModel(Document, BaseModel):
         _aggregation_rules = []
         _group_keys = []
         _all_keys = []
-        _aggregate_meta = cls._meta.get('aggregate', {})
 
         if 'group' not in aggregate and 'count' not in aggregate:
             raise ERROR_REQUIRED_PARAMETER(key='aggregate.group or aggregate.count')
@@ -644,7 +643,7 @@ class MongoModel(Document, BaseModel):
             rule = cls._make_count_rule(aggregate['count'])
             _aggregation_rules.append(rule)
 
-        if 'lookup' in _aggregate_meta:
+        if 'reference_query_keys' in cls._meta:
             rules = cls._make_lookup_rules(_all_keys)
             _aggregation_rules = rules + _aggregation_rules
 
