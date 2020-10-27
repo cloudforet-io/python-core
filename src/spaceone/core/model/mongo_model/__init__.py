@@ -678,8 +678,11 @@ class MongoModel(Document, BaseModel):
                 start = page.get('start', 1)
                 start = 1 if start < 1 else start
 
+                result['total_count'] = 0
                 cursor = vos.aggregate(pipeline + [{'$count': 'total_count'}])
-                result['total_count'] = cursor.next()['total_count']
+                for c in cursor:
+                    result['total_count'] = c['total_count']
+                    break
 
                 if start > 1:
                     pipeline.append({
