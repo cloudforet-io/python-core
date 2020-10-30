@@ -53,4 +53,4 @@ class ScheduleService(CeleryScheduleService):
 
     @check_required(["domain_id", "schedule_id"])
     def update(self, params) -> SpaceoneTaskData:
-        self.manager.update_schedule(params)
+        return self.manager.update_schedule(params)

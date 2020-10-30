@@ -1,125 +1,118 @@
-#!/usr/bin/env python3
-
-import argparse
-import shutil
 import os
+import shutil
 import sys
-import pkg_resources
 import unittest
+from typing import List
 
-from celery.bin.celery import CeleryCommand
-from spaceone.core import config
-from spaceone.core import pygrpc
-from spaceone.core import scheduler
-from spaceone.core.unittest.runner import RichTestRunner
+import click
+import pkg_resources
+
+from spaceone.core import config, pygrpc, scheduler
 from spaceone.core.celery import app as celery_app
-
-from spaceone.core.celery.app import app
-
-
-def _get_env():
-    env = {
-        'PORT': os.environ.get('SPACEONE_PORT'),
-        'CONFIG_FILE': os.environ.get('SPACEONE_CONFIG_FILE'),
-        'WORKING_DIR': os.environ.get('SPACEONE_WORKING_DIR') or os.getcwd()
-    }
-
-    env['CONFIG_FILE'] = env['CONFIG_FILE'].strip() if env['CONFIG_FILE'] else None
-    return env
+from spaceone.core.unittest.runner import RichTestRunner
 
 
-def dir_path(string):
-    if os.path.isdir(string):
-        return string
-    else:
-        raise NotADirectoryError(string)
+@click.group()
+def cli():
+    pass
 
 
-def _set_start_project_command(subparsers, env):
-    parser = subparsers.add_parser('create-project', description='Create a new project directory',
-                                   help='Create a new project directory',
-                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('project_name', metavar='PROJECT_NAME', help='Project name')
-    parser.add_argument('-d', '--directory', type=dir_path, help='Project directory')
+@cli.command()
+@click.argument('project_name')
+@click.option('-d', '--directory', type=click.Path(), help='Project directory')
+def create_project(project_name=None, directory=None):
+    _create_project(project_name, directory)
 
 
-def _set_grpc_command(subparsers, env):
-    parser = subparsers.add_parser('grpc', description='Run a gRPC server',
-                                   help='Run a gRPC server',
-                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('package', metavar='PACKAGE', help='Package (ex: spaceone.identity)')
-    parser.add_argument('-p', '--port', type=int, help='Port of gRPC server', default=env['PORT'] or 50051)
-    parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
-                        default=env['CONFIG_FILE'])
-    parser.add_argument('-m', '--module-path', help='Module path')
+@cli.command()
+@click.argument('package')
+@click.option('-p', '--port', type=int,default=lambda: os.environ.get('SPACEONE_PORT',50051),  help='Port of gRPC server',show_default=True)
+@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
+def grpc(package, port=None, config=None, module_path=None):
+    """Run a gRPC server"""
+    _set_server_config('grpc', package, module_path, port, config_file=config)
+    pygrpc.serve()
 
 
-def _set_rest_command(subparsers, env):
-    parser = subparsers.add_parser('rest', description='Run a REST server',
-                                   help='Run a REST server',
-                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('package', metavar='PACKAGE', help='Package (ex: spaceone.identity)')
-    parser.add_argument('-p', '--port', type=int, help='Port of REST server', default=env['PORT'] or 8080)
-    parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
-                        default=env['CONFIG_FILE'])
-    parser.add_argument('-m', '--module-path', help='Module path')
+@cli.command()
+@click.argument('package')
+@click.option('-p', '--port', type=int,default=lambda: os.environ.get('SPACEONE_PORT',8080),  help='Port of REST server',show_default=True)
+@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
+def rest(package, port=None, config=None, module_path=None):
+    """Run a REST server"""
+    _set_server_config('rest', package, module_path, port, config_file=config)
+
+    pass
 
 
-def _set_scheduler_command(subparsers, env):
-    parser = subparsers.add_parser('scheduler', description='Run a scheduler server',
-                                   help='Run a scheduler server',
-                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('package', metavar='PACKAGE', help='Package (ex: spaceone.identity)')
-    parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
-                        default=env['CONFIG_FILE'])
-    parser.add_argument('-m', '--module-path', help='Module path')
+@cli.command()
+@click.argument('package')
+@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
+def scheduler(package, config=None, module_path=None):
+    """Run a scheduler server"""
+    _set_server_config('scheduler', package, module_path, config_file=config)
+    scheduler.serve()
 
 
+@cli.command()
+@click.argument('package')
+@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-m', '--module-path', 'module_path', type=click.Path(exists=True), help='Module path')
+def celery(package, config=None, module_path=None):
+    """Run a celery server(worker or beat)"""
+    print(config)
+    _set_server_config('celery', package, module_path, config_file=config)
+    celery_app.serve()
 
 
-def _set_celery_command(subparsers, env):
-    parser = subparsers.add_parser('celery', description='Run a celery worker server',
-                                   help='Run a celery worker server',
-                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('package', metavar='PACKAGE', help='Package (ex: spaceone.identity)')
-    parser.add_argument('-c', '--config', type=argparse.FileType('r'), help='config file path',
-                        default=env['CONFIG_FILE'])
-    parser.add_argument('-m', '--module-path', help='Module path')
+@cli.command()
+@click.argument('package')
+@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-d', '--dir', type=str, help="directory containing test files", )
+@click.option('-f', '--failfast', help="fast failure flag", is_flag=True)
+@click.option('-s', '--scenario', type=str, help="scenario file path")
+@click.option('-p', '--parameters', type=str, help="custom parameters to override a scenario file. "
+                                                   "ex) -p domain.domain.name=new_name -p options.update_mode=false",
+              multiple=True)
+@click.option('-v', '--verbose', count=True, help='verbosity level', default=1)
+def test(package, config=None, dir=None, failfast=False, scenario: str = None, parameters: List[str] = None, verbose=1):
+    """Unit tests for source code"""
+    # set config
+    if config:
+        os.environ['TEST_CONFIG'] = config
+
+    if scenario:
+        os.environ['TEST_SCENARIO'] = scenario
+
+    if parameters:
+        os.environ['TEST_SCENARIO_PARAMS'] = ','.join(parameters)
+
+    # run test
+    loader = unittest.TestLoader()
+    suites = loader.discover(dir)
+
+    full_suite = unittest.TestSuite()
+    full_suite.addTests(suites)
+    RichTestRunner(verbosity=verbose, failfast=failfast).run(full_suite)
 
 
-
-
-def _set_test_command(subparsers, env):
-    parser = subparsers.add_parser('test', description='Unit tests for source code',
-                                   help='Unit tests for source code',
-                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-d", "--dir", action="store", type=str,
-                        help="directory containing test files", default=env['WORKING_DIR'])
-    parser.add_argument("-f", "--failfast", action="store_true", help="fast failure flag")
-    parser.add_argument("-s", "--scenario", help="scenario file path",
-                        default=f'{env["WORKING_DIR"]}/scenario.json')
-    parser.add_argument('-c', '--config', help='config file path',
-                        default=env['CONFIG_FILE'] or f'{env["WORKING_DIR"]}/config.yml')
-    parser.add_argument("-p", "--parameters", action='append', type=str,
-                        help="custom parameters to override a scenario file. "
-                             "ex) -p domain.domain.name=new_name options.update_mode=false")
-    parser.add_argument('-v', '--verbose', help='verbosity level', type=int, default=1)
 
 
 def _set_file_config(conf_file):
-    if conf_file and conf_file.name:
-        path = conf_file.name
-        config.set_file_conf(path)
+    if conf_file:
+        config.set_file_conf(conf_file)
 
 
 def _set_remote_config(conf_file):
-    if conf_file and conf_file.name:
-        path = conf_file.name
-        config.set_remote_conf_from_file(path)
+    if conf_file:
+        config.set_remote_conf_from_file(conf_file)
 
 
 def _set_python_path(package, module_path):
-    current_path = os.getcwd()\
+    current_path = os.getcwd()
 
     if current_path not in sys.path:
         sys.path.insert(0, current_path)
@@ -137,57 +130,26 @@ def _set_python_path(package, module_path):
                         'Please check the module path.')
 
 
-def _set_server_config(args):
-    params = vars(args)
-
+def _set_server_config(command, package, module_path=None, port=None, config_file=None):
     # 1. Set a python path
-    _set_python_path(params['package'], params.get('module_path'))
+    _set_python_path(package, module_path)
 
     # 2. Initialize config from command argument
     config.init_conf(
-        package=params['package'],
-        server_type=params['command'],
-        port=params.get('port')
+        package=package,
+        server_type=command,
+        port=port
     )
 
     # 3. Get service config from global_conf.py
     config.set_service_config()
 
     # 4. Merge file conf
-    _set_file_config(params['config'])
+    _set_file_config(config_file)
 
     # 5. Merge remote conf
-    _set_remote_config(params['config'])
+    _set_remote_config(config_file)
 
-
-def _set_test_config(args):
-    if os.path.isfile(args.config):
-        os.environ['TEST_CONFIG'] = args.config
-
-    if os.path.isfile(args.scenario):
-        os.environ['TEST_SCENARIO'] = args.scenario
-
-    if args.parameters:
-        os.environ['TEST_SCENARIO_PARAMS'] = ','.join(args.parameters)
-
-
-def _initialize_config(args):
-    if args.command == 'create-project':
-        pass
-    elif args.command == 'test':
-        _set_test_config(args)
-    else:
-        _set_server_config(args)
-
-
-def _run_tests(args):
-    # Suites are not hashable, need to use list
-    loader = unittest.TestLoader()
-    suites = loader.discover(args.dir)
-
-    full_suite = unittest.TestSuite()
-    full_suite.addTests(suites)
-    RichTestRunner(verbosity=args.verbose, failfast=args.failfast).run(full_suite)
 
 
 def init_project_file(path, text):
@@ -195,10 +157,10 @@ def init_project_file(path, text):
         f.write(text)
 
 
-def _create_project(args):
+def _create_project(project_name, directory=None):
     # Initialize path
-    project_name = args.project_name
-    project_directory = args.directory or os.getcwd()
+    project_name = project_name
+    project_directory = directory or os.getcwd()
     project_path = os.path.join(project_directory, project_name)
 
     # Copy skeleton source code
@@ -220,48 +182,5 @@ def _create_project(args):
     init_project_file(os.path.join(project_path, 'conf', 'proto_conf.py'), proto_conf)
 
 
-def _run_command(args):
-    command = args.command
-    if command == 'create-project':
-        _create_project(args)
-    elif command == 'grpc':
-        pygrpc.serve()
-    elif command == 'scheduler':
-        scheduler.serve()
-    elif command == 'celery':
-        celery_app.serve()
-    elif command == 'test':
-        _run_tests(args)
-    else:
-        raise NotImplementedError(f"{command} not implemented!")
-
-
-def _parse_argument():
-    env = _get_env()
-    parser = argparse.ArgumentParser(description='Command line interface for SpaceONE', prog='spaceone')
-    subparsers = parser.add_subparsers(dest='command', metavar='COMMAND',required=False)
-
-    _set_start_project_command(subparsers, env)
-    _set_grpc_command(subparsers, env)
-    _set_scheduler_command(subparsers, env)
-    _set_celery_command(subparsers,env)
-    #_set_rest_command(subparsers, env)
-    _set_test_command(subparsers, env)
-
-    args = parser.parse_args()
-
-    if args.command is None:
-        parser.print_help()
-        parser.exit()
-
-    return args
-
-
-def main():
-    args = _parse_argument()
-    _initialize_config(args)
-    _run_command(args)
-
-
 if __name__ == '__main__':
-    main()
+    cli()

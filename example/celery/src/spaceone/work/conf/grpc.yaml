@@ -21,9 +21,3 @@ GLOBAL:
       socket_connect_timeout: 10
 
 
-
-  CELERY:
-    mode: SPACEONE_BEAT
-    # full path로 변경 예정
-    spaceone_scheduler_service: ScheduleService
-    broker_url: redis://localhost:6379
