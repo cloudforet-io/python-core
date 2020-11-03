@@ -28,7 +28,7 @@ GLOBAL:
       broker_url: redis://localhost:6379
     schedules:
       every_5seconds:
-        task: spaceone.work.scheduler.sync_scheduler.domain_scheduler
+        task: spaceone.work.task.sync_scheduler.domain_scheduler
         rule_type: interval
         rule:
           period: seconds

@@ -49,7 +49,7 @@ def update_celery_config(app):
     app.autodiscover_tasks(['spaceone.core.celery', conf["PACKAGE"]], force=True)
 
     # add custom scheduler tasks
-    app.autodiscover_tasks([conf["PACKAGE"]], related_name='scheduler', force=True)
+    app.autodiscover_tasks([conf["PACKAGE"]], related_name='task', force=True)
 
 
 def parse_schedule(rule_type: str, rule: dict):
