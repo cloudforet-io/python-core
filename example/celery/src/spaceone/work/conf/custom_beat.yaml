@@ -24,6 +24,8 @@ GLOBAL:
 
   CELERY:
     mode: SPACEONE_BEAT
-    # full path로 변경 예정
-    spaceone_scheduler_service: ScheduleService
-    broker_url: redis://localhost:6379
+    auth:
+      token:
+    config:
+      broker_url: redis://localhost:6379
+      spaceone_scheduler_service: ScheduleService

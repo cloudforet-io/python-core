@@ -24,4 +24,6 @@ GLOBAL:
 
   CELERY:
     mode: WORKER
-    broker_url: redis://localhost:6379
+    config:
+      broker_url: redis://localhost:6379
+

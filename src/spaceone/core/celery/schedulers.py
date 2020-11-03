@@ -96,7 +96,7 @@ class SpaceOneScheduler(Scheduler):
     @property
     def metadata(self):
         if self._metadata is None:
-            token = config.get_global('TOKEN')
+            token = config.get_global('CELERY',{}).get('auth',{}).get('token')
             if token:
                 self._metadata = {'token': token, }
             else:

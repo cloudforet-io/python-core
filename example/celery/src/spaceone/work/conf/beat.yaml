@@ -24,11 +24,37 @@ GLOBAL:
 
   CELERY:
     mode: BEAT
-    broker_url: redis://localhost:6379
-    beat_schedule:
-      every_30seconds:
-        task: spaceone.work.scheduler.domain_scheduler
-        schedule: 5.0
-      print_conf:
+    config:
+      broker_url: redis://localhost:6379
+    schedules:
+      every_5seconds:
+        task: spaceone.work.scheduler.sync_scheduler.domain_scheduler
+        rule_type: interval
+        rule:
+          period: seconds
+          every: 5
+      test_argument:
         task: spaceone.core.celery.tasks.test_task
-        schedule: 10
+        rule_type: interval
+        rule:
+          period: seconds
+          every: 10
+        args:
+          - argument_1
+          - argument_2
+        kwargs:
+          kwargs_key: kwargs_value
+      test_cron:
+        task: spaceone.core.celery.tasks.test_task
+        rule_type: cron
+        rule:
+          minute: "*"
+          hour: "*"
+          day_of_week: "*"
+          day_of_month: "*"
+          month_of_year: "*"
+        args:
+          - argument_1
+          - argument_2
+        kwargs:
+          kwargs_key: kwargs_value
