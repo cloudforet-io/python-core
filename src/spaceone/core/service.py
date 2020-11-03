@@ -126,12 +126,14 @@ def append_keyword_filter(keywords=[]):
             if 'keyword' in query:
                 query['filter_or'] = query.get('filter_or', [])
 
-                for key in keywords:
-                    query['filter_or'].append({
-                        'k': key,
-                        'v': query['keyword'],
-                        'o': 'contain'
-                    })
+                keyword = query['keyword'].strip()
+                if len(keyword) > 0:
+                    for key in keywords:
+                        query['filter_or'].append({
+                            'k': key,
+                            'v': list(filter(None, keyword.split(' '))),
+                            'o': 'contain_in'
+                        })
 
                 del query['keyword']
                 params['query'] = query
