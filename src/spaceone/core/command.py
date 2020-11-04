@@ -26,8 +26,10 @@ def create_project(project_name=None, directory=None):
 
 @cli.command()
 @click.argument('package')
-@click.option('-p', '--port', type=int,default=lambda: os.environ.get('SPACEONE_PORT',50051),  help='Port of gRPC server',show_default=True)
-@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 50051),
+              help='Port of gRPC server', show_default=True)
+@click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
+              help='config file path')
 @click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
 def grpc(package, port=None, config=None, module_path=None):
     """Run a gRPC server"""
@@ -37,8 +39,10 @@ def grpc(package, port=None, config=None, module_path=None):
 
 @cli.command()
 @click.argument('package')
-@click.option('-p', '--port', type=int,default=lambda: os.environ.get('SPACEONE_PORT',8080),  help='Port of REST server',show_default=True)
-@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 8080),
+              help='Port of REST server', show_default=True)
+@click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
+              help='config file path')
 @click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
 def rest(package, port=None, config=None, module_path=None):
     """Run a REST server"""
@@ -49,7 +53,8 @@ def rest(package, port=None, config=None, module_path=None):
 
 @cli.command()
 @click.argument('package')
-@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
+              help='config file path')
 @click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
 def scheduler(package, config=None, module_path=None):
     """Run a scheduler server"""
@@ -59,7 +64,8 @@ def scheduler(package, config=None, module_path=None):
 
 @cli.command()
 @click.argument('package')
-@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
+@click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
+              help='config file path')
 @click.option('-m', '--module-path', 'module_path', type=click.Path(exists=True), help='Module path')
 def celery(package, config=None, module_path=None):
     """Run a celery server(worker or beat)"""
@@ -69,16 +75,17 @@ def celery(package, config=None, module_path=None):
 
 
 @cli.command()
-@click.argument('package')
-@click.option('-c', '--config', type=click.Path(exists=True),default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),  help='config file path')
-@click.option('-d', '--dir', type=str, help="directory containing test files", )
+@click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
+              help='config file path')
+@click.option('-d', '--dir', type=str, help="directory containing test files",
+              default=lambda: os.environ.get('SPACEONE_WORKING_DIR', os.getcwd()))
 @click.option('-f', '--failfast', help="fast failure flag", is_flag=True)
 @click.option('-s', '--scenario', type=str, help="scenario file path")
 @click.option('-p', '--parameters', type=str, help="custom parameters to override a scenario file. "
                                                    "ex) -p domain.domain.name=new_name -p options.update_mode=false",
               multiple=True)
 @click.option('-v', '--verbose', count=True, help='verbosity level', default=1)
-def test(package, config=None, dir=None, failfast=False, scenario: str = None, parameters: List[str] = None, verbose=1):
+def test(config=None, dir=None, failfast=False, scenario: str = None, parameters: List[str] = None, verbose=1):
     """Unit tests for source code"""
     # set config
     if config:
@@ -97,8 +104,6 @@ def test(package, config=None, dir=None, failfast=False, scenario: str = None, p
     full_suite = unittest.TestSuite()
     full_suite.addTests(suites)
     RichTestRunner(verbosity=verbose, failfast=failfast).run(full_suite)
-
-
 
 
 def _set_file_config(conf_file):
@@ -149,7 +154,6 @@ def _set_server_config(command, package, module_path=None, port=None, config_fil
 
     # 5. Merge remote conf
     _set_remote_config(config_file)
-
 
 
 def init_project_file(path, text):

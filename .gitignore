@@ -13,3 +13,4 @@ venv
 example/celery/src/celerybeat-schedule
 
 example/celery/src/celerybeat.pid
+/example/celery/src/test_cli/
