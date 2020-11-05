@@ -88,7 +88,7 @@ _LOGGER = {
 
 LOGGER_DEFAULT_TMPL = {
     'level': 'DEBUG',
-    'propagate': False,
+    'propagate': True,
     'handlers': ['console']
 }
 

@@ -46,12 +46,14 @@ setup(
         "jsonschema",
         "python-dateutil",
         "python-consul",
+        "celery",
         "scheduler-cron",
+        "click",
     ],
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'spaceone = spaceone.core.command:main',
+            'spaceone = spaceone.core.command:cli',
         ]
     },
 )

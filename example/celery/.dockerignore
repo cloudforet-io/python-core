@@ -1,0 +1,11 @@
+*.swp
+*.bak
+.git
+.gitignore
+.dockerignore
+dist
+build
+src/tests
+*.egg-info
+__pycache__
+.idea
