@@ -7,7 +7,8 @@ from typing import List
 import click
 import pkg_resources
 
-from spaceone.core import config, pygrpc, scheduler
+from spaceone.core import config, pygrpc
+from spaceone.core import scheduler as scheduler_v1
 from spaceone.core.celery import app as celery_app
 from spaceone.core.unittest.runner import RichTestRunner
 
@@ -59,7 +60,7 @@ def rest(package, port=None, config=None, module_path=None):
 def scheduler(package, config=None, module_path=None):
     """Run a scheduler server"""
     _set_server_config('scheduler', package, module_path, config_file=config)
-    scheduler.serve()
+    scheduler_v1.serve()
 
 
 @cli.command()
