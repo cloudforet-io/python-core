@@ -514,8 +514,8 @@ class MongoModel(Document, BaseModel):
         _keys = options.get('keys', [])
         _fields = options.get('fields', [])
 
-        if len(_keys) == 0:
-            raise ERROR_REQUIRED_PARAMETER(key='aggregate.group.keys')
+        # if len(_keys) == 0:
+        #     raise ERROR_REQUIRED_PARAMETER(key='aggregate.group.keys')
 
         for condition in _keys:
             key, name, rule = cls._get_group_keys(condition)
