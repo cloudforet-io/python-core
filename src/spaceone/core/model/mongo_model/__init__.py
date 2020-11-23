@@ -609,23 +609,23 @@ class MongoModel(Document, BaseModel):
                 rules.append({
                     '$lookup': {
                         'from': ref_model._meta['collection'],
-                        'let': {
-                            ref_key: f'${ref_key}'
-                        },
-                        'pipeline': [
-                            {
-                                '$match': {
-                                    '$expr': {
-                                        '$eq': [f'${foreign_key}', f'$${ref_key}']
-                                    }
-                                }
-                            },
-                            {
-                                '$project': lookup_project
-                            }
-                        ],
-                        # 'localField': ref_key,
-                        # 'foreignField': foreign_key,
+                        # 'let': {
+                        #     ref_key: f'${ref_key}'
+                        # },
+                        # 'pipeline': [
+                        #     {
+                        #         '$match': {
+                        #             '$expr': {
+                        #                 '$eq': [f'${foreign_key}', f'$${ref_key}']
+                        #             }
+                        #         }
+                        #     },
+                        #     {
+                        #         '$project': lookup_project
+                        #     }
+                        # ],
+                        'localField': ref_key,
+                        'foreignField': foreign_key,
                         'as': ref_key
                     }
                 })
