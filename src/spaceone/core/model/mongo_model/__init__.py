@@ -579,19 +579,23 @@ class MongoModel(Document, BaseModel):
         }
 
     @classmethod
-    def _check_lookup_field(cls, ref_key, all_keys):
+    def _get_lookup_field(cls, ref_key, all_keys):
+        lookup_project = {}
         for key in all_keys:
             if key.startswith(ref_key) and len(key) > len(ref_key) and key[len(ref_key)] == '.':
-                return True
+                field_key = key.replace(f'{ref_key}.', '').split('.', 1)[:1][0]
+                lookup_project[field_key] = 1
 
-        return False
+        return lookup_project
 
     @classmethod
     def _make_lookup_rules(cls, all_keys):
         all_keys = list(set(all_keys))
         rules = []
         for ref_key, ref_conf in cls._meta.get('reference_query_keys', {}).items():
-            if cls._check_lookup_field(ref_key, all_keys):
+            lookup_project = cls._get_lookup_field(ref_key, all_keys)
+
+            if len(lookup_project.keys()) > 0:
                 if isinstance(ref_conf, dict):
                     ref_model = ref_conf.get('model')
                     foreign_key = ref_conf.get('foreign_key', '_id')
@@ -605,8 +609,23 @@ class MongoModel(Document, BaseModel):
                 rules.append({
                     '$lookup': {
                         'from': ref_model._meta['collection'],
-                        'localField': ref_key,
-                        'foreignField': foreign_key,
+                        'let': {
+                            ref_key: f'${ref_key}'
+                        },
+                        'pipeline': [
+                            {
+                                '$match': {
+                                    '$expr': {
+                                        '$eq': [f'${foreign_key}', f'$${ref_key}']
+                                    }
+                                }
+                            },
+                            {
+                                '$project': lookup_project
+                            }
+                        ],
+                        # 'localField': ref_key,
+                        # 'foreignField': foreign_key,
                         'as': ref_key
                     }
                 })
