@@ -120,7 +120,10 @@ class BaseAPI(object):
         metadata.update(context.api_info)
 
         # TODO: This is experimental log. Please confirm peer information is useful on k8s.
-        metadata.update({'peer': context.peer()})
+        try:
+            metadata.update({'peer': context.peer()})
+        except Exception as e:
+            _LOGGER.warning(e)
 
         return metadata
 
