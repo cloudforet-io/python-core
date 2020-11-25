@@ -33,6 +33,7 @@ setup(
     install_requires=[
         # "grpcio",
         "grpcio-reflection",
+        "grpcio-testing",
         "google-api-core",
         "grpcio-health-checking",
         "PyYAML",

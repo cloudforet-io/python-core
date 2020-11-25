@@ -1,6 +1,7 @@
 grpcio
 grpcio-reflection
 google-api-core
+grpcio-testing
 grpcio-health-checking
 PyYAML
 unittest-xml-reporting>=3.0.0

@@ -1,8 +1,10 @@
 import sys
 import unittest
-
+import grpc
+import grpc_testing
 import pkg_resources
-from mongoengine import connect
+from google.protobuf import symbol_database
+from mongoengine import connect, disconnect_all
 
 from spaceone.core import config
 from spaceone.core.locator import Locator
@@ -104,6 +106,50 @@ class SpaceoneGrpcTestCase(SpaceoneTestCase):
             method_descriptor=self.get_method_descriptor(full_name),
             invocation_metadata=metadata or {},
             request=request, timeout=timeout, **kwargs)
+        return method.termination()
+
+    @staticmethod
+    def get_all_response(method):
+        finish = False
+        result = []
+        while not finish:
+            try:
+                result.append(method.take_response())
+            except Exception:
+                finish = True
+        return result
+
+    @staticmethod
+    def send_request_all(method, requests):
+        [method.send_request(req) for req in requests]
+        method.requests_closed()
+
+
+    def request_unary_stream(self, full_name, request, metadata=None, timeout=None, **kwargs):
+        method = self.test_server.invoke_unary_stream(
+            method_descriptor=self.get_method_descriptor(full_name),
+            invocation_metadata=metadata or {},
+            request=request, timeout=timeout, **kwargs
+        )
+        results = self.get_all_response(method)
+        return (results, *method.termination())
+
+    def request_stream_stream(self, full_name, requests, metadata=None, timeout=None, **kwargs):
+        method = self.test_server.invoke_stream_stream(
+            method_descriptor=self.get_method_descriptor(full_name),
+            invocation_metadata=metadata or {},
+            timeout=timeout, **kwargs)
+        self.send_request_all(method,requests)
+        results = self.get_all_response(method)
+        return (results, *method.termination())
+
+
+    def request_stream_unary(self, full_name, requests, metadata=None, timeout=None, **kwargs):
+        method = self.test_server.invoke_stream_unary(
+            method_descriptor=self.get_method_descriptor(full_name),
+            invocation_metadata=metadata or {},
+            timeout=timeout, **kwargs)
+        self.send_request_all(method,requests)
         return method.termination()
 
     def assertGrpcStatusCodeOk(self, code):

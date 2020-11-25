@@ -31,7 +31,6 @@ class GreeterService(BaseService):
             names.append(reqs['name'])
         return dict(message=f"Hello everyone {names}!")
 
-    @transaction
     def hello_one_by_one(self, params):
         for req in params:
             name = req['name']
