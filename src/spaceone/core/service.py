@@ -14,7 +14,7 @@ from spaceone.core.logger import set_logger
 from spaceone.core.transaction import Transaction
 from spaceone.core import utils
 
-__all__ = ['BaseService', 'check_required', 'append_query_filter', 'change_timestamp_value',
+__all__ = ['BaseService', 'check_required', 'append_query_filter', 'change_tag_filter', 'change_timestamp_value',
            'change_timestamp_filter', 'append_keyword_filter', 'change_only_key', 'transaction',
            'authentication_handler', 'authorization_handler', 'mutation_handler', 'event_handler']
 
@@ -116,6 +116,83 @@ def append_query_filter(filter_keys):
         return wrapped_func
 
     return wrapper
+
+
+def change_tag_filter(tag_key='tags'):
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped_func(cls, params):
+            params['query'] = params.get('query', {})
+            change_filter = []
+            for condition in params['query'].get('filter', []):
+                key = condition.get('key', condition.get('k'))
+                if key and key.startswith(f'{tag_key}.'):
+                    value = condition.get('value', condition.get('v'))
+                    operator = condition.get('operator', condition.get('o'))
+                    tag_key_split = key.split('.', 1)
+                    change_filter.append({
+                        'key': 'tags',
+                        'value': {
+                            'key': tag_key_split[1],
+                            'value': _change_match_query(operator, value, condition)
+                        },
+                        'operator': 'match'
+                    })
+                else:
+                    change_filter.append(condition)
+
+                print(change_filter)
+            params['query']['filter'] = change_filter
+            return func(cls, params)
+
+        return wrapped_func
+
+    return wrapper
+
+
+def _change_match_query(operator, value, condition):
+    if operator == 'eq':
+        return value
+    elif operator == 'not':
+        return {
+            '$ne': value
+        }
+    elif operator == 'in':
+        if not isinstance(value, list):
+            raise ERROR_OPERATOR_LIST_VALUE_TYPE(operator=operator, condition=condition)
+
+        return {
+            '$in': value
+        }
+    elif operator == 'not_in':
+        if not isinstance(value, list):
+            raise ERROR_OPERATOR_LIST_VALUE_TYPE(operator=operator, condition=condition)
+
+        return {
+            '$nin': value
+        }
+    elif operator == 'contain':
+        return re.compile(value, re.IGNORECASE)
+    elif operator == 'not_contain':
+        return {
+            '$not': re.compile(value, re.IGNORECASE)
+        }
+    elif operator == 'contain_in':
+        if not isinstance(value, list):
+            raise ERROR_OPERATOR_LIST_VALUE_TYPE(operator=operator, condition=condition)
+
+        return {
+            '$in': value
+        }
+    elif operator == 'not_contain_in':
+        if not isinstance(value, list):
+            raise ERROR_OPERATOR_LIST_VALUE_TYPE(operator=operator, condition=condition)
+
+        return {
+            '$nin': value
+        }
+    else:
+        raise ERROR_DB_QUERY(reason='Filter operator is not supported.')
 
 
 def append_keyword_filter(keywords=[]):
