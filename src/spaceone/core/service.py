@@ -141,7 +141,6 @@ def change_tag_filter(tag_key='tags'):
                 else:
                     change_filter.append(condition)
 
-                print(change_filter)
             params['query']['filter'] = change_filter
             return func(cls, params)
 
