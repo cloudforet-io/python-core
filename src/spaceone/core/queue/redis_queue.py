@@ -1,8 +1,15 @@
 import redis
 import time
+import logging
 
 from spaceone.core.error import *
 from spaceone.core.queue import BaseQueue
+
+_LOGGER = logging.getLogger(__name__)
+
+# Wait max 1 hour to recover
+MAX_TRY = 60
+WAIT_INTERVAL = 10
 
 class RedisQueue(BaseQueue):
     """
@@ -21,8 +28,15 @@ class RedisQueue(BaseQueue):
             self.pubsub.subscribe(self.channel)
             self.initialized = True
         except Exception:
+            for i in range(MAX_TRY):
+                _LOGGER.error(f"######### queue connection check : {i} ###########")
+                self.initialize()
+                if self.initialized:
+                    return
+                time.sleep(WAIT_INTERVAL)
             self.initialized = False
-            raise ERROR_CONFIGURATION(key="backend")
+            _LOGGER.error(f"run without configuration for late recover: {conf}")
+            #raise ERROR_CONFIGURATION(key="backend")
 
     def initialize(self):
         """ Sometime initilization may be fail when creation time
@@ -37,23 +51,47 @@ class RedisQueue(BaseQueue):
             self.pubsub = self.conn.pubsub()
             self.pubsub.subscribe(self.channel)
             self.initialized = True
+
         except Exception:
             self.initialized = False
-            raise ERROR_CONFIGURATION(key="backend")
+
+        return self.initialized
 
 
     ######################
     # FIFO Queue
     ######################
     def put(self, item):
-       self.conn.rpush(self.channel, item) 
+        try:
+            self.conn.rpush(self.channel, item)
+
+        except redis.exceptions.ConnectionError as e:
+            _LOGGER.error("####### Redis Queue put failed #############")
+            _LOGGER.error(f"Redis connection error, reconnect after {WAIT_INTERVAL} sec ....")
+            time.sleep(WAIT_INTERVAL)
+            self.initialize()
+
+        except Exception as e:
+            _LOGGER.error("######## Contact to admin ##########")
+            _LOGGER.error(f"Unknown error: {e}")
+
 
     def get(self):
         """
         blpop waits until item occurs
         """
-        item = self.conn.blpop(self.channel)
-        return item[1]
+        try:
+            item = self.conn.blpop(self.channel)
+            return item[1]
+        except redis.exceptions.ConnectionError as e:
+            _LOGGER.error("####### Redis Queue get failed #############")
+            _LOGGER.error(f"Redis connection error, reconnect after {WAIT_INTERVAL} sec ....")
+            time.sleep(WAIT_INTERVAL)
+            self.initialize()
+
+        except Exception as e:
+            _LOGGER.error("######## Contact to admin ##########")
+            _LOGGER.error(f"Unknown error: {e}")
 
     ######################
     # Pub / Sub
