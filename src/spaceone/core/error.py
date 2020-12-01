@@ -172,6 +172,11 @@ class ERROR_CACHE_DECODE(ERROR_UNKNOWN):
 class ERROR_CACHEABLE_VALUE_TYPE(ERROR_UNKNOWN):
     _message = 'The value of cache.cacheable must be a dict type.'
 
+class ERROR_QUEUE_PUT(ERROR_UNKNOWN):
+    _message = 'Queue data put failed. (reason = {reason})'
+
+class ERROR_QUEUE_GET(ERROR_UNKNOWN):
+    _message = 'Queue data get failed. (reason = {reason})'
 
 class ERROR_INTERNAL_API(ERROR_UNKNOWN):
     _message = '{message}'
