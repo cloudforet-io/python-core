@@ -3,7 +3,7 @@ import re
 import logging
 from datetime import datetime
 from functools import reduce
-from mongoengine import EmbeddedDocumentField, Document, QuerySet, register_connection
+from mongoengine import EmbeddedDocumentField, EmbeddedDocument, Document, QuerySet, register_connection
 from pymongo.errors import *
 from pymongo import ReadPreference
 from mongoengine.errors import *
@@ -422,6 +422,8 @@ class MongoModel(Document, BaseModel):
             return str(value)
         elif isinstance(value, Document):
             return str(value.id)
+        elif isinstance(value, EmbeddedDocument):
+            return dict(value.to_mongo())
         else:
             return value
 
