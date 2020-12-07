@@ -9,6 +9,7 @@ from celery.apps.worker import Worker
 from celery.schedules import crontab
 
 from spaceone.core import config
+from spaceone.core.logger import set_logger
 
 DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
 
@@ -22,6 +23,8 @@ def on_after_setup_logger(**kwargs):
         logger = logging.getLogger('celery.app.trace')
         logger.propagate = True
         logger.level = logging.DEBUG
+    set_logger()
+
 
 
 app = Celery('spaceone')
@@ -77,7 +80,7 @@ def register_beat_schedules(app):
 
 
 def serve():
-    # set_logger()
+    set_logger()
     update_celery_config(app)
     server_mode = app.conf.get('mode', SERVER_MODE_ENUM.WORKER.value)
     if server_mode == SERVER_MODE_ENUM.BEAT.value:
