@@ -14,17 +14,17 @@ from spaceone.core.logger import FORMATTER_DEFAULT_TMPL, set_logger
 
 DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
 
-@after_setup_task_logger.connect
-def setup_task_logger(logger, *args, **kwargs):
-    print(logging.root.manager.loggerDict)
-    for handler in logger.handlers:
-        handler.setFormatter(
-            logging.Formatter(FORMATTER_DEFAULT_TMPL['standard']['format'],datefmt=FORMATTER_DEFAULT_TMPL['standard']['datefmt']))
+# @after_setup_task_logger.connect
+# def setup_task_logger(logger, *args, **kwargs):
+#     print(logging.root.manager.loggerDict)
+#     for handler in logger.handlers:
+#         handler.setFormatter(
+#             logging.Formatter(FORMATTER_DEFAULT_TMPL['standard']['format'],datefmt=FORMATTER_DEFAULT_TMPL['standard']['datefmt']))
+#
 
-
-@celery.signals.after_setup_logger.connect
-def on_after_setup_logger(**kwargs):
-    # set_logger()
+@celery.signals.setup_logging.connect
+def setup_logging(**kwargs):
+    set_logger()
     if config.get_global('CELERY', {}).get('debug_mode'):
         logger = logging.getLogger('celery')
         logger.propagate = True
