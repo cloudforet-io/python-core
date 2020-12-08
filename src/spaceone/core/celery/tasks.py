@@ -114,7 +114,6 @@ def test_task(self, *args, **kwargs):
 
 @shared_task(bind=True, base=BaseTask)
 def spaceone_task(self, task: dict, *args, **kwargs):
-    print(self, task, args, kwargs, '인자 체크')
     for stage in task.get('stages', []):
         try:
             single_task = SingleTask(stage)

@@ -7,11 +7,19 @@ from celery import Celery
 from celery.apps.beat import Beat
 from celery.apps.worker import Worker
 from celery.schedules import crontab
+from celery.signals import after_setup_task_logger
 
 from spaceone.core import config
-from spaceone.core.logger import set_logger
+from spaceone.core.logger import FORMATTER_DEFAULT_TMPL, set_logger
 
 DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
+
+@after_setup_task_logger.connect
+def setup_task_logger(logger, *args, **kwargs):
+    print(logging.root.manager.loggerDict)
+    for handler in logger.handlers:
+        handler.setFormatter(
+            logging.Formatter(FORMATTER_DEFAULT_TMPL['standard']['format'],datefmt=FORMATTER_DEFAULT_TMPL['standard']['datefmt']))
 
 
 @celery.signals.after_setup_logger.connect
