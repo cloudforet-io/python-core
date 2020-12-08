@@ -16,3 +16,4 @@ EXTENSION_APIS = {
 
 # Logging Configuration
 SET_LOGGING = True
+LOG = {}
