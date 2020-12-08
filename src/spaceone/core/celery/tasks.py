@@ -79,7 +79,6 @@ class SingleTask:
     def execute(self):
         """ Run method
         """
-        print('run single task')
         try:
             if self.locator == 'SERVICE':
                 caller = self._locator.get_service(self.name, self.metadata)
@@ -91,7 +90,6 @@ class SingleTask:
             raise ERROR_TASK_LOCATOR(locator=self.locator, name=self.name)
 
         try:
-            print(f'[SingleTask] request: {self.name}.{self.method} {self.params}')
             _LOGGER.debug(f'[SingleTask] request: {self.name}.{self.method} {self.params}')
             method = getattr(caller, self.method)
             resp = method(**self.params)
@@ -121,9 +119,10 @@ def spaceone_task(self, task: dict, *args, **kwargs):
             print(result)
 
         except Exception as e:
-            print(f'[SpaceoneTask] fail to parse {stage}, {e}')
+            _LOGGER.error(f'[SpaceoneTask] fail to parse {stage}, {e}')
+
             if task.get('stop_on_failure', True):
-                print(f'[SpaceoneTask] stop task, since stop on failure is enabled')
+                _LOGGER.error('[SpaceoneTask] stop task, since stop on failure is enabled')
                 break
 
 
