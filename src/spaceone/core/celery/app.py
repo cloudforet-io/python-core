@@ -17,11 +17,12 @@ DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
 
 @celery.signals.setup_logging.connect
 def setup_logging(**kwargs):
-    set_logger()
+    if config.get_global('CELERY',{}).get('mode') != 'BEAT':
+        set_logger()
     logger = logging.getLogger('celery')
     logger.propagate = True
     logger.level = logging.INFO
-    
+
     if config.get_global('CELERY', {}).get('debug_mode'):
         logger = logging.getLogger('celery')
         logger.propagate = True
