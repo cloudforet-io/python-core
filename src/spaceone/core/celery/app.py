@@ -16,6 +16,7 @@ DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
 
 @celery.signals.after_setup_logger.connect
 def on_after_setup_logger(**kwargs):
+    # set_logger()
     if config.get_global('CELERY', {}).get('debug_mode'):
         logger = logging.getLogger('celery')
         logger.propagate = True
@@ -23,7 +24,6 @@ def on_after_setup_logger(**kwargs):
         logger = logging.getLogger('celery.app.trace')
         logger.propagate = True
         logger.level = logging.DEBUG
-    set_logger()
 
 
 
@@ -80,7 +80,7 @@ def register_beat_schedules(app):
 
 
 def serve():
-    set_logger()
+    # set_logger()
     update_celery_config(app)
     server_mode = app.conf.get('mode', SERVER_MODE_ENUM.WORKER.value)
     if server_mode == SERVER_MODE_ENUM.BEAT.value:
