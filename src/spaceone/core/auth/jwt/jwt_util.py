@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 from jwcrypto import jwk
 from jose import jwt
@@ -19,10 +17,13 @@ class JWTUtil:
         return jwt.encode(payload, key=private_jwk, algorithm=algorithm)
 
     @staticmethod
-    def decode(token: str, public_jwk: dict, algorithm=['RS256']) -> dict:
-        return jwt.decode(token, key=public_jwk, algorithms=algorithm, options={
-            'verify_aud': False
-        })
+    def decode(token: str, public_jwk: dict, algorithm='RS256', options=None) -> dict:
+        if options is None:
+            options = {}
+
+        options['verify_aud'] = options.get('verify_aud', False)
+
+        return jwt.decode(token, key=public_jwk, algorithms=algorithm, options=options)
 
     @staticmethod
     def unverified_decode(token: str) -> dict:

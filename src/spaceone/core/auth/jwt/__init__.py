@@ -8,15 +8,18 @@ class JWTAuthenticator(Authenticator):
     def __init__(self, key):
         self._key = key
 
-    def validate(self, token):
+    def validate(self, token, options=None):
         if not self._key:
             raise ERROR_AUTHENTICATE_FAILURE(message='Decode key is not set.')
 
         if not isinstance(token, (str, bytes)):
             raise ERROR_AUTHENTICATE_FAILURE(message='Invalid token format.')
 
+        if options is None:
+            options = {}
+
         try:
-            payload = JWTUtil.decode(token, self._key)
+            payload = JWTUtil.decode(token, self._key, options=options)
         except Exception:
             raise ERROR_AUTHENTICATE_FAILURE(message='UnKnown Exception.')
 
