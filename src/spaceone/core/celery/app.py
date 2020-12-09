@@ -21,6 +21,9 @@ def setup_logging(**kwargs):
         logger = logging.getLogger('celery')
         logger.propagate = True
         logger.level = logging.DEBUG
+        logger = logging.getLogger('celery.app.trace')
+        logger.propagate = True
+        logger.level = logging.DEBUG
     else:
         set_logger()
 
@@ -83,7 +86,6 @@ def register_beat_schedules(app):
 
 
 def serve():
-    # set_logger()
     update_celery_config(app)
     server_mode = app.conf.get('mode', SERVER_MODE_ENUM.WORKER.value)
     if server_mode == SERVER_MODE_ENUM.BEAT.value:
