@@ -1,4 +1,3 @@
-import logging
 from datetime import timedelta
 from enum import Enum
 
@@ -11,6 +10,7 @@ from celery.signals import after_setup_task_logger
 
 from spaceone.core import config
 from spaceone.core.logger import set_logger
+from spaceone.core.transaction import Transaction
 
 DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
 
@@ -18,19 +18,9 @@ DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
 @celery.signals.setup_logging.connect
 def setup_logging(**kwargs):
     if config.get_global('CELERY', {}).get('mode') == 'BEAT':
-        logger = logging.getLogger('celery')
-        logger.propagate = True
-        logger.level = logging.DEBUG
-        logger = logging.getLogger('celery.app.trace')
-        logger.propagate = True
-        logger.level = logging.DEBUG
-    else:
         set_logger()
-
-    if config.get_global('CELERY', {}).get('debug_mode'):
-        logger = logging.getLogger('celery.app.trace')
-        logger.propagate = True
-        logger.level = logging.DEBUG
+    else:
+        set_logger(transaction=Transaction())
 
 
 app = Celery('spaceone')

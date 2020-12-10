@@ -3,6 +3,7 @@ from celery.utils.log import get_logger
 
 from spaceone.core.error import ERROR_TASK_LOCATOR, ERROR_TASK_METHOD
 from spaceone.core.locator import Locator
+from spaceone.core.logger import set_logger
 from spaceone.core.transaction import Transaction
 
 _LOGGER = get_logger(__name__)
@@ -11,6 +12,7 @@ _LOGGER = get_logger(__name__)
 class BaseTask(Task):
     def __init__(self, *args, **kwargs):
         transaction = Transaction()
+        set_logger(transaction)
         self.locator = Locator(transaction)
     def on_success(self, retval, task_id, args, kwargs):
         """Success handler.
@@ -63,6 +65,7 @@ class BaseTask(Task):
             None: The return value of this handler is ignored.
         """
         _LOGGER.debug(f'[{task_id}] fails')
+        _LOGGER.error(f"{einfo}")
 
 
 class SingleTask:
