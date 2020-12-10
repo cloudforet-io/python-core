@@ -1,6 +1,7 @@
 import re
+import random
+import string
 import secrets
-import uuid
 import datetime
 from urllib.parse import urlparse
 import yaml
@@ -16,8 +17,32 @@ def generate_id(prefix: str = 'id', nbytes: int = 6) -> str:
     return f'{prefix}-{random_id}'
 
 
-def random_string() -> str:
-    return uuid.uuid4().hex
+def generate_secret(nbytes: int = 32) -> str:
+    return secrets.token_urlsafe(nbytes)
+
+
+def generate_password(length: int = 8) -> str:
+    # create alphanumerical from string constants
+    printable = f'{string.ascii_letters}{string.digits}'
+
+    # convert printable from string to list and shuffle
+    printable = list(printable)
+    random.shuffle(printable)
+
+    # generate random password and convert to string
+    random_password = random.choices(printable, k=length)
+
+    # Append one lowercase and one uppercase and one number characters
+    random_password.append(random.choices(list(string.ascii_lowercase))[0])
+    random_password.append(random.choices(list(string.ascii_uppercase))[0])
+    random_password.append(random.choices(list(string.digits))[0])
+
+    random_password = ''.join(random_password)
+    return random_password
+
+
+def random_string(nbytes: int = 6) -> str:
+    return secrets.token_hex(nbytes)
 
 
 def create_dir(path: str):
