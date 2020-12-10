@@ -7,18 +7,27 @@ from celery import Celery
 from celery.apps.beat import Beat
 from celery.apps.worker import Worker
 from celery.schedules import crontab
+from celery.signals import after_setup_task_logger
 
 from spaceone.core import config
+from spaceone.core.logger import set_logger
 
 DEFAULT_SPACEONE_BEAT = 'spaceone.core.celery.schedulers.SpaceOneScheduler'
 
 
-@celery.signals.after_setup_logger.connect
-def on_after_setup_logger(**kwargs):
-    if config.get_global('CELERY', {}).get('debug_mode'):
+@celery.signals.setup_logging.connect
+def setup_logging(**kwargs):
+    if config.get_global('CELERY', {}).get('mode') == 'BEAT':
         logger = logging.getLogger('celery')
         logger.propagate = True
         logger.level = logging.DEBUG
+        logger = logging.getLogger('celery.app.trace')
+        logger.propagate = True
+        logger.level = logging.DEBUG
+    else:
+        set_logger()
+
+    if config.get_global('CELERY', {}).get('debug_mode'):
         logger = logging.getLogger('celery.app.trace')
         logger.propagate = True
         logger.level = logging.DEBUG
@@ -73,11 +82,10 @@ def register_beat_schedules(app):
             schedule['args'] = args
         if kwargs := sch_info.get('kwargs'):
             schedule['kwargs'] = kwargs
-        app.conf.beat_schedule[name]= schedule
+        app.conf.beat_schedule[name] = schedule
 
 
 def serve():
-    # set_logger()
     update_celery_config(app)
     server_mode = app.conf.get('mode', SERVER_MODE_ENUM.WORKER.value)
     if server_mode == SERVER_MODE_ENUM.BEAT.value:
