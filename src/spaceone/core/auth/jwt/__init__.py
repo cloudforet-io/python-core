@@ -21,6 +21,6 @@ class JWTAuthenticator(Authenticator):
         try:
             payload = JWTUtil.decode(token, self._key, options=options)
         except Exception:
-            raise ERROR_AUTHENTICATE_FAILURE(message='UnKnown Exception.')
+            raise ERROR_AUTHENTICATE_FAILURE(message='Token is invalid or expired.')
 
         return payload
