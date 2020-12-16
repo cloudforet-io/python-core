@@ -199,6 +199,10 @@ class ERROR_HANDLER(ERROR_BASE):
     _message = '\'{handler_type} handler\' import failed. (reason = {reason})'
 
 
+class ERROR_HANDLER_CONFIGURATION(ERROR_UNKNOWN):
+    _message = 'Handler configuration is invalid. (handler = {handler})'
+
+
 class ERROR_AUTHENTICATE_FAILURE(ERROR_BASE):
     _status_code = 'UNAUTHENTICATED'
     _message = 'Authenticate failure. (message = {message})'

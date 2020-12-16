@@ -23,7 +23,7 @@ class BaseAuthenticationHandler(abc.ABC, BaseHandler):
         Returns:
             None
         """
-        raise NotImplementedError('notify method not implemented!')
+        raise NotImplementedError('verify method not implemented!')
 
 
 class BaseAuthorizationHandler(abc.ABC, BaseHandler):
@@ -37,7 +37,7 @@ class BaseAuthorizationHandler(abc.ABC, BaseHandler):
         Returns:
             None
         """
-        raise NotImplementedError('notify method not implemented!')
+        raise NotImplementedError('verify method not implemented!')
 
 
 class BaseMutationHandler(BaseHandler):
