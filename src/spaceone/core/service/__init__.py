@@ -65,6 +65,7 @@ def transaction(func):
 
     return wrapper
 
+
 def _pipeline(func, self, params):
     try:
         self.func_name = func.__name__

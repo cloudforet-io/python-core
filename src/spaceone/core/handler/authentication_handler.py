@@ -1,16 +1,18 @@
 import json
 import logging
+from abc import ABC
 
 from spaceone.core import pygrpc
 from spaceone.core import utils
 from spaceone.core.cache import cacheable
 from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
 from spaceone.core.transaction import Transaction, ERROR_AUTHENTICATE_FAILURE
+from spaceone.core.handler import BaseAuthenticationHandler
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class AuthenticationGRPCHandler(object):
+class AuthenticationGRPCHandler(BaseAuthenticationHandler):
 
     def __init__(self, config):
         self._validate(config)
@@ -19,7 +21,7 @@ class AuthenticationGRPCHandler(object):
     def _validate(self, config):
         pass
 
-    def notify(self, transaction: Transaction, params=None):
+    def verify(self, transaction: Transaction, params=None):
         token = self._get_token(transaction.meta)
         domain_id = self._extract_domain_id(token)
         meta: list = transaction.get_connection_meta()

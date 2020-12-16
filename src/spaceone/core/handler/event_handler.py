@@ -1,10 +1,8 @@
-from google.protobuf.json_format import MessageToDict
 from spaceone.core import pygrpc
 from spaceone.core import utils
 from spaceone.core.transaction import Transaction
-from spaceone.api.core.v1 import handler_pb2
 
-_STATE = ['STARTED', 'IN-PROGRESS', 'SUCCESS', 'FAILURE']
+_STATUS = ['STARTED', 'IN_PROGRESS', 'SUCCESS', 'FAILURE']
 
 
 class EventGRPCHandler(object):
@@ -16,13 +14,13 @@ class EventGRPCHandler(object):
     def _validate(self, config):
         pass
 
-    def notify(self, transaction: Transaction, state: str, message: dict):
-        if state in _STATE:
+    def notify(self, transaction: Transaction, status: str, message: dict):
+        if status in _STATUS:
             grpc_method = pygrpc.get_grpc_method(self.uri_info)
             grpc_method({
                 'service': transaction.service,
                 'resource': transaction.resource,
                 'verb': transaction.verb,
-                'state': state,
+                'status': status,
                 'message': message
             })
