@@ -121,8 +121,8 @@ class ERROR_UNKNOWN(ERROR_BASE):
     _message = '{message}'
 
 
-class ERROR_TRANSACTION_STATE(ERROR_UNKNOWN):
-    _message = 'Transaction state is incorrectly. (state = {state})'
+class ERROR_TRANSACTION_STATUS(ERROR_UNKNOWN):
+    _message = 'Transaction status is incorrect. (status = {status})'
 
 
 class ERROR_LOCATOR(ERROR_UNKNOWN):

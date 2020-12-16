@@ -54,8 +54,8 @@ class BaseService(object):
             raise error
 
     def __del__(self):
-        if self.transaction.state == 'IN-PROGRESS':
-            self.transaction.state = 'SUCCESS'
+        if self.transaction.status == 'IN_PROGRESS':
+            self.transaction.status = 'SUCCESS'
 
 
 def transaction(func):
@@ -91,7 +91,7 @@ def _pipeline(func, self, params):
                 handler.notify(self.transaction, 'STARTED', params)
 
         # 5. Service Body
-        self.transaction.state = 'IN-PROGRESS'
+        self.transaction.status = 'IN-PROGRESS'
         response_or_iterator = func(self, params)
 
         # 6. Response Handlers
@@ -129,7 +129,7 @@ def _error_handler(self, error):
                 'message': error.message
             })
 
-    self.transaction.state = 'FAILURE'
+    self.transaction.status = 'FAILURE'
     _LOGGER.error(f'(Error) => {error.message} {error}',
                   extra={'error_code': error.error_code,
                          'error_message': error.message,

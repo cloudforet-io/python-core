@@ -3,7 +3,6 @@ import logging
 from spaceone.core import utils
 from spaceone.core.error import *
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -16,7 +15,7 @@ class Transaction(object):
             self._meta = {}
 
         self._rollbacks = []
-        self._state = 'STARTED'
+        self._status = 'STARTED'
         self._set_transaction_id()
         self._event_handlers = []
 
@@ -56,14 +55,14 @@ class Transaction(object):
         self._meta['verb'] = value
 
     @property
-    def state(self):
-        return self._state
+    def status(self):
+        return self._status
 
-    @state.setter
-    def state(self, value):
-        if value not in ['IN-PROGRESS', 'SUCCESS', 'FAILURE']:
-            raise ERROR_TRANSACTION_STATE(state=value)
-        self._state = value
+    @status.setter
+    def status(self, value):
+        if value not in ['IN_PROGRESS', 'SUCCESS', 'FAILURE']:
+            raise ERROR_TRANSACTION_STATUS(status=value)
+        self._status = value
 
     def add_rollback(self, fn, *args, **kwargs):
         self._rollbacks.insert(0, {
@@ -96,7 +95,7 @@ class Transaction(object):
 
         Returns:
             - list of tuple
-            ex) [('token','xxxxx'),('domain_id','yyyy') ...]
+            ex) [('token','...'),('domain_id','domain-xyz') ...]
         """
         keys = ['token', 'domain_id', 'transaction_id']
         result = []
@@ -109,4 +108,4 @@ class Transaction(object):
             if not isinstance(message, dict):
                 message = {'message': str(message)}
 
-            handler.notify(self, 'IN-PROGRESS', message)
+            handler.notify(self, 'IN_PROGRESS', message)
