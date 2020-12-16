@@ -222,7 +222,7 @@ def get_dict_value(data: dict, dotted_key: str, default_value=None):
             return default_value
     else:
         if isinstance(data, dict):
-            return data.get(dotted_key)
+            return data.get(dotted_key, default_value)
         else:
             return default_value
 
