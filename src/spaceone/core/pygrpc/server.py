@@ -79,7 +79,7 @@ def _import_module(module_path, servicer_name):
     try:
         module = __import__(module_path, fromlist=[servicer_name])
     except Exception as e:
-        _LOGGER.warning(f'[_import_module] Cannot import grpc servicer module. (reason = {e})')
+        _LOGGER.warning(f'[_import_module] Cannot import grpc servicer module. (reason = {e})', exc_info=True)
 
     return module
 
