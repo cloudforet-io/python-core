@@ -397,6 +397,17 @@ class MongoModel(Document, BaseModel):
                 vos = vos.order_by(_order_by)
 
             if only:
+                if 'key' in sort:
+                    if sort['key'] not in only:
+                        only.append(sort['key'])
+                else:
+                    ordering = cls._meta.get('ordering')
+                    for key in ordering:
+                        if key.startswith('+') or key.startswith('-'):
+                            key = key[1:]
+                        if key not in only:
+                            only.append(key)
+
                 vos = vos.only(*only)
 
             if exclude:
