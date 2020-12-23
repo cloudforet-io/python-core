@@ -1,55 +1,60 @@
 import json
 import logging
-
 from spaceone.core import pygrpc
 from spaceone.core import utils
 from spaceone.core.cache import cacheable
 from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
-from spaceone.core.transaction import Transaction, ERROR_AUTHENTICATE_FAILURE
+from spaceone.core.transaction import Transaction
+from spaceone.core.handler import BaseAuthenticationHandler
+from spaceone.core.error import ERROR_AUTHENTICATE_FAILURE, ERROR_HANDLER_CONFIGURATION
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class AuthenticationGRPCHandler(object):
+class AuthenticationGRPCHandler(BaseAuthenticationHandler):
 
-    def __init__(self, config):
-        self._validate(config)
-        self.uri_info = utils.parse_grpc_uri(config['uri'])
+    def __init__(self, transaction: Transaction, config):
+        super().__init__(transaction, config)
+        self._initialize()
 
-    def _validate(self, config):
-        pass
+    def _initialize(self):
+        if 'uri' not in self.config:
+            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-    def notify(self, transaction: Transaction, params=None):
-        token = self._get_token(transaction.meta)
+        try:
+            self.uri_info = utils.parse_grpc_uri(self.config['uri'])
+        except Exception as e:
+            _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
+            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
+
+    def verify(self, params=None):
+        token = self._get_token()
         domain_id = self._extract_domain_id(token)
-        meta: list = transaction.get_connection_meta()
 
-        token_info = self._authenticate(token, domain_id, meta)
-
-        self._update_meta(transaction, token_info)
+        token_info = self._authenticate(token, domain_id)
+        self._update_meta(token_info)
 
     @cacheable(key='public-key:{domain_id}', backend='local')
-    def _get_public_key(self, domain_id, meta):
+    def _get_public_key(self, domain_id):
         grpc_method = pygrpc.get_grpc_method(self.uri_info)
 
         response = grpc_method({
                 'domain_id': domain_id
             },
-            metadata=meta
+            metadata=self.transaction.get_connection_meta()
         )
         return response.public_key
 
-    def _authenticate(self, token, domain_id, meta):
-        public_key = self._get_public_key(domain_id, meta)
+    def _authenticate(self, token, domain_id):
+        public_key = self._get_public_key(domain_id)
 
         payload = JWTAuthenticator(json.loads(public_key)).validate(token)
         # TODO: if payload is api_key type and record is delete in database, raise ERROR_AUTHENTICATE_FAILURE exception.
 
         return payload
 
-    @staticmethod
-    def _get_token(meta):
-        token = meta.get('token')
+    def _get_token(self):
+        token = self.transaction.meta.get('token')
         if not isinstance(token, str) \
                 or token is None \
                 or len(token) == 0:
@@ -71,17 +76,16 @@ class AuthenticationGRPCHandler(object):
 
         return domain_id
 
-    @staticmethod
-    def _update_meta(transaction, token_info):
+    def _update_meta(self, token_info):
         domain_id = token_info.get('did')
         user_id = token_info.get('aud')
         token_type = token_info.get('cat')
 
         if domain_id:
-            transaction.set_meta('domain_id', domain_id)
+            self.transaction.set_meta('domain_id', domain_id)
 
         if user_id:
-            transaction.set_meta('user_id', user_id)
+            self.transaction.set_meta('user_id', user_id)
 
         if token_type:
-            transaction.set_meta('token_type', token_type)
+            self.transaction.set_meta('token_type', token_type)

@@ -1,28 +1,35 @@
-from google.protobuf.json_format import MessageToDict
+import logging
 from spaceone.core import pygrpc
 from spaceone.core import utils
 from spaceone.core.transaction import Transaction
-from spaceone.api.core.v1 import handler_pb2
+from spaceone.core.handler import BaseEventHandler
+from spaceone.core.error import ERROR_HANDLER_CONFIGURATION
 
-_STATE = ['STARTED', 'IN-PROGRESS', 'SUCCESS', 'FAILURE']
+_LOGGER = logging.getLogger(__name__)
 
 
-class EventGRPCHandler(object):
+class EventGRPCHandler(BaseEventHandler):
 
-    def __init__(self, config):
-        self._validate(config)
-        self.uri_info = utils.parse_grpc_uri(config['uri'])
+    def __init__(self, transaction: Transaction, config):
+        super().__init__(transaction, config)
+        self._initialize()
 
-    def _validate(self, config):
-        pass
+    def _initialize(self):
+        if 'uri' not in self.config:
+            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-    def notify(self, transaction: Transaction, state: str, message: dict):
-        if state in _STATE:
-            grpc_method = pygrpc.get_grpc_method(self.uri_info)
-            grpc_method({
-                'service': transaction.service,
-                'resource': transaction.resource,
-                'verb': transaction.verb,
-                'state': state,
-                'message': message
-            })
+        try:
+            self.uri_info = utils.parse_grpc_uri(self.config['uri'])
+        except Exception as e:
+            _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
+            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
+
+    def notify(self, status: str, message: dict):
+        grpc_method = pygrpc.get_grpc_method(self.uri_info)
+        grpc_method({
+            'service': self.transaction.service,
+            'resource': self.transaction.resource,
+            'verb': self.transaction.verb,
+            'status': status,
+            'message': message
+        })

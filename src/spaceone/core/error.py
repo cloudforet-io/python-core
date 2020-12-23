@@ -121,8 +121,8 @@ class ERROR_UNKNOWN(ERROR_BASE):
     _message = '{message}'
 
 
-class ERROR_TRANSACTION_STATE(ERROR_UNKNOWN):
-    _message = 'Transaction state is incorrectly. (state = {state})'
+class ERROR_TRANSACTION_STATUS(ERROR_UNKNOWN):
+    _message = 'Transaction status is incorrect. (status = {status})'
 
 
 class ERROR_LOCATOR(ERROR_UNKNOWN):
@@ -197,6 +197,10 @@ class ERROR_GRPC_CONFIGURATION(ERROR_BASE):
 
 class ERROR_HANDLER(ERROR_BASE):
     _message = '\'{handler_type} handler\' import failed. (reason = {reason})'
+
+
+class ERROR_HANDLER_CONFIGURATION(ERROR_UNKNOWN):
+    _message = 'Handler configuration is invalid. (handler = {handler})'
 
 
 class ERROR_AUTHENTICATE_FAILURE(ERROR_BASE):

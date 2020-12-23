@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 
 
@@ -10,7 +9,7 @@ class TransactionFilter(logging.Filter):
         if self.transaction:
             record.service = self.transaction.service
             record.tnx_id = self.transaction.id
-            record.tnx_state = self.transaction.state
+            record.tnx_status = self.transaction.status
             record.peer = self.transaction.get_meta('peer')
 
             if self.transaction.resource and self.transaction.verb:
@@ -20,7 +19,7 @@ class TransactionFilter(logging.Filter):
         else:
             record.service = ""
             record.tnx_id = ""
-            record.tnx_state = ""
+            record.tnx_status = ""
             record.tnx_method = ""
             record.peer = ""
 

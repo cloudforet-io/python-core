@@ -1,27 +1,30 @@
-import copy
 import logging
-
-from spaceone.core.error import *
-from spaceone.core.auth.jwt import JWTUtil
-from google.protobuf.json_format import MessageToDict
 from spaceone.core import pygrpc
 from spaceone.core import utils
 from spaceone.core.transaction import Transaction
-from spaceone.api.core.v1 import handler_pb2
+from spaceone.core.handler import BaseAuthorizationHandler
+from spaceone.core.error import ERROR_AUTHENTICATE_FAILURE, ERROR_HANDLER_CONFIGURATION
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class AuthorizationGRPCHandler(object):
+class AuthorizationGRPCHandler(BaseAuthorizationHandler):
 
-    def __init__(self, config):
-        self._validate(config)
-        self.uri_info = utils.parse_grpc_uri(config['uri'])
+    def __init__(self, transaction: Transaction, config):
+        super().__init__(transaction, config)
+        self._initialize()
 
-    def _validate(self, config):
-        pass
+    def _initialize(self):
+        if 'uri' not in self.config:
+            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-    def notify(self, transaction: Transaction, params=None):
+        try:
+            self.uri_info = utils.parse_grpc_uri(self.config['uri'])
+        except Exception as e:
+            _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
+            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
+
+    def verify(self, transaction: Transaction, params=None):
         pass
         # token_type = transaction.get_meta('token_type')
         #

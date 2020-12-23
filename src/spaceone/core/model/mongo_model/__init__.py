@@ -364,8 +364,20 @@ class MongoModel(Document, BaseModel):
         return _filter
 
     @classmethod
-    def query(cls, *args, only=None, exclude=None, all_fields=False, filter=[], filter_or=[],
-              sort={}, page={}, minimal=False, count_only=False, **kwargs):
+    def query(cls, *args, only=None, exclude=None, all_fields=False, filter=None, filter_or=None,
+              sort=None, page=None, minimal=False, count_only=False, **kwargs):
+
+        if filter is None:
+            filter = []
+
+        if filter_or is None:
+            filter_or = []
+
+        if sort is None:
+            sort = {}
+
+        if page is None:
+            page = {}
 
         _order_by = None
         minimal_fields = cls._meta.get('minimal_fields')
@@ -385,6 +397,17 @@ class MongoModel(Document, BaseModel):
                 vos = vos.order_by(_order_by)
 
             if only:
+                if 'key' in sort:
+                    if sort['key'] not in only:
+                        only.append(sort['key'])
+                else:
+                    ordering = cls._meta.get('ordering')
+                    for key in ordering:
+                        if key.startswith('+') or key.startswith('-'):
+                            key = key[1:]
+                        if key not in only:
+                            only.append(key)
+
                 vos = vos.only(*only)
 
             if exclude:
@@ -747,8 +770,20 @@ class MongoModel(Document, BaseModel):
         return result
 
     @classmethod
-    def stat(cls, *args, aggregate=None, distinct=None, filter=[], filter_or=[],
-             sort={}, page={}, limit=None, **kwargs):
+    def stat(cls, *args, aggregate=None, distinct=None, filter=None, filter_or=None,
+             sort=None, page=None, limit=None, **kwargs):
+
+        if filter is None:
+            filter = []
+
+        if filter_or is None:
+            filter_or = []
+
+        if sort is None:
+            sort = {}
+
+        if page is None:
+            page = {}
 
         if not (aggregate or distinct):
             raise ERROR_REQUIRED_PARAMETER(key='aggregate')
