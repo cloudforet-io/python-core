@@ -86,8 +86,8 @@ class Transaction(object):
     def set_meta(self, key, value):
         self._meta[key] = value
 
-    def get_meta(self, key):
-        return self._meta.get(key)
+    def get_meta(self, key, default=None):
+        return self._meta.get(key, default)
 
     def get_connection_meta(self) -> list:
         """ metadata for MS call

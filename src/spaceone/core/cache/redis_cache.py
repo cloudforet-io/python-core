@@ -40,6 +40,9 @@ class RedisCache(BaseCache):
 
     def set(self, key, value, expire=None, **kwargs):
         try:
+            if value is None:
+                value = {}
+
             cache_value = json.dumps(value)
             return self.conn.set(key, cache_value, ex=expire)
         except Exception as e:

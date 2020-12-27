@@ -3,7 +3,8 @@ import inspect
 from spaceone.core import config
 from spaceone.core.error import *
 
-__init__ = ['is_set', 'get', 'set', 'increment', 'decrement', 'keys', 'ttl', 'delete', 'delete_pattern', 'flush', 'cacheable']
+__init__ = ['is_set', 'get', 'set', 'increment', 'decrement', 'keys', 'ttl', 'delete', 'delete_pattern',
+            'flush', 'cacheable']
 
 _CACHE_CONNECTIONS = {}
 _LOGGER = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ def cacheable(key=None, value=None, expire=None, action='cache', backend='defaul
 
                 if action in ['cache']:
                     data = get(cache_key, backend=backend)
-                    if data:
+                    if data is not None:
                         return data
 
             result = func(*args, **kwargs)

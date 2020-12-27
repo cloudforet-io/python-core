@@ -16,6 +16,7 @@ class EventGRPCHandler(BaseEventHandler):
 
     def _initialize(self):
         if 'uri' not in self.config:
+            _LOGGER.error(f'[_initialize] uri config is undefined.')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
         try:
