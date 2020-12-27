@@ -19,6 +19,7 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
 
     def _initialize(self):
         if 'uri' not in self.config:
+            _LOGGER.error(f'[_initialize] uri config is undefined.')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
         try:
@@ -79,7 +80,7 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
     def _update_meta(self, token_info):
         domain_id = token_info.get('did')
         user_id = token_info.get('aud')
-        token_type = token_info.get('cat')
+        user_type = token_info.get('user_type')
 
         if domain_id:
             self.transaction.set_meta('domain_id', domain_id)
@@ -87,5 +88,5 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
         if user_id:
             self.transaction.set_meta('user_id', user_id)
 
-        if token_type:
-            self.transaction.set_meta('token_type', token_type)
+        if user_type:
+            self.transaction.set_meta('auth.user_type', user_type)

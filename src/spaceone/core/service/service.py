@@ -53,18 +53,29 @@ class BaseService(object):
             self.transaction.status = 'SUCCESS'
 
 
-def transaction(func):
-    @functools.wraps(func)
-    def wrapper(self, params):
-        return _pipeline(func, self, params)
+def transaction(func=None, ext_meta=None):
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped_func(self, params):
+            return _pipeline(func, self, params, ext_meta)
+
+        return wrapped_func
+
+    if func:
+        return wrapper(func)
 
     return wrapper
 
 
-def _pipeline(func, self, params):
+def _pipeline(func, self, params, ext_meta):
     try:
         self.func_name = func.__name__
         _LOGGER.info('(REQEUST) =>', extra={'parameter': copy.deepcopy(params)})
+
+        # 0. Set Extra Metadata
+        if ext_meta and isinstance(ext_meta, dict):
+            for key, value in ext_meta.items():
+                self.transaction.set_meta(key, value)
 
         # 1. Start Event: Ignore exceptions
         if _check_handler_method(self, 'event'):
@@ -164,34 +175,25 @@ def _generate_response(self, response_iterator):
 
 
 def authentication_handler(func=None, methods='*', exclude=None):
-    if exclude is None:
-        exclude = []
-
     return _set_handler(func, 'authentication', methods, exclude)
 
 
 def authorization_handler(func=None, methods='*', exclude=None):
-    if exclude is None:
-        exclude = []
-
     return _set_handler(func, 'authorization', methods, exclude)
 
 
 def mutation_handler(func=None, methods='*', exclude=None):
-    if exclude is None:
-        exclude = []
-
     return _set_handler(func, 'mutation', methods, exclude)
 
 
 def event_handler(func=None, methods='*', exclude=None):
-    if exclude is None:
-        exclude = []
-
     return _set_handler(func, 'event', methods, exclude)
 
 
-def _set_handler(func, handler_type, methods, exclude):
+def _set_handler(func, handler_type, methods, exclude=None):
+    if exclude is None:
+        exclude = []
+
     def wrapper(cls):
         @functools.wraps(cls)
         def wrapped_cls(*args, **kwargs):

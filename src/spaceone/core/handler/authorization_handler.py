@@ -16,6 +16,7 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
 
     def _initialize(self):
         if 'uri' not in self.config:
+            _LOGGER.error(f'[_initialize] uri config is undefined.')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
         try:
@@ -24,38 +25,37 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
             _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-    def verify(self, transaction: Transaction, params=None):
-        pass
-        # token_type = transaction.get_meta('token_type')
-        #
-        # if token_type == 'DOMAIN_OWNER':
-        #     print('')
-        #     changed_params = self._verify_domain_owner(transaction, params)
-        # else:
-        #     changed_params = self._verify_auth(transaction, params)
-        #
-        # return changed_params
+    def verify(self, params=None):
+        user_type = self.transaction.get_meta('auth.user_type')
+        scope = self.transaction.get_meta('auth.scope', 'DOMAIN')
 
-    def _verify_domain_owner(self, transaction, params):
-        domain_id = transaction.get_meta('domain_id')
+        if user_type == 'DOMAIN_OWNER':
+            self._verify_domain_owner(params)
+        else:
+            self._verify_auth(params, scope)
+
+    def _verify_domain_owner(self, params):
+        domain_id = self.transaction.get_meta('domain_id')
         if domain_id is None:
             raise ERROR_AUTHENTICATE_FAILURE(message='domain_id not set.')
 
-        print('_update_domain_owner_params', domain_id)
-        params['domain_id'] = domain_id
-        return params
+        self.transaction.set_meta('auth.role_type', 'DOMAIN_OWNER')
 
-    def _verify_auth(self, transaction, params):
+    def _verify_auth(self, params, scope):
         grpc_method = pygrpc.get_grpc_method(self.uri_info)
         response = grpc_method(
             {
-                'service': transaction.service,
-                'resource': transaction.resource,
-                'verb': transaction.verb,
-                'parameter': params
+                'service': self.transaction.service,
+                'resource': self.transaction.resource,
+                'verb': self.transaction.verb,
+                'scope': scope,
+                'domain_id': self.transaction.get_meta('domain_id'),
+                'project_id': params.get('project_id'),
+                'project_group_id': params.get('project_group_id')
             },
-            metadata=transaction.get_connection_meta()
+            metadata=self.transaction.get_connection_meta()
         )
 
-        transaction.set_meta('role_type', response.role_type)
-        return response.changed_parameter
+        self.transaction.set_meta('auth.role_type', response.role_type)
+        self.transaction.set_meta('auth.projects', list(response.projects))
+        self.transaction.set_meta('auth.project_groups', list(response.project_groups))

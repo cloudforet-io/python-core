@@ -100,18 +100,11 @@ def change_handler_authentication_request(value):
 
 
 def change_handler_authorization_request(value):
-    change_value = value.copy()
-    change_value['parameter'] = change_struct_type(value.get('parameter', {}))
-    return handler_pb2.AuthorizationRequest(**change_value)
+    return handler_pb2.AuthorizationRequest(**value)
 
 
 def change_handler_authorization_response(value):
-    change_value = {
-        'role_type': value['role_type'],
-        'changed_parameter': change_struct_type(value['changed_parameter'])
-    }
-
-    return handler_pb2.AuthorizationResponse(**change_value)
+    return handler_pb2.AuthorizationResponse(**value)
 
 
 def get_well_known_types():

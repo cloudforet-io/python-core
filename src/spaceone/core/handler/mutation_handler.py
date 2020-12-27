@@ -1,30 +1,23 @@
 import logging
-from spaceone.core.error import *
-from spaceone.core import pygrpc
-from spaceone.core import utils
-from spaceone.core.transaction import Transaction
 from spaceone.core.handler import BaseMutationHandler
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ProjectRoleHandler(BaseMutationHandler):
-
-    def __init__(self, transaction: Transaction, config):
-        super().__init__(transaction, config)
-        self._initialize()
-
-    def _initialize(self):
-        if 'uri' not in self.config:
-            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
-
-        try:
-            self.uri_info = utils.parse_grpc_uri(self.config['uri'])
-        except Exception as e:
-            _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
-            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
+class SpaceONEMutationHandler(BaseMutationHandler):
 
     def request(self, params):
-        user_type = self.transaction.get_meta('user_type')
-        return params
+        role_type = self.transaction.get_meta('auth.role_type')
+        domain_id = self.transaction.get_meta('domain_id')
+        inject_filter = self.transaction.get_meta('auth.inject.filter', {})
 
+        if role_type in ['DOMAIN', 'PROJECT']:
+            params['domain_id'] = domain_id
+
+        if role_type == 'PROJECT':
+            if isinstance(inject_filter, dict):
+                for key, value in inject_filter.items():
+                    if key not in params:
+                        params[key] = self.transaction.get_meta(value)
+
+        return params
