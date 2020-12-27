@@ -9,7 +9,7 @@ class SpaceONEMutationHandler(BaseMutationHandler):
     def request(self, params):
         role_type = self.transaction.get_meta('auth.role_type')
         domain_id = self.transaction.get_meta('domain_id')
-        inject_filter = self.transaction.get_meta('auth.inject.filter', {})
+        inject_filter = self.transaction.get_meta('auth.inject_filter', {})
 
         if role_type in ['DOMAIN', 'PROJECT']:
             params['domain_id'] = domain_id
