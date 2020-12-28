@@ -53,11 +53,11 @@ class BaseService(object):
             self.transaction.status = 'SUCCESS'
 
 
-def transaction(func=None, ext_meta=None):
+def transaction(func=None, append_meta=None):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(self, params):
-            return _pipeline(func, self, params, ext_meta)
+            return _pipeline(func, self, params, append_meta)
 
         return wrapped_func
 
@@ -67,14 +67,14 @@ def transaction(func=None, ext_meta=None):
     return wrapper
 
 
-def _pipeline(func, self, params, ext_meta):
+def _pipeline(func, self, params, append_meta):
     try:
         self.func_name = func.__name__
         _LOGGER.info('(REQEUST) =>', extra={'parameter': copy.deepcopy(params)})
 
         # 0. Set Extra Metadata
-        if ext_meta and isinstance(ext_meta, dict):
-            for key, value in ext_meta.items():
+        if append_meta and isinstance(append_meta, dict):
+            for key, value in append_meta.items():
                 self.transaction.set_meta(key, value)
 
         # 1. Start Event: Ignore exceptions

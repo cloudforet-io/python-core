@@ -89,4 +89,4 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
             self.transaction.set_meta('user_id', user_id)
 
         if user_type:
-            self.transaction.set_meta('auth.user_type', user_type)
+            self.transaction.set_meta('authorization.user_type', user_type)
