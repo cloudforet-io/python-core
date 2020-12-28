@@ -26,8 +26,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
     def verify(self, params=None):
-        user_type = self.transaction.get_meta('auth.user_type')
-        scope = self.transaction.get_meta('auth.scope', 'DOMAIN')
+        user_type = self.transaction.get_meta('authorization.user_type')
+        scope = self.transaction.get_meta('authorization.scope', 'DOMAIN')
 
         if user_type == 'DOMAIN_OWNER':
             self._verify_domain_owner(params)
@@ -35,11 +35,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
             self._verify_auth(params, scope)
 
     def _verify_domain_owner(self, params):
-        domain_id = self.transaction.get_meta('domain_id')
-        if domain_id is None:
-            raise ERROR_AUTHENTICATE_FAILURE(message='domain_id not set.')
-
-        self.transaction.set_meta('auth.role_type', 'DOMAIN_OWNER')
+        # Pass all methods
+        self.transaction.set_meta('authorization.role_type', 'DOMAIN')
 
     def _verify_auth(self, params, scope):
         grpc_method = pygrpc.get_grpc_method(self.uri_info)
@@ -56,6 +53,6 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
             metadata=self.transaction.get_connection_meta()
         )
 
-        self.transaction.set_meta('auth.role_type', response.role_type)
-        self.transaction.set_meta('auth.projects', list(response.projects))
-        self.transaction.set_meta('auth.project_groups', list(response.project_groups))
+        self.transaction.set_meta('authorization.role_type', response.role_type)
+        self.transaction.set_meta('authorization.projects', list(response.projects))
+        self.transaction.set_meta('authorization.project_groups', list(response.project_groups))
