@@ -336,7 +336,7 @@ class MongoModel(Document, BaseModel):
                             ref_values.append(ref_value)
                 else:
                     ref_values = list(ref_vos)
-                return ref_key, ref_values, 'in', True
+                return ref_key, ref_values, 'in'
 
         else:
             return key, value, operator
