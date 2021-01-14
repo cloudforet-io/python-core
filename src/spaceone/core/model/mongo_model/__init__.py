@@ -14,18 +14,9 @@ from spaceone.core.model import BaseModel
 from spaceone.core.model.mongo_model.filter_operator import FILTER_OPERATORS
 from spaceone.core.model.mongo_model.stat_operator import STAT_OPERATORS
 
-_MONGO_CONNECTIONS = []
-_UNIQUE_ERROR_FORMAT = r'.*index: (\w+)_1_(\w+)_id_1.*'
 _REFERENCE_ERROR_FORMAT = r'Could not delete document \((\w+)\.\w+ refers to it\)'
+_MONGO_CONNECTIONS = []
 _LOGGER = logging.getLogger(__name__)
-
-
-def _raise_unique_error(message, unique_fields):
-    m = re.findall(_UNIQUE_ERROR_FORMAT, message)
-    if len(m) > 0:
-        raise ERROR_NOT_UNIQUE_KEYS(keys=list(m[0]))
-    else:
-        raise ERROR_NOT_UNIQUE_KEYS(keys=unique_fields)
 
 
 def _raise_reference_error(class_name, message):
@@ -65,16 +56,46 @@ class MongoModel(Document, BaseModel):
 
             register_connection(db_alias, **db_conf)
 
+            auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', False)
+            case_insensitive_index = global_conf.get('DATABASE_CASE_INSENSITIVE_INDEX', False)
+
+            if auto_create_index:
+                cls._create_index(case_insensitive_index)
+
             _MONGO_CONNECTIONS.append(db_alias)
 
     @classmethod
+    def _create_index(cls, case_insensitive_index):
+        indexes = cls._meta.get('indexes', [])
+
+        if len(indexes) > 0:
+            _LOGGER.debug(f'Create Database Indexes ({cls.__name__} Model: {len(indexes)} Indexes)')
+
+            for index in indexes:
+                try:
+                    if case_insensitive_index:
+                        cls.create_index(index, collation={"locale": "en", "strength": 2})
+                    else:
+                        cls.create_index(index)
+                except Exception as e:
+                    _LOGGER.error(f'Index Creation Failure: {e}')
+
+    @classmethod
     def create(cls, data):
+        check_unique_field = config.get_global('DATABASE_CHECK_UNIQUE_FIELD', False)
+
         create_data = {}
         unique_fields = []
 
         for name, field in cls._fields.items():
-            if field.unique:
-                unique_fields.append(name)
+            if check_unique_field:
+                if field.unique:
+                    if isinstance(field.unique_with, str):
+                        unique_fields.append([field.name, field.unique_with])
+                    elif isinstance(field.unique_with, list):
+                        unique_fields.append([field.name] + field.unique_with)
+                    else:
+                        unique_fields.append([field.name])
 
             if name in data:
                 create_data[name] = data[name]
@@ -88,20 +109,25 @@ class MongoModel(Document, BaseModel):
                 elif getattr(field, 'auto_now_add', False):
                     create_data[name] = datetime.utcnow()
 
+        if check_unique_field:
+            for unique_field in unique_fields:
+                conditions = {}
+                for f in unique_field:
+                    conditions[f] = data.get(f)
+                vos = cls.filter(**conditions)
+                if vos.count() > 0:
+                    raise ERROR_SAVE_UNIQUE_VALUES(keys=unique_field)
+
         try:
             new_vo = cls(**create_data).save()
-        except NotUniqueError as e:
-            _raise_unique_error(str(e), unique_fields)
-            raise ERROR_DB_QUERY(reason=e)
-        except DuplicateKeyError as e:
-            _raise_unique_error(str(e), unique_fields)
-            raise ERROR_DB_QUERY(reason=e)
         except Exception as e:
             raise ERROR_DB_QUERY(reason=e)
 
         return new_vo
 
     def update(self, data):
+        check_unique_field = config.get_global('DATABASE_CHECK_UNIQUE_FIELD', False)
+
         unique_fields = []
         updatable_fields = self._meta.get(
             'updatable_fields', list(
@@ -111,28 +137,38 @@ class MongoModel(Document, BaseModel):
             )
         )
 
-        for key in list(data.keys()):
-            if key not in updatable_fields:
-                del data[key]
-
         for name, field in self._fields.items():
-            if field.unique:
-                unique_fields.append(name)
+            if check_unique_field:
+                if field.unique:
+                    if isinstance(field.unique_with, str):
+                        unique_fields.append([field.name, field.unique_with])
+                    elif isinstance(field.unique_with, list):
+                        unique_fields.append([field.name] + field.unique_with)
+                    else:
+                        unique_fields.append([field.name])
 
             if getattr(field, 'auto_now', False):
                 if name not in data.keys():
                     data[name] = datetime.utcnow()
 
+        if check_unique_field:
+            for unique_field in unique_fields:
+                conditions = {'pk__ne': self.pk}
+                for f in unique_field:
+                    conditions[f] = data.get(f)
+
+                vos = self.filter(**conditions)
+                if vos.count() > 0:
+                    raise ERROR_SAVE_UNIQUE_VALUES(keys=unique_field)
+
+        for key in list(data.keys()):
+            if key not in updatable_fields:
+                del data[key]
+
         if data != {}:
             try:
                 super().update(**data)
                 self.reload()
-            except NotUniqueError as e:
-                _raise_unique_error(str(e), unique_fields)
-                raise ERROR_DB_QUERY(reason=e)
-            except DuplicateKeyError as e:
-                _raise_unique_error(str(e), unique_fields)
-                raise ERROR_DB_QUERY(reason=e)
             except Exception as e:
                 raise ERROR_DB_QUERY(reason=e)
 
@@ -256,13 +292,6 @@ class MongoModel(Document, BaseModel):
                 raise ERROR_OPERATOR_VALUE_TYPE(operator=operator, condition=condition)
 
     @classmethod
-    def _check_exact_field(cls, key, value):
-        if key in cls._meta.get('exact_fields', []) or value is None:
-            return True
-        else:
-            return False
-
-    @classmethod
     def _check_reference_field(cls, key):
         ref_keys = cls._meta.get('reference_query_keys', {}).keys()
         if key in ref_keys:
@@ -290,11 +319,11 @@ class MongoModel(Document, BaseModel):
         return None, None, None, None
 
     @classmethod
-    def _change_reference_condition(cls, key, value, operator, is_exact_field):
+    def _change_reference_condition(cls, key, value, operator):
         ref_model, ref_key, ref_query_key, foreign_key = cls._get_reference_model(key)
         if ref_model:
             if value is None:
-                return ref_key, value, operator, is_exact_field
+                return ref_key, value, operator
             else:
                 ref_vos, total_count = ref_model.query(
                     filter=[{'k': ref_query_key, 'v': value, 'o': operator}])
@@ -310,7 +339,7 @@ class MongoModel(Document, BaseModel):
                 return ref_key, ref_values, 'in', True
 
         else:
-            return key, value, operator, is_exact_field
+            return key, value, operator
 
     @classmethod
     def _make_condition(cls, condition):
@@ -326,7 +355,6 @@ class MongoModel(Document, BaseModel):
         resolver, mongo_operator, is_multiple = FILTER_OPERATORS.get(operator)
 
         cls._check_operator_value(is_multiple, operator, value, condition)
-        is_exact_field = cls._check_exact_field(key, value)
 
         if key and operator:
             if key in change_query_keys:
@@ -334,14 +362,13 @@ class MongoModel(Document, BaseModel):
 
             if operator not in ['regex', 'regex_in']:
                 if cls._check_reference_field(key):
-                    key, value, operator, is_exact_field = \
-                        cls._change_reference_condition(key, value, operator, is_exact_field)
+                    key, value, operator = cls._change_reference_condition(key, value, operator)
 
                     resolver, mongo_operator, is_multiple = FILTER_OPERATORS[operator]
 
                 key = key.replace('.', '__')
 
-            return resolver(key, value, mongo_operator, is_multiple, is_exact_field)
+            return resolver(key, value, mongo_operator, is_multiple)
         else:
             raise ERROR_DB_QUERY(reason='Filter condition should have key, value and operator.')
 
@@ -391,7 +418,12 @@ class MongoModel(Document, BaseModel):
                 _order_by = f'{sort["key"]}'
 
         try:
-            vos = cls.objects.filter(_filter)
+            case_insensitive_index = config.get_global('DATABASE_CASE_INSENSITIVE_INDEX', False)
+
+            if case_insensitive_index:
+                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
+            else:
+                vos = cls.objects.filter(_filter)
 
             if _order_by:
                 vos = vos.order_by(_order_by)
@@ -634,23 +666,23 @@ class MongoModel(Document, BaseModel):
                 rules.append({
                     '$lookup': {
                         'from': ref_model._meta['collection'],
-                        # 'let': {
-                        #     ref_key: f'${ref_key}'
-                        # },
-                        # 'pipeline': [
-                        #     {
-                        #         '$match': {
-                        #             '$expr': {
-                        #                 '$eq': [f'${foreign_key}', f'$${ref_key}']
-                        #             }
-                        #         }
-                        #     },
-                        #     {
-                        #         '$project': lookup_project
-                        #     }
-                        # ],
-                        'localField': ref_key,
-                        'foreignField': foreign_key,
+                        'let': {
+                            ref_key: f'${ref_key}'
+                        },
+                        'pipeline': [
+                            {
+                                '$match': {
+                                    '$expr': {
+                                        '$eq': [f'${foreign_key}', f'$${ref_key}']
+                                    }
+                                }
+                            },
+                            {
+                                '$project': lookup_project
+                            }
+                        ],
+                        # 'localField': ref_key,
+                        # 'foreignField': foreign_key,
                         'as': ref_key
                     }
                 })
@@ -791,7 +823,12 @@ class MongoModel(Document, BaseModel):
         _filter = cls._make_filter(filter, filter_or)
 
         try:
-            vos = cls.objects.filter(_filter)
+            case_insensitive_index = config.get_global('DATABASE_CASE_INSENSITIVE_INDEX', False)
+
+            if case_insensitive_index:
+                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
+            else:
+                vos = cls.objects.filter(_filter)
 
             if aggregate:
                 return cls._stat_aggregate(vos, aggregate, sort, page, limit)
