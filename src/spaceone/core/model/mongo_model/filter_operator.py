@@ -8,7 +8,7 @@ from spaceone.core import utils
 __all__ = ['FILTER_OPERATORS']
 
 
-def _default_resolver(key, value, operator, is_multiple, is_exact_field):
+def _default_resolver(key, value, operator, is_multiple):
     if is_multiple:
         return reduce(lambda x, y: x | y,
                       map(lambda i: Q(**{f'{key}__{operator}': i}), value))
@@ -16,22 +16,15 @@ def _default_resolver(key, value, operator, is_multiple, is_exact_field):
         return Q(**{f'{key}__{operator}': value})
 
 
-def _eq_resolver(key, value, operator, is_multiple, is_exact_field):
-    if is_exact_field or value is None:
-        return Q(**{key: value})
-    else:
-        return Q(**{f'{key}__iexact': value})
+def _eq_resolver(key, value, operator, is_multiple):
+    return Q(**{key: value})
 
 
-def _in_resolver(key, value, operator, is_multiple, is_exact_field):
-    if is_exact_field or len(value) == 0:
-        return Q(**{f'{key}__in': value})
-    else:
-        return reduce(lambda x, y: x | y,
-                      map(lambda i: Q(**{f'{key}__iexact': i}), value))
+def _in_resolver(key, value, operator, is_multiple):
+    return Q(**{f'{key}__in': value})
 
 
-def _exists_resolver(key, value, operator, is_multiple, is_exact_field):
+def _exists_resolver(key, value, operator, is_multiple):
     if not isinstance(value, bool):
         raise ERROR_OPERATOR_BOOLEAN_TYPE(operator=operator,
                                           condition={'key': key, 'value': value, 'operator': operator})
@@ -39,11 +32,11 @@ def _exists_resolver(key, value, operator, is_multiple, is_exact_field):
     return Q(**{f'{key}__exists': value})
 
 
-def _not_in_resolver(key, value, operator, is_multiple, is_exact_field):
+def _not_in_resolver(key, value, operator, is_multiple):
     return Q(**{f'{key}__nin': value})
 
 
-def _match_resolver(key, value, operator, is_multiple, is_exact_field):
+def _match_resolver(key, value, operator, is_multiple):
     if not isinstance(value, dict):
         raise ERROR_OPERATOR_DICT_VALUE_TYPE(operator=operator,
                                              condition={'key': key, 'value': value, 'operator': operator})
@@ -51,7 +44,7 @@ def _match_resolver(key, value, operator, is_multiple, is_exact_field):
     return Q(**{f'{key}__match': value})
 
 
-def _regex_resolver(key, value, operator, is_multiple, is_exact_field):
+def _regex_resolver(key, value, operator, is_multiple):
     if is_multiple:
         return reduce(lambda x, y: x | y,
                       map(lambda i: Q(**{'__raw__': {key: {'$regex': i, '$options': 'i'}}}), value))
@@ -59,7 +52,7 @@ def _regex_resolver(key, value, operator, is_multiple, is_exact_field):
         return Q(**{'__raw__': {key: {'$regex': value, '$options': 'i'}}})
 
 
-def _datetime_resolver(key, value, operator, is_multiple, is_exact_field):
+def _datetime_resolver(key, value, operator, is_multiple):
     try:
         dt = parse(value)
     except Exception as e:
@@ -67,7 +60,7 @@ def _datetime_resolver(key, value, operator, is_multiple, is_exact_field):
     return Q(**{f'{key}__{operator}': dt})
 
 
-def _timediff_resolver(key, value, operator, is_multiple, is_exact_field):
+def _timediff_resolver(key, value, operator, is_multiple):
     try:
         dt = utils.parse_timediff_query(value)
     except Exception as e:

@@ -84,8 +84,8 @@ class ERROR_NOT_UNIQUE(ERROR_INVALID_ARGUMENT):
     _message = 'Tried to save duplicate unique key. ({key} = {value})'
 
 
-class ERROR_NOT_UNIQUE_KEYS(ERROR_INVALID_ARGUMENT):
-    _message = 'Tried to save duplicate unique keys. (keys = {keys})'
+class ERROR_SAVE_UNIQUE_VALUES(ERROR_INVALID_ARGUMENT):
+    _message = 'Tried to save duplicate unique values. (keys = {keys})'
 
 
 class ERROR_EXIST_RESOURCE(ERROR_INVALID_ARGUMENT):
