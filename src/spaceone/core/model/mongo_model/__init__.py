@@ -15,6 +15,7 @@ from spaceone.core.model.mongo_model.stat_operator import STAT_OPERATORS
 
 _REFERENCE_ERROR_FORMAT = r'Could not delete document \((\w+)\.\w+ refers to it\)'
 _MONGO_CONNECTIONS = []
+_MONGO_INIT_MODELS = []
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -42,13 +43,11 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def connect(cls):
-        global_conf = config.get_global()
-        cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
-        cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-        databases = global_conf.get('DATABASES', {})
-
         db_alias = cls._meta.get('db_alias', 'default')
         if db_alias not in _MONGO_CONNECTIONS:
+            global_conf = config.get_global()
+            databases = global_conf.get('DATABASES', {})
+
             if db_alias not in databases:
                 raise ERROR_DB_CONFIGURATION(backend=db_alias)
 
@@ -62,9 +61,20 @@ class MongoModel(Document, BaseModel):
                     del db_conf['read_preference']
 
             register_connection(db_alias, **db_conf)
-            cls._create_index()
 
             _MONGO_CONNECTIONS.append(db_alias)
+
+        if cls not in _MONGO_INIT_MODELS:
+            cls._init_model()
+            _MONGO_INIT_MODELS.append(cls)
+
+    @classmethod
+    def _init_model(cls):
+        global_conf = config.get_global()
+        cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
+        cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
+
+        cls._create_index()
 
     @classmethod
     def _create_index(cls):
