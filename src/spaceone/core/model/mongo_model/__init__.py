@@ -32,6 +32,7 @@ class MongoCustomQuerySet(QuerySet):
 
 class MongoModel(Document, BaseModel):
 
+    auto_create_index = True
     support_aws_document_db = False
     meta = {
         'abstract': True,
@@ -41,13 +42,17 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def connect(cls):
+        global_conf = config.get_global()
+        cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
+        cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
+        databases = global_conf.get('DATABASES', {})
+
         db_alias = cls._meta.get('db_alias', 'default')
         if db_alias not in _MONGO_CONNECTIONS:
-            global_conf = config.get_global()
-            if db_alias not in global_conf.get('DATABASES', {}):
+            if db_alias not in databases:
                 raise ERROR_DB_CONFIGURATION(backend=db_alias)
 
-            db_conf = global_conf['DATABASES'][db_alias].copy()
+            db_conf = databases[db_alias].copy()
 
             if 'read_preference' in db_conf:
                 read_preference = getattr(ReadPreference, db_conf['read_preference'], None)
@@ -57,31 +62,27 @@ class MongoModel(Document, BaseModel):
                     del db_conf['read_preference']
 
             register_connection(db_alias, **db_conf)
-
-            cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
-            cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', False)
-
-            if cls.auto_create_index:
-                cls._create_index()
+            cls._create_index()
 
             _MONGO_CONNECTIONS.append(db_alias)
 
     @classmethod
     def _create_index(cls):
-        indexes = cls._meta.get('indexes', [])
+        if cls.auto_create_index:
+            indexes = cls._meta.get('indexes', [])
 
-        if len(indexes) > 0:
-            _LOGGER.debug(f'Create Database Indexes ({cls.__name__} Model: {len(indexes)} Indexes)')
+            if len(indexes) > 0:
+                _LOGGER.debug(f'Create MongoDB Indexes ({cls.__name__} Model: {len(indexes)} Indexes)')
 
-            for index in indexes:
-                try:
-                    if cls.support_aws_document_db:
-                        cls.create_index(index)
-                    else:
-                        # Set Case Insensitive Index
-                        cls.create_index(index, collation={"locale": "en", "strength": 2})
-                except Exception as e:
-                    _LOGGER.error(f'Index Creation Failure: {e}')
+                for index in indexes:
+                    try:
+                        if cls.support_aws_document_db:
+                            cls.create_index(index)
+                        else:
+                            # Set Case Insensitive Index
+                            cls.create_index(index, collation={"locale": "en", "strength": 2})
+                    except Exception as e:
+                        _LOGGER.error(f'Index Creation Failure: {e}')
 
     @classmethod
     def create(cls, data):
