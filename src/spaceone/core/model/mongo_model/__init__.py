@@ -4,7 +4,6 @@ import logging
 from datetime import datetime
 from functools import reduce
 from mongoengine import EmbeddedDocumentField, EmbeddedDocument, Document, QuerySet, register_connection
-from pymongo.errors import *
 from pymongo import ReadPreference
 from mongoengine.errors import *
 from spaceone.core import config
@@ -32,9 +31,12 @@ class MongoCustomQuerySet(QuerySet):
 
 
 class MongoModel(Document, BaseModel):
+
+    support_aws_document_db = False
     meta = {
         'abstract': True,
-        'queryset_class': MongoCustomQuerySet
+        'queryset_class': MongoCustomQuerySet,
+        'auto_create_index': False
     }
 
     @classmethod
@@ -56,16 +58,16 @@ class MongoModel(Document, BaseModel):
 
             register_connection(db_alias, **db_conf)
 
-            auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', False)
-            case_insensitive_index = global_conf.get('DATABASE_CASE_INSENSITIVE_INDEX', False)
+            cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
+            cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', False)
 
-            if auto_create_index:
-                cls._create_index(case_insensitive_index)
+            if cls.auto_create_index:
+                cls._create_index()
 
             _MONGO_CONNECTIONS.append(db_alias)
 
     @classmethod
-    def _create_index(cls, case_insensitive_index):
+    def _create_index(cls):
         indexes = cls._meta.get('indexes', [])
 
         if len(indexes) > 0:
@@ -73,29 +75,27 @@ class MongoModel(Document, BaseModel):
 
             for index in indexes:
                 try:
-                    if case_insensitive_index:
-                        cls.create_index(index, collation={"locale": "en", "strength": 2})
-                    else:
+                    if cls.support_aws_document_db:
                         cls.create_index(index)
+                    else:
+                        # Set Case Insensitive Index
+                        cls.create_index(index, collation={"locale": "en", "strength": 2})
                 except Exception as e:
                     _LOGGER.error(f'Index Creation Failure: {e}')
 
     @classmethod
     def create(cls, data):
-        check_unique_field = config.get_global('DATABASE_CHECK_UNIQUE_FIELD', False)
-
         create_data = {}
         unique_fields = []
 
         for name, field in cls._fields.items():
-            if check_unique_field:
-                if field.unique:
-                    if isinstance(field.unique_with, str):
-                        unique_fields.append([field.name, field.unique_with])
-                    elif isinstance(field.unique_with, list):
-                        unique_fields.append([field.name] + field.unique_with)
-                    else:
-                        unique_fields.append([field.name])
+            if field.unique:
+                if isinstance(field.unique_with, str):
+                    unique_fields.append([field.name, field.unique_with])
+                elif isinstance(field.unique_with, list):
+                    unique_fields.append([field.name] + field.unique_with)
+                else:
+                    unique_fields.append([field.name])
 
             if name in data:
                 create_data[name] = data[name]
@@ -109,14 +109,13 @@ class MongoModel(Document, BaseModel):
                 elif getattr(field, 'auto_now_add', False):
                     create_data[name] = datetime.utcnow()
 
-        if check_unique_field:
-            for unique_field in unique_fields:
-                conditions = {}
-                for f in unique_field:
-                    conditions[f] = data.get(f)
-                vos = cls.filter(**conditions)
-                if vos.count() > 0:
-                    raise ERROR_SAVE_UNIQUE_VALUES(keys=unique_field)
+        for unique_field in unique_fields:
+            conditions = {}
+            for f in unique_field:
+                conditions[f] = data.get(f)
+            vos = cls.filter(**conditions)
+            if vos.count() > 0:
+                raise ERROR_SAVE_UNIQUE_VALUES(keys=unique_field)
 
         try:
             new_vo = cls(**create_data).save()
@@ -126,8 +125,6 @@ class MongoModel(Document, BaseModel):
         return new_vo
 
     def update(self, data):
-        check_unique_field = config.get_global('DATABASE_CHECK_UNIQUE_FIELD', False)
-
         unique_fields = []
         updatable_fields = self._meta.get(
             'updatable_fields', list(
@@ -138,28 +135,26 @@ class MongoModel(Document, BaseModel):
         )
 
         for name, field in self._fields.items():
-            if check_unique_field:
-                if field.unique:
-                    if isinstance(field.unique_with, str):
-                        unique_fields.append([field.name, field.unique_with])
-                    elif isinstance(field.unique_with, list):
-                        unique_fields.append([field.name] + field.unique_with)
-                    else:
-                        unique_fields.append([field.name])
+            if field.unique:
+                if isinstance(field.unique_with, str):
+                    unique_fields.append([field.name, field.unique_with])
+                elif isinstance(field.unique_with, list):
+                    unique_fields.append([field.name] + field.unique_with)
+                else:
+                    unique_fields.append([field.name])
 
             if getattr(field, 'auto_now', False):
                 if name not in data.keys():
                     data[name] = datetime.utcnow()
 
-        if check_unique_field:
-            for unique_field in unique_fields:
-                conditions = {'pk__ne': self.pk}
-                for f in unique_field:
-                    conditions[f] = data.get(f)
+        for unique_field in unique_fields:
+            conditions = {'pk__ne': self.pk}
+            for f in unique_field:
+                conditions[f] = data.get(f)
 
-                vos = self.filter(**conditions)
-                if vos.count() > 0:
-                    raise ERROR_SAVE_UNIQUE_VALUES(keys=unique_field)
+            vos = self.filter(**conditions)
+            if vos.count() > 0:
+                raise ERROR_SAVE_UNIQUE_VALUES(keys=unique_field)
 
         for key in list(data.keys()):
             if key not in updatable_fields:
@@ -418,12 +413,10 @@ class MongoModel(Document, BaseModel):
                 _order_by = f'{sort["key"]}'
 
         try:
-            case_insensitive_index = config.get_global('DATABASE_CASE_INSENSITIVE_INDEX', False)
-
-            if case_insensitive_index:
-                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
-            else:
+            if cls.support_aws_document_db:
                 vos = cls.objects.filter(_filter)
+            else:
+                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
 
             if _order_by:
                 vos = vos.order_by(_order_by)
@@ -663,29 +656,38 @@ class MongoModel(Document, BaseModel):
                 if ref_model == 'self':
                     ref_model = cls
 
-                rules.append({
-                    '$lookup': {
-                        'from': ref_model._meta['collection'],
-                        # 'let': {
-                        #     ref_key: f'${ref_key}'
-                        # },
-                        # 'pipeline': [
-                        #     {
-                        #         '$match': {
-                        #             '$expr': {
-                        #                 '$eq': [f'${foreign_key}', f'$${ref_key}']
-                        #             }
-                        #         }
-                        #     },
-                        #     {
-                        #         '$project': lookup_project
-                        #     }
-                        # ],
-                        'localField': ref_key,
-                        'foreignField': foreign_key,
-                        'as': ref_key
-                    }
-                })
+                if cls.support_aws_document_db:
+                    rules.append({
+                        '$lookup': {
+                            'from': ref_model._meta['collection'],
+                            'localField': ref_key,
+                            'foreignField': foreign_key,
+                            'as': ref_key
+                        }
+                    })
+                else:
+                    rules.append({
+                        '$lookup': {
+                            'from': ref_model._meta['collection'],
+                            'let': {
+                                ref_key: f'${ref_key}'
+                            },
+                            'pipeline': [
+                                {
+                                    '$match': {
+                                        '$expr': {
+                                            '$eq': [f'${foreign_key}', f'$${ref_key}']
+                                        }
+                                    }
+                                },
+                                {
+                                    '$project': lookup_project
+                                }
+                            ],
+                            'as': ref_key
+                        }
+                    })
+
                 rules.append({
                     '$unwind': {
                         'path': f'${ref_key}',
@@ -823,12 +825,10 @@ class MongoModel(Document, BaseModel):
         _filter = cls._make_filter(filter, filter_or)
 
         try:
-            case_insensitive_index = config.get_global('DATABASE_CASE_INSENSITIVE_INDEX', False)
-
-            if case_insensitive_index:
-                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
-            else:
+            if cls.support_aws_document_db:
                 vos = cls.objects.filter(_filter)
+            else:
+                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
 
             if aggregate:
                 return cls._stat_aggregate(vos, aggregate, sort, page, limit)
