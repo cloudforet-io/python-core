@@ -42,6 +42,18 @@ class MongoModel(Document, BaseModel):
     }
 
     @classmethod
+    def init(cls):
+        cls.connect()
+
+        if cls not in _MONGO_INIT_MODELS:
+            global_conf = config.get_global()
+            cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
+            cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
+            cls._create_index()
+
+            _MONGO_INIT_MODELS.append(cls)
+
+    @classmethod
     def connect(cls):
         db_alias = cls._meta.get('db_alias', 'default')
         if db_alias not in _MONGO_CONNECTIONS:
@@ -63,18 +75,6 @@ class MongoModel(Document, BaseModel):
             register_connection(db_alias, **db_conf)
 
             _MONGO_CONNECTIONS.append(db_alias)
-
-    @classmethod
-    def init(cls):
-        if cls not in _MONGO_INIT_MODELS:
-            global_conf = config.get_global()
-            cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
-            cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-            cls._create_index()
-
-            _MONGO_INIT_MODELS.append(cls)
-
-        cls.connect()
 
     @classmethod
     def _create_index(cls):
