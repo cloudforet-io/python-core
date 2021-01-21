@@ -424,7 +424,6 @@ class MongoModel(Document, BaseModel):
                 _order_by = f'{sort["key"]}'
 
         try:
-            print('cls.support_aws_document_db', cls.support_aws_document_db)
             if cls.support_aws_document_db:
                 vos = cls.objects.filter(_filter)
             else:
