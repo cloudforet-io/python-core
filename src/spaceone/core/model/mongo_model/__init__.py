@@ -732,6 +732,7 @@ class MongoModel(Document, BaseModel):
             rule = cls._make_count_rule(aggregate['count'])
             _aggregation_rules.append(rule)
 
+        # Deprecate feature (Not support mongodb shard cluster)
         # if 'reference_query_keys' in cls._meta:
         #     rules = cls._make_lookup_rules(_all_keys)
         #     _aggregation_rules = rules + _aggregation_rules
