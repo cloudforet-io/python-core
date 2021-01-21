@@ -64,17 +64,17 @@ class MongoModel(Document, BaseModel):
 
             _MONGO_CONNECTIONS.append(db_alias)
 
+    @classmethod
+    def init(cls):
         if cls not in _MONGO_INIT_MODELS:
-            cls._init_model()
+            global_conf = config.get_global()
+            cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
+            cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
+            cls._create_index()
+
             _MONGO_INIT_MODELS.append(cls)
 
-    @classmethod
-    def _init_model(cls):
-        global_conf = config.get_global()
-        cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
-        cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-
-        cls._create_index()
+        cls.connect()
 
     @classmethod
     def _create_index(cls):
@@ -424,6 +424,7 @@ class MongoModel(Document, BaseModel):
                 _order_by = f'{sort["key"]}'
 
         try:
+            print('cls.support_aws_document_db', cls.support_aws_document_db)
             if cls.support_aws_document_db:
                 vos = cls.objects.filter(_filter)
             else:

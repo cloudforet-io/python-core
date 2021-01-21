@@ -71,7 +71,7 @@ class Locator(object):
         try:
             model_module = _get_module(package, 'model')
             model = getattr(model_module, name)
-            model.connect()
+            model.init()
             return model
 
         except ERROR_BASE as e:
