@@ -424,8 +424,8 @@ class MongoModel(Document, BaseModel):
                 _order_by = f'{sort["key"]}'
 
         try:
-            _LOGGER.debug('[query] Global Conf', str(config.get_global()))
-            _LOGGER.debug('[query] cls.support_aws_document_db', cls.support_aws_document_db)
+            _LOGGER.debug(f'[query] Global Conf: {str(config.get_global())}')
+            _LOGGER.debug(f'[query] cls.support_aws_document_db: {cls.support_aws_document_db}')
             if cls.support_aws_document_db:
                 vos = cls.objects.filter(_filter)
             else:
@@ -840,11 +840,11 @@ class MongoModel(Document, BaseModel):
         _filter = cls._make_filter(filter, filter_or)
 
         try:
-            _LOGGER.debug('[query] cls.support_aws_document_db', cls.support_aws_document_db)
+            _LOGGER.debug(f'[stat] cls.support_aws_document_db: {cls.support_aws_document_db}')
             if cls.support_aws_document_db:
                 vos = cls.objects.filter(_filter)
             else:
-                _LOGGER.debug('[query] AWS DocumentDB dose not supported.')
+                _LOGGER.debug('[stat] AWS DocumentDB dose not supported.')
                 vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
 
             if aggregate:
