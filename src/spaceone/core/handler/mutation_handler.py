@@ -11,7 +11,7 @@ class SpaceONEMutationHandler(BaseMutationHandler):
         domain_id = self.transaction.get_meta('domain_id')
         inject_filter = self.transaction.get_meta('mutation.append_parameter', {})
 
-        if role_type in ['DOMAIN', 'PROJECT']:
+        if role_type in ['DOMAIN', 'PROJECT', 'USER']:
             params['domain_id'] = domain_id
 
         if role_type == 'PROJECT':
