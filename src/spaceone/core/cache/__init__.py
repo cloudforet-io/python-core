@@ -60,8 +60,17 @@ def _change_args_to_dict(func, args):
 
 
 def _make_cache_key(key_format, args_dict):
+    key_data = {}
+    for key, value in args_dict.items():
+        if isinstance(value, list) or isinstance(value, tuple):
+            sorted_values = sorted(value)
+            values_str = ','.join(sorted_values)
+            key_data[key] = values_str
+        else:
+            key_data[key] = value
+
     try:
-        return key_format.format(**args_dict)
+        return key_format.format(**key_data)
 
     except Exception:
         raise ERROR_CACHE_KEY_FORMAT(key=key_format)
@@ -74,7 +83,6 @@ def cacheable(key=None, value=None, expire=None, action='cache', backend='defaul
                 args_dict = _change_args_to_dict(func, args)
                 args_dict.update(kwargs)
                 cache_key = _make_cache_key(key, args_dict)
-
                 if action in ['cache']:
                     data = get(cache_key, backend=backend)
                     if data is not None:
