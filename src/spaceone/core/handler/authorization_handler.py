@@ -48,7 +48,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
                 'scope': scope,
                 'domain_id': self.transaction.get_meta('domain_id'),
                 'project_id': params.get('project_id'),
-                'project_group_id': params.get('project_group_id')
+                'project_group_id': params.get('project_group_id'),
+                'user_id': params.get('user_id')
             },
             metadata=self.transaction.get_connection_meta()
         )
