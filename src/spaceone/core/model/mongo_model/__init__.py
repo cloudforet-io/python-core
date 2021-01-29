@@ -34,7 +34,7 @@ class MongoCustomQuerySet(QuerySet):
 class MongoModel(Document, BaseModel):
 
     auto_create_index = True
-    support_aws_document_db = False
+    case_insensitive_index = False
     meta = {
         'abstract': True,
         'queryset_class': MongoCustomQuerySet,
@@ -47,8 +47,8 @@ class MongoModel(Document, BaseModel):
 
         if cls not in _MONGO_INIT_MODELS:
             global_conf = config.get_global()
-            cls.support_aws_document_db = global_conf.get('DATABASE_SUPPORT_AWS_DOCUMENT_DB', False)
             cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
+            cls.case_insensitive_index = global_conf.get('DATABASE_CASE_INSENSITIVE_INDEX', False)
             cls._create_index()
 
             _MONGO_INIT_MODELS.append(cls)
@@ -86,11 +86,11 @@ class MongoModel(Document, BaseModel):
 
                 for index in indexes:
                     try:
-                        if cls.support_aws_document_db:
-                            cls.create_index(index)
-                        else:
-                            # Set Case Insensitive Index
+                        if cls.case_insensitive_index:
                             cls.create_index(index, collation={"locale": "en", "strength": 2})
+                        else:
+                            cls.create_index(index)
+
                     except Exception as e:
                         _LOGGER.error(f'Index Creation Failure: {e}')
 
@@ -424,10 +424,10 @@ class MongoModel(Document, BaseModel):
                 _order_by = f'{sort["key"]}'
 
         try:
-            if cls.support_aws_document_db:
-                vos = cls.objects.filter(_filter)
-            else:
+            if cls.case_insensitive_index:
                 vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
+            else:
+                vos = cls.objects.filter(_filter)
 
             if _order_by:
                 vos = vos.order_by(_order_by)
@@ -667,37 +667,35 @@ class MongoModel(Document, BaseModel):
                 if ref_model == 'self':
                     ref_model = cls
 
-                if cls.support_aws_document_db:
-                    rules.append({
-                        '$lookup': {
-                            'from': ref_model._meta['collection'],
-                            'localField': ref_key,
-                            'foreignField': foreign_key,
-                            'as': ref_key
-                        }
-                    })
-                else:
-                    rules.append({
-                        '$lookup': {
-                            'from': ref_model._meta['collection'],
-                            'let': {
-                                ref_key: f'${ref_key}'
-                            },
-                            'pipeline': [
-                                {
-                                    '$match': {
-                                        '$expr': {
-                                            '$eq': [f'${foreign_key}', f'$${ref_key}']
-                                        }
-                                    }
-                                },
-                                {
-                                    '$project': lookup_project
-                                }
-                            ],
-                            'as': ref_key
-                        }
-                    })
+                rules.append({
+                    '$lookup': {
+                        'from': ref_model._meta['collection'],
+                        'localField': ref_key,
+                        'foreignField': foreign_key,
+                        'as': ref_key
+                    }
+                })
+                # rules.append({
+                #     '$lookup': {
+                #         'from': ref_model._meta['collection'],
+                #         'let': {
+                #             ref_key: f'${ref_key}'
+                #         },
+                #         'pipeline': [
+                #             {
+                #                 '$match': {
+                #                     '$expr': {
+                #                         '$eq': [f'${foreign_key}', f'$${ref_key}']
+                #                     }
+                #                 }
+                #             },
+                #             {
+                #                 '$project': lookup_project
+                #             }
+                #         ],
+                #         'as': ref_key
+                #     }
+                # })
 
                 rules.append({
                     '$unwind': {
@@ -837,10 +835,11 @@ class MongoModel(Document, BaseModel):
         _filter = cls._make_filter(filter, filter_or)
 
         try:
-            if cls.support_aws_document_db:
-                vos = cls.objects.filter(_filter)
-            else:
+            if cls.case_insensitive_index:
                 vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
+            else:
+                vos = cls.objects.filter(_filter)
+
 
             if aggregate:
                 return cls._stat_aggregate(vos, aggregate, sort, page, limit)
