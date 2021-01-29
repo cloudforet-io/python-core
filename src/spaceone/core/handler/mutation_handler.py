@@ -9,14 +9,14 @@ class SpaceONEMutationHandler(BaseMutationHandler):
     def request(self, params):
         role_type = self.transaction.get_meta('authorization.role_type')
         domain_id = self.transaction.get_meta('domain_id')
-        inject_filter = self.transaction.get_meta('mutation.append_parameter', {})
+        append_parameter = self.transaction.get_meta('mutation.append_parameter', {})
 
-        if role_type in ['DOMAIN', 'PROJECT']:
+        if role_type in ['DOMAIN', 'PROJECT', 'USER']:
             params['domain_id'] = domain_id
 
         if role_type == 'PROJECT':
-            if isinstance(inject_filter, dict):
-                for key, value in inject_filter.items():
+            if isinstance(append_parameter, dict):
+                for key, value in append_parameter.items():
                     if key not in params:
                         params[key] = self.transaction.get_meta(value)
 
