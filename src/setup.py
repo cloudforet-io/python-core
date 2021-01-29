@@ -46,9 +46,9 @@ setup(
         "jsonschema",
         "python-dateutil",
         "python-consul",
-        "celery",
         "scheduler-cron",
         "click",
+        "celery[redis]==4.4.7",
     ],
     zip_safe=False,
     entry_points={
