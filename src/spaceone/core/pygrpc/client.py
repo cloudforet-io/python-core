@@ -142,12 +142,24 @@ class _ClientInterceptor(
             if details.startswith('ERROR_'):
                 details_split = details.split(':', 1)
                 if len(details_split) == 2:
-                    raise ERROR_INTERNAL_API(error_code=details_split[0], message=details_split[1])
+                    error_code, error_message = details_split
                 else:
-                    raise ERROR_INTERNAL_API(error_code=details_split[0], message=details)
+                    error_code = details_split[0]
+                    error_message = details
+
+                if response.code() == grpc.StatusCode.PERMISSION_DENIED:
+                    raise ERROR_PERMISSION_DENIED()
+                elif response.code() == grpc.StatusCode.UNAUTHENTICATED:
+                    raise ERROR_AUTHENTICATE_FAILURE(message=error_message)
+                else:
+                    raise ERROR_INTERNAL_API(error_code=error_code, message=error_message)
 
             else:
-                if response.code() == grpc.StatusCode.UNAVAILABLE:
+                if response.code() == grpc.StatusCode.PERMISSION_DENIED:
+                    raise ERROR_PERMISSION_DENIED()
+                elif response.code() == grpc.StatusCode.UNAUTHENTICATED:
+                    raise ERROR_AUTHENTICATE_FAILURE(message=response.details())
+                elif response.code() == grpc.StatusCode.UNAVAILABLE:
                     raise ERROR_GRPC_CONNECTION(channel=self._channel_key, message=response.details())
                 else:
                     raise ERROR_INTERNAL_API(message=response.details())
