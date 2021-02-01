@@ -258,7 +258,7 @@ def _bind_handler(self, handler_type, methods, exclude):
 
 
 def _check_handler_method(self, handler_type):
-    if self.func_name in self.handler[handler_type]['methods']:
+    if self.transaction.get_meta(handler_type, True) and self.func_name in self.handler[handler_type]['methods']:
         return True
     else:
         return False
