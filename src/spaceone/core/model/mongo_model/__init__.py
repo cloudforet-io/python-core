@@ -558,9 +558,7 @@ class MongoModel(Document, BaseModel):
         return key, name, rule
 
     @classmethod
-    def _make_group_rule(cls, options):
-        _group_keys = []
-        _all_keys = []
+    def _make_group_rule(cls, options, _group_keys):
         _include_project = False
         _include_second_project = False
         _project_fields = {}
@@ -580,15 +578,11 @@ class MongoModel(Document, BaseModel):
 
         for condition in _keys:
             key, name, rule = cls._get_group_keys(condition)
-            _all_keys.append(key)
             _group_keys.append(name)
             _group_rule['$group']['_id'][name] = rule
 
         for condition in _fields:
             key, name, operator, value, date_format = cls._get_group_fields(condition)
-
-            if key:
-                _all_keys.append(key)
 
             rule = STAT_OPERATORS[operator](key, operator, name, value, date_format)
 
@@ -619,7 +613,7 @@ class MongoModel(Document, BaseModel):
                 '$project': _second_project_fields
             })
 
-        return _rules, _group_keys, _all_keys
+        return _rules, _group_keys
 
     @classmethod
     def _make_unwind_rule(cls, options):
@@ -628,7 +622,7 @@ class MongoModel(Document, BaseModel):
 
         return {
             '$unwind': f"${options['path']}"
-        }, options['path']
+        }
 
     @classmethod
     def _make_count_rule(cls, options):
@@ -638,6 +632,25 @@ class MongoModel(Document, BaseModel):
         return {
             '$count': options['name']
         }
+
+    @classmethod
+    def _make_sort_rule(cls, options, _group_keys):
+        if 'key' not in options:
+            raise ERROR_REQUIRED_PARAMETER(key='aggregate.sort.key')
+
+        if options['key'] in _group_keys:
+            sort_name = f'_id.{options["key"]}'
+        else:
+            sort_name = options['key']
+
+        if options.get('desc', False):
+            return {
+                '$sort': {sort_name: -1}
+            }
+        else:
+            return {
+                '$sort': {sort_name: 1}
+            }
 
     @classmethod
     def _get_lookup_field(cls, ref_key, all_keys):
@@ -707,124 +720,99 @@ class MongoModel(Document, BaseModel):
         return rules
 
     @classmethod
-    def _make_aggregation_rules(cls, aggregate):
-        _aggregation_rules = []
+    def _make_aggregate_rules(cls, aggregate):
+        _aggregate_rules = []
         _group_keys = []
-        _all_keys = []
 
-        if 'group' not in aggregate and 'count' not in aggregate:
-            raise ERROR_REQUIRED_PARAMETER(key='aggregate.group or aggregate.count')
+        if not isinstance(aggregate, list):
+            raise ERROR_INVALID_PARAMETER_TYPE(key='aggregate', type='list')
 
-        for unwind_options in aggregate.get('unwind', []):
-            rule, unwind_path = cls._make_unwind_rule(unwind_options)
-            _aggregation_rules.append(rule)
-            _all_keys.append(unwind_path)
+        for operation in aggregate:
+            if not any(item in operation.keys() for item in ['unwind', 'group', 'count', 'sort']):
+                raise ERROR_REQUIRED_PARAMETER(key='aggregate.unwind or aggregate.group or '
+                                                   'aggregate.count or aggregate.sort')
 
-        if 'group' in aggregate:
-            rules, group_keys, all_keys = cls._make_group_rule(aggregate['group'])
-            _aggregation_rules += rules
-            _group_keys += group_keys
-            _all_keys += all_keys
+            if 'unwind' in operation:
+                rule = cls._make_unwind_rule(operation['unwind'])
+                _aggregate_rules.append(rule)
 
-        if 'count' in aggregate:
-            rule = cls._make_count_rule(aggregate['count'])
-            _aggregation_rules.append(rule)
+            if 'group' in operation:
+                rules, group_keys = cls._make_group_rule(operation['group'], _group_keys)
+                _aggregate_rules += rules
+                _group_keys += group_keys
 
-        # Deprecate feature (Not support mongodb shard cluster)
-        # if 'reference_query_keys' in cls._meta:
-        #     rules = cls._make_lookup_rules(_all_keys)
-        #     _aggregation_rules = rules + _aggregation_rules
+            if 'count' in operation:
+                rule = cls._make_count_rule(operation['count'])
+                _aggregate_rules.append(rule)
 
-        return _aggregation_rules
+            if 'sort' in operation:
+                rule = cls._make_sort_rule(operation['sort'], _group_keys)
+                _aggregate_rules.append(rule)
+
+        return _aggregate_rules, _group_keys
 
     @classmethod
-    def _stat_aggregate(cls, vos, aggregate, sort, page, limit):
+    def _stat_aggregate(cls, vos, aggregate, page):
         result = {}
         pipeline = []
-        _aggregation_rules = cls._make_aggregation_rules(aggregate)
+        _aggregate_rules, _group_keys = cls._make_aggregate_rules(aggregate)
 
-        for rule in _aggregation_rules:
+        for rule in _aggregate_rules:
             pipeline.append(rule)
 
-        if 'name' in sort:
-            if sort.get('desc', False):
+        if 'limit' in page and page['limit'] > 0:
+            limit = page['limit']
+            start = page.get('start', 1)
+            start = 1 if start < 1 else start
+
+            result['total_count'] = 0
+            cursor = vos.aggregate(pipeline + [{'$count': 'total_count'}])
+            for c in cursor:
+                result['total_count'] = c['total_count']
+                break
+
+            if start > 1:
                 pipeline.append({
-                    '$sort': {sort['name']: -1}
-                })
-            else:
-                pipeline.append({
-                    '$sort': {sort['name']: 1}
+                    '$skip': start - 1
                 })
 
-        if limit:
             pipeline.append({
                 '$limit': limit
             })
-        else:
-            if 'limit' in page and page['limit'] > 0:
-                limit = page['limit']
-                start = page.get('start', 1)
-                start = 1 if start < 1 else start
-
-                result['total_count'] = 0
-                cursor = vos.aggregate(pipeline + [{'$count': 'total_count'}])
-                for c in cursor:
-                    result['total_count'] = c['total_count']
-                    break
-
-                if start > 1:
-                    pipeline.append({
-                        '$skip': start - 1
-                    })
-
-                pipeline.append({
-                    '$limit': limit
-                })
 
         cursor = vos.aggregate(pipeline)
         result['results'] = cls._make_aggregate_values(cursor)
         return result
 
     @classmethod
-    def _stat_distinct(cls, vos, distinct, sort, page, limit):
+    def _stat_distinct(cls, vos, distinct, page):
         result = {}
         values = vos.distinct(distinct)
 
-        if sort:
-            try:
-                if sort.get('desc', False):
-                    values.sort(reverse=True)
-                else:
-                    values.sort()
-            except Exception:
-                pass
+        try:
+            values.sort()
+        except Exception:
+            pass
 
-        if limit:
-            values = values[:limit]
-        else:
-            if 'limit' in page and page['limit'] > 0:
-                start = page.get('start', 1)
-                if start < 1:
-                    start = 1
+        if 'limit' in page and page['limit'] > 0:
+            start = page.get('start', 1)
+            if start < 1:
+                start = 1
 
-                result['total_count'] = len(values)
-                values = values[start - 1:start + page['limit'] - 1]
+            result['total_count'] = len(values)
+            values = values[start - 1:start + page['limit'] - 1]
 
         result['results'] = cls._make_distinct_values(values)
         return result
 
     @classmethod
-    def stat(cls, *args, aggregate=None, distinct=None, filter=None, filter_or=None,
-             sort=None, page=None, limit=None, **kwargs):
+    def stat(cls, *args, aggregate=None, distinct=None, filter=None, filter_or=None, page=None, **kwargs):
 
         if filter is None:
             filter = []
 
         if filter_or is None:
             filter_or = []
-
-        if sort is None:
-            sort = {}
 
         if page is None:
             page = {}
@@ -840,12 +828,11 @@ class MongoModel(Document, BaseModel):
             else:
                 vos = cls.objects.filter(_filter)
 
-
             if aggregate:
-                return cls._stat_aggregate(vos, aggregate, sort, page, limit)
+                return cls._stat_aggregate(vos, aggregate, page)
 
             elif distinct:
-                return cls._stat_distinct(vos, distinct, sort, page, limit)
+                return cls._stat_distinct(vos, distinct, page)
 
         except Exception as e:
             raise ERROR_DB_QUERY(reason=e)
