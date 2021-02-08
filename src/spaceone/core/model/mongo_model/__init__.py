@@ -511,7 +511,7 @@ class MongoModel(Document, BaseModel):
         return changed_values
 
     @classmethod
-    def _get_group_fields(cls, condition):
+    def _get_group_fields(cls, condition, _before_group_keys):
         key = condition.get('key', condition.get('k'))
         name = condition.get('name', condition.get('n'))
         operator = condition.get('operator', condition.get('o'))
@@ -531,10 +531,13 @@ class MongoModel(Document, BaseModel):
         if operator == 'date' and value is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a value: {condition}")
 
+        if key in _before_group_keys:
+            key = f'_id.{key}'
+
         return key, name, operator, value, date_format
 
     @classmethod
-    def _get_group_keys(cls, condition):
+    def _get_group_keys(cls, condition, _before_group_keys):
         key = condition.get('key', condition.get('k'))
         name = condition.get('name', condition.get('n'))
         date_format = condition.get('date_format')
@@ -544,6 +547,9 @@ class MongoModel(Document, BaseModel):
 
         if name is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.keys' condition requires a name: {condition}")
+
+        if key in _before_group_keys:
+            key = f'_id.{key}'
 
         if date_format:
             rule = {
@@ -558,7 +564,8 @@ class MongoModel(Document, BaseModel):
         return key, name, rule
 
     @classmethod
-    def _make_group_rule(cls, options, _group_keys):
+    def _make_group_rule(cls, options, _before_group_keys):
+        _group_keys = []
         _include_project = False
         _include_second_project = False
         _project_fields = {}
@@ -577,12 +584,12 @@ class MongoModel(Document, BaseModel):
         #     raise ERROR_REQUIRED_PARAMETER(key='aggregate.group.keys')
 
         for condition in _keys:
-            key, name, rule = cls._get_group_keys(condition)
+            key, name, rule = cls._get_group_keys(condition, _before_group_keys)
             _group_keys.append(name)
             _group_rule['$group']['_id'][name] = rule
 
         for condition in _fields:
-            key, name, operator, value, date_format = cls._get_group_fields(condition)
+            key, name, operator, value, date_format = cls._get_group_fields(condition, _before_group_keys)
 
             rule = STAT_OPERATORS[operator](key, operator, name, value, date_format)
 
@@ -651,73 +658,6 @@ class MongoModel(Document, BaseModel):
             return {
                 '$sort': {sort_name: 1}
             }
-
-    @classmethod
-    def _get_lookup_field(cls, ref_key, all_keys):
-        lookup_project = {}
-        for key in all_keys:
-            if key.startswith(ref_key) and len(key) > len(ref_key) and key[len(ref_key)] == '.':
-                field_key = key.replace(f'{ref_key}.', '').split('.', 1)[:1][0]
-                lookup_project[field_key] = 1
-
-        return lookup_project
-
-    @classmethod
-    def _make_lookup_rules(cls, all_keys):
-        all_keys = list(set(all_keys))
-        rules = []
-        for ref_key, ref_conf in cls._meta.get('reference_query_keys', {}).items():
-            lookup_project = cls._get_lookup_field(ref_key, all_keys)
-
-            if len(lookup_project.keys()) > 0:
-                if isinstance(ref_conf, dict):
-                    ref_model = ref_conf.get('model')
-                    foreign_key = ref_conf.get('foreign_key', '_id')
-                else:
-                    ref_model = ref_conf
-                    foreign_key = '_id'
-
-                if ref_model == 'self':
-                    ref_model = cls
-
-                rules.append({
-                    '$lookup': {
-                        'from': ref_model._meta['collection'],
-                        'localField': ref_key,
-                        'foreignField': foreign_key,
-                        'as': ref_key
-                    }
-                })
-                # rules.append({
-                #     '$lookup': {
-                #         'from': ref_model._meta['collection'],
-                #         'let': {
-                #             ref_key: f'${ref_key}'
-                #         },
-                #         'pipeline': [
-                #             {
-                #                 '$match': {
-                #                     '$expr': {
-                #                         '$eq': [f'${foreign_key}', f'$${ref_key}']
-                #                     }
-                #                 }
-                #             },
-                #             {
-                #                 '$project': lookup_project
-                #             }
-                #         ],
-                #         'as': ref_key
-                #     }
-                # })
-
-                rules.append({
-                    '$unwind': {
-                        'path': f'${ref_key}',
-                        'preserveNullAndEmptyArrays': True
-                    }
-                })
-
-        return rules
 
     @classmethod
     def _make_aggregate_rules(cls, aggregate):
