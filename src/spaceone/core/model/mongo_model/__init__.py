@@ -667,27 +667,23 @@ class MongoModel(Document, BaseModel):
         if not isinstance(aggregate, list):
             raise ERROR_INVALID_PARAMETER_TYPE(key='aggregate', type='list')
 
-        for operation in aggregate:
-            if not any(item in operation.keys() for item in ['unwind', 'group', 'count', 'sort']):
-                raise ERROR_REQUIRED_PARAMETER(key='aggregate.unwind or aggregate.group or '
-                                                   'aggregate.count or aggregate.sort')
-
-            if 'unwind' in operation:
-                rule = cls._make_unwind_rule(operation['unwind'])
+        for stage in aggregate:
+            if 'unwind' in stage:
+                rule = cls._make_unwind_rule(stage['unwind'])
                 _aggregate_rules.append(rule)
-
-            if 'group' in operation:
-                rules, group_keys = cls._make_group_rule(operation['group'], _group_keys)
+            elif 'group' in stage:
+                rules, group_keys = cls._make_group_rule(stage['group'], _group_keys)
                 _aggregate_rules += rules
                 _group_keys += group_keys
-
-            if 'count' in operation:
-                rule = cls._make_count_rule(operation['count'])
+            elif 'count' in stage:
+                rule = cls._make_count_rule(stage['count'])
                 _aggregate_rules.append(rule)
-
-            if 'sort' in operation:
-                rule = cls._make_sort_rule(operation['sort'], _group_keys)
+            elif 'sort' in stage:
+                rule = cls._make_sort_rule(stage['sort'], _group_keys)
                 _aggregate_rules.append(rule)
+            else:
+                raise ERROR_REQUIRED_PARAMETER(key='aggregate.unwind or aggregate.group or '
+                                                   'aggregate.count or aggregate.sort')
 
         return _aggregate_rules, _group_keys
 
