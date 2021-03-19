@@ -354,7 +354,10 @@ def tags_to_dict(tags: list) -> Union[dict, None]:
         for tag in tags:
             dict_value[tag.key] = tag.value
 
-    return None
+        return dict_value
+
+    else:
+        return None
 
 
 if __name__ == '__main__':
