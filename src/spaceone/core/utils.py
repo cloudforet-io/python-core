@@ -341,12 +341,12 @@ def _change_value_by_type(change_type, original_value, change_value):
         return original_value
 
 
-def change_datetime_value(value: datetime.date, datetime_format='iso8601') -> Union[str, None]:
-    if isinstance(value, datetime.date):
+def change_datetime_value(value: datetime.datetime, datetime_format='iso8601') -> Union[str, None]:
+    if isinstance(value, datetime.datetime):
         if datetime_format == 'iso8601':
-            return f'{value.isoformat()}Z'
+            return f"{value.isoformat(timespec='milliseconds')}Z"
         else:
-            return f'{value.isoformat()}Z'
+            return f"{value.isoformat(timespec='milliseconds')}Z"
 
     return None
 
