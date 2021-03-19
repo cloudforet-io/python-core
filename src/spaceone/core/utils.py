@@ -8,8 +8,8 @@ import yaml
 import json
 import urllib
 from typing import Tuple
-from functools import reduce
 from pathlib import Path
+from typing import Union
 
 
 def generate_id(prefix: str = 'id', nbytes: int = 6) -> str:
@@ -339,6 +339,16 @@ def _change_value_by_type(change_type, original_value, change_value):
         return change_value(original_value)
     else:
         return original_value
+
+
+def change_datetime_value(value: datetime.date, datetime_format='iso8601') -> Union[str, None]:
+    if isinstance(value, datetime.date):
+        if datetime_format == 'iso8601':
+            return f'{value.isoformat()}Z'
+        else:
+            return f'{value.isoformat()}Z'
+
+    return None
 
 
 if __name__ == '__main__':
