@@ -341,14 +341,24 @@ def _change_value_by_type(change_type, original_value, change_value):
         return original_value
 
 
-def change_datetime_value(value: datetime.datetime, datetime_format='iso8601') -> Union[str, None]:
+def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
     if isinstance(value, datetime.datetime):
-        if datetime_format == 'iso8601':
-            return f"{value.isoformat(timespec='milliseconds')}Z"
-        else:
-            return f"{value.isoformat(timespec='milliseconds')}Z"
+        return f"{value.isoformat(timespec='milliseconds')}Z"
 
     return None
+
+
+def tags_to_dict(values: list) -> dict:
+    dict_value = {}
+    if isinstance(values, list):
+        for v in values:
+            key = v.get('key')
+            value = v.get('value')
+
+            if key and value:
+                dict_value[key] = value
+
+    return dict_value
 
 
 if __name__ == '__main__':
