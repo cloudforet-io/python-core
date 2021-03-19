@@ -348,13 +348,13 @@ def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
     return None
 
 
-def tags_to_dict(tags: list) -> dict:
-    dict_value = {}
+def tags_to_dict(tags: list) -> Union[dict, None]:
     if isinstance(tags, list):
+        dict_value = {}
         for tag in tags:
             dict_value[tag.key] = tag.value
 
-    return dict_value
+    return None
 
 
 if __name__ == '__main__':
