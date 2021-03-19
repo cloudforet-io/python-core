@@ -348,15 +348,11 @@ def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
     return None
 
 
-def tags_to_dict(values: list) -> dict:
+def tags_to_dict(tags: list) -> dict:
     dict_value = {}
-    if isinstance(values, list):
-        for v in values:
-            key = v.get('key')
-            value = v.get('value')
-
-            if key and value:
-                dict_value[key] = value
+    if isinstance(tags, list):
+        for tag in tags:
+            dict_value[tag.key] = tag.value
 
     return dict_value
 
