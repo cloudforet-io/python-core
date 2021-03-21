@@ -76,8 +76,7 @@ def celery(package, config=None, module_path=None):
 
 
 @cli.command()
-@click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
-              help='config file path')
+@click.option('-c', '--config', type=str, help='config file path for tester')
 @click.option('-d', '--dir', type=str, help="directory containing test files",
               default=lambda: os.environ.get('SPACEONE_WORKING_DIR', os.getcwd()))
 @click.option('-f', '--failfast', help="fast failure flag", is_flag=True)
