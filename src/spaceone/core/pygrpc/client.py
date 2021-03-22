@@ -2,6 +2,7 @@ import re
 import logging
 import types
 import grpc
+import copy
 from google.protobuf import descriptor_pb2
 from grpc_reflection.v1alpha import reflection_pb2
 from grpc_reflection.v1alpha import reflection_pb2_grpc
@@ -114,7 +115,7 @@ class _ClientInterceptor(
 
     def _make_message(self, request, method_key):
         if isinstance(request, dict):
-            return self._change_request(self._MESSAGE_TYPE_MAP[method_key], request)
+            return self._change_request(self._MESSAGE_TYPE_MAP[method_key], copy.deepcopy(request))
 
         else:
             return request
