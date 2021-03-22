@@ -10,7 +10,7 @@ class BaseConnector(CoreObject):
     def __init__(self, transaction: Transaction = None, config: dict = None, **kwargs):
         super().__init__(transaction=transaction)
 
-        self.config = config
+        self.config = config or {}
         self._load_interceptors()
 
         for key, value in kwargs.items():
