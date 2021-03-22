@@ -360,5 +360,17 @@ def tags_to_dict(tags: list) -> Union[dict, None]:
         return None
 
 
+def dict_to_tags(dict_value: dict) -> list:
+    tags = []
+    if isinstance(dict_value, dict):
+        for key, value in dict_value.items():
+            tags.append({
+                'key': key,
+                'value': value
+            })
+
+    return tags
+
+
 if __name__ == '__main__':
     pass
