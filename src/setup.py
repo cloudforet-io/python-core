@@ -49,6 +49,7 @@ setup(
         "scheduler-cron",
         "click",
         "celery[redis]==4.4.7",
+        "cryptography==3.1"
     ],
     zip_safe=False,
     entry_points={
