@@ -48,8 +48,7 @@ setup(
         "python-consul",
         "scheduler-cron",
         "click",
-        "celery[redis]==4.4.7",
-        "cryptography==3.1"
+        "celery[redis]==4.4.7"
     ],
     zip_safe=False,
     entry_points={

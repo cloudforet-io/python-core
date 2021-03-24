@@ -16,4 +16,3 @@ python-consul
 scheduler-cron
 click
 celery[redis]==4.4.7
-cryptography==3.1
