@@ -48,7 +48,9 @@ setup(
         "python-consul",
         "scheduler-cron",
         "click",
-        "celery[redis]==4.4.7"
+        "celery[redis]==4.4.7",
+        'uvicorn',
+        'fastapi'
     ],
     zip_safe=False,
     entry_points={

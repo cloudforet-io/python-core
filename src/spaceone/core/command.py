@@ -7,7 +7,7 @@ from typing import List
 import click
 import pkg_resources
 
-from spaceone.core import config, pygrpc
+from spaceone.core import config, pygrpc, fastapi
 from spaceone.core import scheduler as scheduler_v1
 from spaceone.core.celery import app as celery_app
 from spaceone.core.unittest.runner import RichTestRunner
@@ -40,16 +40,17 @@ def grpc(package, port=None, config=None, module_path=None):
 
 @cli.command()
 @click.argument('package')
-@click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 8080),
+@click.option('-h', '--host', type=str, default=lambda: os.environ.get('SPACEONE_HOST', '127.0.0.1'),
+              help='Host of REST server', show_default=True)
+@click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 8000),
               help='Port of REST server', show_default=True)
 @click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='config file path')
 @click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
-def rest(package, port=None, config=None, module_path=None):
-    """Run a REST server"""
-    _set_server_config('rest', package, module_path, port, config_file=config)
-
-    pass
+def rest(package, host=None, port=None, config=None, module_path=None):
+    """Run a FastAPI REST server"""
+    _set_server_config('rest', package, module_path, host, port, config_file=config)
+    fastapi.serve()
 
 
 @cli.command()
@@ -135,7 +136,7 @@ def _set_python_path(package, module_path):
                         'Please check the module path.')
 
 
-def _set_server_config(command, package, module_path=None, port=None, config_file=None):
+def _set_server_config(command, package, module_path=None, host=None, port=None, config_file=None):
     # 1. Set a python path
     _set_python_path(package, module_path)
 

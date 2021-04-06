@@ -5,6 +5,8 @@ SERVICE = None
 # Server Configuration
 SERVER_TYPE = None
 PORT = 50051
+HOST = '127.0.0.1'
+
 MAX_WORKERS = 100
 MAX_MESSAGE_LENGTH = 1024 * 1024 * 1024
 
@@ -17,3 +19,5 @@ EXTENSION_APIS = {
 # Logging Configuration
 SET_LOGGING = True
 LOG = {}
+
+REST = {}
