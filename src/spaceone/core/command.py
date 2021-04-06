@@ -49,7 +49,7 @@ def grpc(package, port=None, config=None, module_path=None):
 @click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
 def rest(package, host=None, port=None, config=None, module_path=None):
     """Run a FastAPI REST server"""
-    _set_server_config('rest', package, module_path, host, port, config_file=config)
+    _set_server_config('rest', package, module_path, port, config_file=config)
     fastapi.serve()
 
 
@@ -136,7 +136,7 @@ def _set_python_path(package, module_path):
                         'Please check the module path.')
 
 
-def _set_server_config(command, package, module_path=None, host=None, port=None, config_file=None):
+def _set_server_config(command, package, module_path=None, port=None, config_file=None):
     # 1. Set a python path
     _set_python_path(package, module_path)
 
