@@ -18,6 +18,9 @@ def init_conf(package, **kwargs):
     if 'server_type' in kwargs:
         _GLOBAL['SERVER_TYPE'] = kwargs['server_type']
 
+    if 'host' in kwargs:
+        _GLOBAL['HOST'] = kwargs['HOST']
+
     if 'port' in kwargs:
         _GLOBAL['PORT'] = kwargs['port']
 
