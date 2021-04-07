@@ -30,6 +30,9 @@ def serve():
     if conf.get('SET_LOGGING', True):
         set_logger()
 
+    _LOGGER.info(f'Start REST Server ({config.get_service()}): '
+                 f'host={conf["HOST"]} port={conf["PORT"]}')
+
     uvicorn.run('spaceone.core.fastapi.server:api_app', host=conf['HOST'], port=conf['PORT'], factory=True)
 
 def _get_rest_conf(package):
