@@ -208,7 +208,7 @@ def _parse_timediff_from_regex(query: str) -> Tuple[dict, bool]:
         return {'base_time': query.strip()}, False
 
 
-def get_dict_value(data: dict, dotted_key: str, default_value=None):
+def get_dict_value(data: dict, dotted_key: str, default_value: any=None):
     if '.' in dotted_key:
         key, rest = dotted_key.split(".", 1)
 
@@ -227,31 +227,13 @@ def get_dict_value(data: dict, dotted_key: str, default_value=None):
             return default_value
 
 
-def get_list_values(values: list, dotted_key: str, default_value=None):
-    list_values = []
-    try:
-        # Get value by index
-        if '.' in dotted_key:
-            index, rest = dotted_key.split('.', 1)
-            index = int(index)
-            if index >= len(values):
-                return default_value
-            else:
-                list_values.append(values[index])
-        else:
-            return values[int(dotted_key)]
-
-    except Exception:
-        list_values = values
-        rest = dotted_key
-
-    # Check condition (cond_key:cond_value=>get_key)
+def get_list_values(values: list, dotted_key: str, default_value: any = None):
     match_option = 'contain'
-    if len(rest) > 1 and rest[0] == "$":
+    if len(dotted_key) > 1 and dotted_key[0] == "?":
         condition = True
         try:
-            cond_option, rest = rest[1:].split('=>', 1)
-            cond_key, cond_value = cond_option.split(':')
+            cond_option, rest = dotted_key[1:].split('=>', 1)
+            cond_key, cond_value = cond_option.split(':', 1)
         except Exception as e:
             # Syntax Error
             return default_value
@@ -265,18 +247,37 @@ def get_list_values(values: list, dotted_key: str, default_value=None):
             cond_value = cond_value[1:]
 
     else:
+        try:
+            # Get value by index
+            if '.' in dotted_key:
+                index, rest = dotted_key.split('.', 1)
+                index = int(index)
+                if index >= len(values):
+                    return default_value
+                else:
+                    if rest.strip() != '' and isinstance(values[index], dict):
+                        return get_dict_value(values[index], rest, default_value)
+                    else:
+                        values = values[index]
+            else:
+                return values[int(dotted_key)]
+
+        except Exception:
+            rest = dotted_key
+
         condition = False
         cond_key = None
         cond_value = None
 
     results = []
-    for value in list_values:
+    for value in values:
         # Get value from condition
-        if condition and not _check_condition(match_option, value[cond_key], cond_value):
+        if not isinstance(value, dict) \
+                or (condition and not _check_condition(match_option, value[cond_key], cond_value)):
             continue
 
         # Get value from dict key
-        result = get_dict_value(value, rest)
+        result = get_dict_value(value, rest, default_value)
 
         if result:
             if isinstance(result, list):
@@ -285,7 +286,10 @@ def get_list_values(values: list, dotted_key: str, default_value=None):
                 results.append(result)
 
     try:
-        return list(set(results))
+        if len(results) > 0:
+            return list(set(results))
+        else:
+            return default_value
     except Exception:
         return results
 
