@@ -347,7 +347,8 @@ def _change_value_by_type(change_type, original_value, change_value):
 
 def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
     if isinstance(value, datetime.datetime):
-        return f"{value.isoformat(timespec='milliseconds')}Z"
+        value = value.replace(tzinfo=datetime.timezone.utc)
+        return value.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
     return None
 
