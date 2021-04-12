@@ -98,9 +98,11 @@ class BaseWorker(Process):
             try:
                 json_task = json.loads(binary_task.decode())
                 task = SpaceoneTask(json_task)
+                # Run task
+                task.execute()
+
             except Exception as e:
                 _LOGGER.error(f'[{self._name_}] failed to decode task: {binary_task}, {e}')
                 continue
 
-            # Run task
-            task.execute()
+
