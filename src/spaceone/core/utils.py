@@ -52,7 +52,7 @@ def create_dir(path: str):
 
 def dump_json(data: dict, indent=None, sort_keys=False) -> str:
     try:
-        return json.dumps(data, indent=indent, sort_keys=sort_keys)
+        return json.dumps(data, indent=indent, sort_keys=sort_keys, ensure_ascii=False)
     except Exception as e:
         raise ValueError(f'JSON Dump Error: {str(e)}')
 
@@ -66,7 +66,7 @@ def load_json(json_str: str) -> dict:
 
 def dump_yaml(data: dict) -> str:
     try:
-        return yaml.dump(data)
+        return yaml.dump(data, allow_unicode=True)
     except Exception as e:
         raise ValueError(f'YAML Dump Error: {str(e)}')
 
