@@ -71,7 +71,6 @@ def scheduler(package, config=None, module_path=None):
 @click.option('-m', '--module-path', 'module_path', type=click.Path(exists=True), help='Module path')
 def celery(package, config=None, module_path=None):
     """Run a celery server(worker or beat)"""
-    print(config)
     _set_server_config('celery', package, module_path, config_file=config)
     celery_app.serve()
 
@@ -112,9 +111,9 @@ def _set_file_config(conf_file):
         config.set_file_conf(conf_file)
 
 
-def _set_remote_config(conf_file):
-    if conf_file:
-        config.set_remote_conf_from_file(conf_file)
+# def _set_remote_config(conf_file):
+#     if conf_file:
+#         config.set_remote_conf_from_file(conf_file)
 
 
 def _set_python_path(package, module_path):
@@ -154,7 +153,7 @@ def _set_server_config(command, package, module_path=None, port=None, config_fil
     _set_file_config(config_file)
 
     # 5. Merge remote conf
-    _set_remote_config(config_file)
+    # _set_remote_config(config_file)
 
 
 def init_project_file(path, text):

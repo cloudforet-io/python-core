@@ -1,5 +1,6 @@
 import logging
 import sys
+import consul
 
 from spaceone.core import utils
 from spaceone.core.config import default_conf
@@ -88,22 +89,59 @@ def set_global(**config):
                 global_conf[key] = value
 
 
-def set_remote_conf_from_file(config_yml: str):
-    file_conf = utils.load_yaml_from_file(config_yml)
-    url_conf: list = file_conf.get('REMOTE_URL', [])
-
-    for url in url_conf:
-        endpoint_info = utils.parse_endpoint(url)
-        if endpoint_info['scheme'] == 'file':
-            yaml_file = f'{endpoint_info["path"]}'
-            conf_to_merge = utils.load_yaml_from_file(yaml_file)
-            set_global(**conf_to_merge)
-        elif endpoint_info['scheme'] in ['http', 'https']:
-            conf_to_merge = utils.load_yaml_from_url(url)
-            set_global(**conf_to_merge)
-
-
 def set_file_conf(config_yml: str):
-    file_conf = utils.load_yaml_from_file(config_yml)
-    global_conf = file_conf.get('GLOBAL', {})
+    file_conf: dict = utils.load_yaml_from_file(config_yml)
+    global_conf: dict = file_conf.get('GLOBAL', {})
     set_global(**global_conf)
+
+    import_conf: list = file_conf.get('IMPORT', [])
+    if isinstance(import_conf, list):
+        for uri in import_conf:
+            import_remote_conf(uri)
+
+    # DEPRECATED: REMOTE_URL setting changed to IMPORT
+    import_conf: list = file_conf.get('REMOTE_URL', [])
+    if isinstance(import_conf, list):
+        for uri in import_conf:
+            import_remote_conf(uri)
+
+
+def import_remote_conf(uri):
+    endpoint = utils.parse_endpoint(uri)
+    scheme = endpoint.get('scheme')
+    if scheme == 'file':
+        remote_conf = utils.load_yaml_from_file(endpoint['path'])
+
+    elif scheme in ['http', 'https']:
+        remote_conf = utils.load_yaml_from_url(uri)
+
+    elif scheme == 'consul':
+        remote_conf = load_consul_config(endpoint)
+
+    set_global(**remote_conf)
+
+def load_consul_config(endpoint):
+    hostname = endpoint.get('hostname')
+    port = endpoint.get('port')
+    key = endpoint.get('path', '')[1:]
+
+    try:
+        conf = {}
+        if hostname:
+            conf['host'] = hostname
+
+        if port:
+            conf['port'] = port
+
+        c = consul.Consul(**conf)
+        index, data = c.kv.get(key)
+        if data:
+            print(data)
+            json_str = data['Value'].decode('utf-8')
+            return utils.load_json(json_str)
+
+        return {}
+    except Exception as e:
+        _LOGGER.error(f'Consul Call Error: {e}')
+
+

@@ -19,3 +19,4 @@ celery[redis]==4.4.7
 starlette
 uvicorn
 fastapi
+python-consul

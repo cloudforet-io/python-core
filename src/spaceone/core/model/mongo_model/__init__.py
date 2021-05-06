@@ -269,6 +269,7 @@ class MongoModel(Document, BaseModel):
                 raise ERROR_NOT_FOUND(key=keys, value=values)
 
         if only:
+            only = cls._remove_duplicate_only_keys(only)
             vos = vos.only(*only)
 
         return vos.first()
@@ -397,6 +398,27 @@ class MongoModel(Document, BaseModel):
         return _filter
 
     @classmethod
+    def _remove_duplicate_only_keys(cls, only):
+        changed_only = []
+        duplicated_only = []
+        for key in only:
+            exists = False
+
+            for changed_key in changed_only:
+                if key == changed_key or key.startswith(f'{changed_key}.'):
+                    exists = True
+                elif changed_key.startswith(f'{key}.'):
+                    duplicated_only.append(changed_key)
+
+            if exists is False:
+                changed_only.append(key)
+
+        if len(duplicated_only) > 0:
+            changed_only = list(set(changed_only) - set(duplicated_only))
+
+        return changed_only
+
+    @classmethod
     def query(cls, *args, only=None, exclude=None, all_fields=False, filter=None, filter_or=None,
               sort=None, page=None, minimal=False, count_only=False, **kwargs):
 
@@ -444,6 +466,7 @@ class MongoModel(Document, BaseModel):
                         if key not in only:
                             only.append(key)
 
+                only = cls._remove_duplicate_only_keys(only)
                 vos = vos.only(*only)
 
             if exclude:

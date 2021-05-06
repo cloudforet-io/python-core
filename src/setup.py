@@ -50,7 +50,8 @@ setup(
         "click",
         "celery[redis]==4.4.7",
         'uvicorn',
-        'fastapi'
+        'fastapi',
+        "python-consul"
     ],
     zip_safe=False,
     entry_points={
