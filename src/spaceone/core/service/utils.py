@@ -91,6 +91,16 @@ def change_tag_filter(tag_key='tags'):
                 else:
                     change_filter.append(condition)
 
+            if 'only' in params['query']:
+                change_only = []
+                for key in params['query'].get('only', []):
+                    if key.startswith('tags.') and 'tags' not in change_only:
+                        change_only.append('tags')
+                    else:
+                        change_only.append(key)
+
+                params['query']['only'] = change_only
+
             params['query']['filter'] = change_filter
             return func(cls, params)
 
