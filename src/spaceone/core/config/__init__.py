@@ -118,7 +118,7 @@ def import_remote_conf(uri):
     elif scheme == 'consul':
         remote_conf = load_consul_config(endpoint)
 
-    if remote_conf:
+    if isinstance(remote_conf, dict):
         set_global(**remote_conf)
 
 def load_consul_config(endpoint):
@@ -143,4 +143,4 @@ def load_consul_config(endpoint):
 
         return {}
     except Exception as e:
-        _LOGGER.error(f'Consul Call Error: {e}')
+        raise Exception(f'Consul Call Error: {e}')
