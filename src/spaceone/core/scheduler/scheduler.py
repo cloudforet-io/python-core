@@ -29,6 +29,7 @@ class BaseScheduler(Process):
             _LOGGER.debug(f'[push_task] task: {len(tasks)}')
         except Exception as e:
             _LOGGER.error(f'[push_task] error create_task: {e}')
+            tasks = []
 
         for task in tasks:
             try:
