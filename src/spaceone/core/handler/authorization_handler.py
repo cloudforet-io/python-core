@@ -20,7 +20,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
         try:
-            self.uri_info = utils.parse_grpc_uri(self.config['uri'])
+            uri_info = utils.parse_grpc_uri(self.config['uri'])
+            self.grpc_method = pygrpc.get_grpc_method(uri_info)
         except Exception as e:
             _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
@@ -45,10 +46,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
         require_project_group_id = self.transaction.get_meta('authorization.require_project_group_id', False)
         require_project_id = self.transaction.get_meta('authorization.require_project_id', False)
 
-        grpc_method = pygrpc.get_grpc_method(self.uri_info)
-
         try:
-            response = grpc_method(
+            response = self.grpc_method(
                 {
                     'service': self.transaction.service,
                     'resource': self.transaction.resource,
