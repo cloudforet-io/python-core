@@ -23,7 +23,8 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
         try:
-            self.uri_info = utils.parse_grpc_uri(self.config['uri'])
+            uri_info = utils.parse_grpc_uri(self.config['uri'])
+            self.grpc_method = pygrpc.get_grpc_method(uri_info)
         except Exception as e:
             _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
@@ -37,9 +38,9 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
 
     @cacheable(key='public-key:{domain_id}', backend='local')
     def _get_public_key(self, domain_id):
-        grpc_method = pygrpc.get_grpc_method(self.uri_info)
+        _LOGGER.debug(f'[_get_public_key] get jwk from identity service ({domain_id})')
 
-        response = grpc_method({
+        response = self.grpc_method({
                 'domain_id': domain_id
             },
             metadata=self.transaction.get_connection_meta()
@@ -81,12 +82,12 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
         domain_id = token_info.get('did')
         user_id = token_info.get('aud')
         user_type = token_info.get('user_type')
+        token_type = token_info.get('cat')
+        api_key_id = token_info.get('api_key_id')
 
-        if domain_id:
-            self.transaction.set_meta('domain_id', domain_id)
+        self.transaction.set_meta('domain_id', domain_id)
+        self.transaction.set_meta('user_id', user_id)
+        self.transaction.set_meta('authorization.user_type', user_type)
+        self.transaction.set_meta('token_type', token_type)
+        self.transaction.set_meta('api_key_id', api_key_id)
 
-        if user_id:
-            self.transaction.set_meta('user_id', user_id)
-
-        if user_type:
-            self.transaction.set_meta('authorization.user_type', user_type)
