@@ -5,7 +5,7 @@ from spaceone.core import utils
 from spaceone.core.cache import cacheable
 from spaceone.core.transaction import Transaction
 from spaceone.core.handler import BaseAuthenticationHandler
-from spaceone.core.error import ERROR_AUTHENTICATE_FAILURE, ERROR_HANDLER_CONFIGURATION
+from spaceone.core.error import ERROR_BASE, ERROR_AUTHENTICATE_FAILURE, ERROR_HANDLER_CONFIGURATION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,10 +40,7 @@ class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
             domain_id = self.transaction.get_meta('domain_id')
 
             if token_type == 'API_KEY' and api_key_id and domain_id:
-                result = self._check_api_key(api_key_id, domain_id)
-
-                if result is False:
-                    raise ERROR_AUTHENTICATE_FAILURE(message='API key is invalid.')
+                self._check_api_key(api_key_id, domain_id)
 
     @cacheable(key='api-key:{domain_id}:{api_key_id}', backend='local')
     def _check_api_key(self, api_key_id, domain_id):
@@ -59,10 +56,12 @@ class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
 
             # Check api key state (1: ENABLED)
             if response.state != 1:
-                _LOGGER.debug(f'The state of the API key has been disabled. (api_key_id = {api_key_id})')
-                return False
+                raise ERROR_AUTHENTICATE_FAILURE(message='The state of the API key has been disabled.')
 
             return True
 
+        except ERROR_AUTHENTICATE_FAILURE as e:
+            raise e
         except Exception as e:
-            return False
+            _LOGGER.error(f'[_check_api_key] API Call Error: {e}')
+            raise ERROR_AUTHENTICATE_FAILURE(message='API key is invalid.')
