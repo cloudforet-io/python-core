@@ -24,8 +24,13 @@ class BaseScheduler(Process):
 
     def push_task(self):
         # Create Task
-        tasks = self.create_task()
-        _LOGGER.debug(f'[push_task] task: {len(tasks)}')
+        try:
+            tasks = self.create_task()
+            _LOGGER.debug(f'[push_task] task: {len(tasks)}')
+        except Exception as e:
+            _LOGGER.error(f'[push_task] error create_task: {e}')
+            tasks = []
+
         for task in tasks:
             try:
                 validate(task, schema=SPACEONE_TASK_SCHEMA)
