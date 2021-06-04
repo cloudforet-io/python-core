@@ -3,6 +3,8 @@ import logging
 import types
 import grpc
 import copy
+import ssl
+import socket
 from google.protobuf import descriptor_pb2
 from grpc_reflection.v1alpha import reflection_pb2
 from grpc_reflection.v1alpha import reflection_pb2_grpc
@@ -365,11 +367,47 @@ class _GRPCClient:
                 self._get_file_descriptor(reflection_stub, service)
 
 
+def _check_server_port(host, port, endpoint):
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(3)
+        result = sock.connect_ex((host, port))
+        sock.settimeout(None)
+
+    except Exception as e:
+        raise ERROR_GRPC_CONNECTION(channel=endpoint, message='failed to connect to all addresses')
+
+    if result != 0:
+        raise ERROR_GRPC_CONNECTION(channel=endpoint, message='failed to connect to all addresses')
+
+def _parse_endpoint(endpoint):
+    try:
+        host, port = endpoint.split(':')
+        return host, int(port)
+    except Exception:
+        raise ERROR_GRPC_CONNECTION(channel=endpoint, message='Endpoint format is invalid. (format = <host>:<port>)')
+
+def _create_secure_channel(endpoint, options):
+    host, port = _parse_endpoint(endpoint)
+    _check_server_port(host, port, endpoint)
+
+    try:
+        cert = ssl.get_server_certificate((host, port))
+        creds = grpc.ssl_channel_credentials(str.encode(cert))
+    except Exception as e:
+        raise ERROR_GRPC_TLS_HANDSHAKE(reason=e)
+
+    return grpc.secure_channel(endpoint, creds, options=options)
+
+def _create_insecure_channel(endpoint, options):
+    return grpc.insecure_channel(endpoint, options=options)
+
 def client(**client_opts):
     if not client_opts.get('endpoint'):
         raise Exception("Client's endpoint is undefined.")
 
     endpoint = client_opts['endpoint']
+    ssl_enabled = client_opts.get('ssl_enabled', False)
     channel_key = f'{endpoint}'
     options = []
 
@@ -379,7 +417,11 @@ def client(**client_opts):
             options.append(('grpc.max_send_message_length', max_message_length))
             options.append(('grpc.max_receive_message_length', max_message_length))
 
-        channel = grpc.insecure_channel(endpoint, options=options)
+        if ssl_enabled:
+            channel = _create_secure_channel(endpoint, options)
+        else:
+            channel = _create_insecure_channel(endpoint, options)
+
         try:
             _GRPC_CHANNEL[channel_key] = _GRPCClient(channel, client_opts, channel_key)
         except Exception as e:
