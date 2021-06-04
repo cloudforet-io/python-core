@@ -7,7 +7,6 @@ from spaceone.core import config
 from spaceone.core.logger import set_logger
 from grpc_reflection.v1alpha import reflection
 
-_ONE_DAY_IN_SECONDS = 60 * 60 * 24
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -119,9 +118,4 @@ def serve():
     _LOGGER.info(f'Start gRPC Server ({config.get_service()}): '
                  f'port={conf["PORT"]}, max_workers={conf["MAX_WORKERS"]}')
     server.start()
-
-    try:
-        while True:
-            time.sleep(_ONE_DAY_IN_SECONDS)
-    except KeyboardInterrupt:
-        server.stop(0)
+    server.wait_for_termination()

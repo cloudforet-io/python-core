@@ -194,6 +194,10 @@ class ERROR_GRPC_CONNECTION(ERROR_BASE):
     _message = 'Server is unavailable. (channel = {channel}, message = {message})'
 
 
+class ERROR_GRPC_TLS_HANDSHAKE(ERROR_GRPC_CONNECTION):
+    _message = 'TLS handshake failed. (reason = {reason})'
+
+
 class ERROR_GRPC_CONFIGURATION(ERROR_BASE):
     _message = 'gRPC client configuration is invalid. ({endpoint}/{service}/{method})'
 
