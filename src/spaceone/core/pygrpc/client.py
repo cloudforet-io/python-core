@@ -400,6 +400,9 @@ def _create_secure_channel(endpoint, options):
     return grpc.secure_channel(endpoint, creds, options=options)
 
 def _create_insecure_channel(endpoint, options):
+    host, port = _parse_endpoint(endpoint)
+    _check_server_port(host, port, endpoint)
+
     return grpc.insecure_channel(endpoint, options=options)
 
 def client(**client_opts):
