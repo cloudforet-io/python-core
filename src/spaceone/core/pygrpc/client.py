@@ -438,7 +438,7 @@ def client(**client_opts):
 
 def get_grpc_method(uri_info):
     try:
-        conn = client(endpoint=uri_info['endpoint'])
+        conn = client(endpoint=uri_info['endpoint'], ssl_enabled=uri_info['ssl_enabled'])
         return getattr(getattr(conn, uri_info['service']), uri_info['method'])
 
     except Exception as e:
