@@ -118,23 +118,49 @@ def parse_endpoint(endpoint: str) -> dict:
     }
 
 
+def parse_grpc_endpoint(endpoint: str) -> dict:
+    try:
+        endpoint_info = parse_endpoint(endpoint)
+
+        if endpoint_info['scheme'] not in  ['grpc', 'grpc+ssl']:
+            raise ValueError(f'Unsupported protocol. (supported_protocol=grpc|grpc+ssl, endpoint={endpoint})')
+
+    except Exception:
+        raise ValueError(f'gRPC Endpoint is invalid. (endpoint={endpoint})')
+
+    if endpoint_info['scheme'] == 'grpc+ssl':
+        ssl_enabled = True
+    else:
+        ssl_enabled = False
+
+    return {
+        'endpoint': f'{endpoint_info["hostname"]}:{endpoint_info["port"]}',
+        'ssl_enabled': ssl_enabled
+    }
+
 def parse_grpc_uri(uri: str) -> dict:
     try:
         endpoint_info = parse_endpoint(uri)
 
-        if endpoint_info['scheme'] != 'grpc':
-            raise ValueError(f'gRPC endpoint type is invalid. ({uri})')
+        if endpoint_info['scheme'] not in  ['grpc', 'grpc+ssl']:
+            raise ValueError(f'Unsupported protocol. (supported_protocol=grpc|grpc+ssl, uri={uri})')
 
         version, service, method = \
             filter(lambda x: x.strip() != '', endpoint_info['path'].split('/'))
     except Exception:
-        raise ValueError(f'gRPC URI is invalid. ({uri})')
+        raise ValueError(f'gRPC URI is invalid. (uri={uri})')
+
+    if endpoint_info['scheme'] == 'grpc+ssl':
+        ssl_enabled = True
+    else:
+        ssl_enabled = False
 
     return {
         'endpoint': f'{endpoint_info["hostname"]}:{endpoint_info["port"]}',
         'version': version,
         'service': service,
-        'method': method
+        'method': method,
+        'ssl_enabled': ssl_enabled
     }
 
 
