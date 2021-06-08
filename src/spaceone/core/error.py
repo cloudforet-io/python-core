@@ -210,6 +210,14 @@ class ERROR_HANDLER_CONFIGURATION(ERROR_UNKNOWN):
     _message = 'Handler configuration is invalid. (handler = {handler})'
 
 
+class ERROR_CONNECTOR_CONFIGURATION(ERROR_UNKNOWN):
+    _message = 'Connector configuration is invalid. (connector = {connector})'
+
+
+class ERROR_CONNECTOR_LOAD(ERROR_UNKNOWN):
+    _message = 'Failed to load connector. (connector = {connector}, reason = {reason})'
+
+
 class ERROR_AUTHENTICATE_FAILURE(ERROR_BASE):
     _status_code = 'UNAUTHENTICATED'
     _message = 'Authenticate failure. (message = {message})'

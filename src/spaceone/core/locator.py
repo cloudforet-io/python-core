@@ -43,8 +43,15 @@ class Locator(object):
     def get_connector(self, name: str, **kwargs):
         package = config.get_package()
         connector_conf = config.get_connector(name)
+        backend = connector_conf.get('backend')
+
         try:
-            connector_module = _get_module(package, 'connector')
+            if backend:
+                connector_module, name = backend.rsplit('.', 1)
+                connector_module = __import__(connector_module, fromlist=[name])
+            else:
+                connector_module = _get_module(package, 'connector')
+
             return getattr(connector_module, name)(
                 transaction=self.transaction, config=connector_conf, **kwargs)
 
