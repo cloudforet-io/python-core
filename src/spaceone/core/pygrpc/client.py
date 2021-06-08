@@ -405,18 +405,14 @@ def _create_insecure_channel(endpoint, options):
 
     return grpc.insecure_channel(endpoint, options=options)
 
-def client(**client_opts):
-    if not client_opts.get('endpoint'):
+def client(endpoint=None, ssl_enabled=False, max_message_length=None, **client_opts):
+    if endpoint is None:
         raise Exception("Client's endpoint is undefined.")
 
-    endpoint = client_opts['endpoint']
-    ssl_enabled = client_opts.get('ssl_enabled', False)
-    channel_key = f'{endpoint}'
-    options = []
+    if endpoint not in _GRPC_CHANNEL:
+        options = []
 
-    if channel_key not in _GRPC_CHANNEL:
-        if 'max_message_length' in client_opts:
-            max_message_length = client_opts['max_message_length']
+        if max_message_length:
             options.append(('grpc.max_send_message_length', max_message_length))
             options.append(('grpc.max_receive_message_length', max_message_length))
 
@@ -426,14 +422,14 @@ def client(**client_opts):
             channel = _create_insecure_channel(endpoint, options)
 
         try:
-            _GRPC_CHANNEL[channel_key] = _GRPCClient(channel, client_opts, channel_key)
+            _GRPC_CHANNEL[endpoint] = _GRPCClient(channel, client_opts, endpoint)
         except Exception as e:
             if hasattr(e, 'details'):
-                raise ERROR_GRPC_CONNECTION(channel=channel_key, message=e.details())
+                raise ERROR_GRPC_CONNECTION(channel=endpoint, message=e.details())
             else:
-                raise ERROR_GRPC_CONNECTION(channel=channel_key, message=str(e))
+                raise ERROR_GRPC_CONNECTION(channel=endpoint, message=str(e))
 
-    return _GRPC_CHANNEL[channel_key]
+    return _GRPC_CHANNEL[endpoint]
 
 
 def get_grpc_method(uri_info):
