@@ -1,6 +1,8 @@
-from google.protobuf.json_format import MessageToDict
 import types
+from google.protobuf.json_format import MessageToDict
 
+from spaceone.core import config
+from spaceone.core.transaction import Transaction
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
 from spaceone.core.utils import parse_grpc_endpoint
@@ -9,57 +11,48 @@ from spaceone.core.error import *
 __all__ = ["SpaceConnector"]
 
 
-class SpaceConnectorInterceptor(object):
-
-    def __init__(self, client, resource, verbs, return_type, grpc_metadata):
-        self.client = client
-        self.return_type = return_type
-        self.grpc_metadata = grpc_metadata
-
-        for verb in verbs:
-            self._bind_verb(resource, verb)
-
-    def _bind_verb(self, resource, verb):
-        grpc_method = getattr(getattr(self.client, resource), verb)
-        setattr(self, verb, self._interceptor(grpc_method))
-
-    def _interceptor(self, func):
-        def wrapper(*args, **kwargs):
-            kwargs['metadata'] = self.grpc_metadata
-
-            if len(args) == 0:
-                args = ({}, )
-
-            response_or_iterator = func(*args, **kwargs)
-
-            if self.return_type == 'dict':
-                if isinstance(response_or_iterator, types.GeneratorType):
-                    return self._generate_response(response_or_iterator)
-                else:
-                    return self._change_message(response_or_iterator)
-            else:
-                return response_or_iterator
-
-        return wrapper
-
-    @staticmethod
-    def _change_message(message):
-        return MessageToDict(message, preserving_proto_field_name=True)
-
-    def _generate_response(self, response_iterator):
-        for response in response_iterator:
-            yield self._change_message(response)
-
 class SpaceConnector(BaseConnector):
-    def __init__(self, transaction, config, **kwargs):
-        super().__init__(transaction, config)
+
+    def __init__(self, transaction: Transaction = None, connector_conf: dict = None, **kwargs):
+        super().__init__(transaction, connector_conf)
+
+        self._mock_mode = config.get_global('MOCK_MODE', False)
         self._service = kwargs.get('service')
         self._return_type = kwargs.get('return_type', 'dict')
         self._token = kwargs.get('token')
         self._endpoints = self.config.get('endpoints', {})
         self._verify()
-        self._init_client()
-        self._load_grpc_method()
+
+        if self._mock_mode is False:
+            self._init_client()
+
+    @property
+    def client(self):
+        return self._client
+
+    def dispatch(self, method: str, params: dict = None, **kwargs):
+        if self._mock_mode:
+            raise ERROR_CONNECTOR(connector='SpaceConnector',
+                                  reason=f'Dispatch cannot be executed in mock mode. '
+                                         f'(service = {self._service}, method = {method})')
+
+        resource, verb = self._parse_method(method)
+        self._check_method(resource, verb)
+
+        if params is None:
+            params = {}
+
+        kwargs['metadata'] = self._get_connection_metadata()
+
+        response_or_iterator = getattr(getattr(self._client, resource), verb)(params, **kwargs)
+
+        if self._return_type == 'dict':
+            if isinstance(response_or_iterator, types.GeneratorType):
+                return self._generate_response(response_or_iterator)
+            else:
+                return self._change_message(response_or_iterator)
+        else:
+            return response_or_iterator
 
     def _verify(self):
         if self._service is None:
@@ -75,11 +68,13 @@ class SpaceConnector(BaseConnector):
         e = parse_grpc_endpoint(self._endpoints[self._service])
         self._client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'])
 
-    def _load_grpc_method(self):
-        for resource, verbs in self._client.api_resources.items():
-            interceptor = SpaceConnectorInterceptor(self._client, resource, verbs,
-                                                    self._return_type, self._get_connection_metadata())
-            setattr(self, resource, interceptor)
+    @staticmethod
+    def _change_message(message):
+        return MessageToDict(message, preserving_proto_field_name=True)
+
+    def _generate_response(self, response_iterator):
+        for response in response_iterator:
+            yield self._change_message(response)
 
     def _get_connection_metadata(self):
         tnx_meta = self.transaction.meta
@@ -92,3 +87,19 @@ class SpaceConnector(BaseConnector):
             if key in tnx_meta:
                 metadata.append((key, tnx_meta[key]))
         return metadata
+
+    def _parse_method(self, method):
+        try:
+            resource, verb = method.split('.')
+        except Exception:
+            raise ERROR_CONNECTOR(connector='SpaceConnector',
+                                  reason=f'Method is invalid. (service = {self._service}, method = {method})')
+
+        return resource, verb
+
+    def _check_method(self, resource, verb):
+        supported_verb = self._client.api_resources.get(resource)
+
+        if supported_verb is None or verb not in supported_verb:
+            raise ERROR_CONNECTOR(connector='SpaceConnector',
+                                  reason=f'Method not supported. (service = {self._service}, method = {method})')

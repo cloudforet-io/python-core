@@ -7,10 +7,10 @@ _LOGGER = logging.getLogger(__name__)
 
 class BaseConnector(CoreObject):
 
-    def __init__(self, transaction: Transaction = None, config: dict = None, **kwargs):
+    def __init__(self, transaction: Transaction = None, connector_conf: dict = None, **kwargs):
         super().__init__(transaction=transaction)
 
-        self.config = config or {}
+        self.config = connector_conf or {}
         self._load_interceptors()
 
         for key, value in kwargs.items():
