@@ -1,6 +1,7 @@
 import types
 from google.protobuf.json_format import MessageToDict
 
+from spaceone.core import config
 from spaceone.core.transaction import Transaction
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
@@ -15,18 +16,26 @@ class SpaceConnector(BaseConnector):
     def __init__(self, transaction: Transaction = None, connector_conf: dict = None, **kwargs):
         super().__init__(transaction, connector_conf)
 
+        self._mock_mode = config.get_global('MOCK_MODE', False)
         self._service = kwargs.get('service')
         self._return_type = kwargs.get('return_type', 'dict')
         self._token = kwargs.get('token')
         self._endpoints = self.config.get('endpoints', {})
         self._verify()
-        self._init_client()
+
+        if self._mock_mode is False:
+            self._init_client()
 
     @property
     def client(self):
         return self._client
 
     def dispatch(self, method: str, params: dict = None, **kwargs):
+        if self._mock_mode:
+            raise ERROR_CONNECTOR(connector='SpaceConnector',
+                                  reason=f'Dispatch cannot be executed in mock mode. '
+                                         f'(service = {self._service}, method = {method})')
+
         resource, verb = self._parse_method(method)
         self._check_method(resource, verb)
 
