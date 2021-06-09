@@ -43,15 +43,17 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def init(cls):
-        cls.connect()
+        global_conf = config.get_global()
 
-        if cls not in _MONGO_INIT_MODELS:
-            global_conf = config.get_global()
-            cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-            cls.case_insensitive_index = global_conf.get('DATABASE_CASE_INSENSITIVE_INDEX', False)
-            cls._create_index()
+        if global_conf.get('MOCK_MODE', False) == False:
+            cls.connect()
 
-            _MONGO_INIT_MODELS.append(cls)
+            if cls not in _MONGO_INIT_MODELS:
+                cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
+                cls.case_insensitive_index = global_conf.get('DATABASE_CASE_INSENSITIVE_INDEX', False)
+                cls._create_index()
+
+                _MONGO_INIT_MODELS.append(cls)
 
     @classmethod
     def connect(cls):
