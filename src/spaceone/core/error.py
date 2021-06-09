@@ -218,6 +218,10 @@ class ERROR_CONNECTOR_LOAD(ERROR_UNKNOWN):
     _message = 'Failed to load connector. (connector = {connector}, reason = {reason})'
 
 
+class ERROR_CONNECTOR(ERROR_UNKNOWN):
+    _message = '{connector} Error: {reason}'
+
+
 class ERROR_AUTHENTICATE_FAILURE(ERROR_BASE):
     _status_code = 'UNAUTHENTICATED'
     _message = 'Authenticate failure. (message = {message})'
@@ -229,19 +233,19 @@ class ERROR_PERMISSION_DENIED(ERROR_BASE):
 
 
 class ERROR_LOG_CONFIG(ERROR_BASE):
-    _message = 'log configuration is invalid. (reason = {reason})'
+    _message = 'Log configuration is invalid. (reason = {reason})'
 
 
 class ERROR_WRONG_CONFIGURATION(ERROR_BASE):
-    _message = 'configuration is invalid. ({key})'
+    _message = 'Configuration is invalid. ({key})'
 
 
 class ERROR_TASK_LOCATOR(ERROR_BASE):
-    _message = 'call locator failure. locator: {locator}, name: {name}'
+    _message = 'Call locator failure. locator: {locator}, name: {name}'
 
 
 class ERROR_TASK_METHOD(ERROR_BASE):
-    _message = 'call method failure. name: {name}, method: {method}, params: {params}'
+    _message = 'Call method failure. name: {name}, method: {method}, params: {params}'
 
 
 class ERROR_NOT_IMPLEMENTED(ERROR_BASE):
