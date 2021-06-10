@@ -24,10 +24,11 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
 
         try:
             uri_info = utils.parse_grpc_uri(self.config['uri'])
-            self.grpc_method = pygrpc.get_grpc_method(uri_info)
         except Exception as e:
             _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
+
+        self.grpc_method = pygrpc.get_grpc_method(uri_info)
 
     def verify(self, params=None):
         token = self._get_token()

@@ -163,7 +163,8 @@ class _ClientInterceptor(
                 elif response.code() == grpc.StatusCode.UNAUTHENTICATED:
                     raise ERROR_AUTHENTICATE_FAILURE(message=response.details())
                 elif response.code() == grpc.StatusCode.UNAVAILABLE:
-                    raise ERROR_GRPC_CONNECTION(channel=self._channel_key, message=response.details())
+                    raise ERROR_GRPC_CONNECTION(channel=self._channel_key, message=response.details(),
+                                                _meta={'channel': self._channel_key})
                 else:
                     raise ERROR_INTERNAL_API(message=response.details())
 
@@ -191,10 +192,17 @@ class _ClientInterceptor(
                 return response_or_iterator
 
             except Exception as e:
-                if e.error_code != 'ERROR_GRPC_CONNECTION' or retries >= _MAX_RETRIES:
+                if e.error_code == 'ERROR_GRPC_CONNECTION':
+                    if retries >= _MAX_RETRIES:
+                        channel = e.meta.get('channel')
+                        if channel in _GRPC_CHANNEL:
+                            _LOGGER.error(f'Disconnect gRPC Endpoint. (channel = {channel})')
+                            del _GRPC_CHANNEL[channel]
+                        raise e
+                    else:
+                        _LOGGER.debug(f'Retry gRPC Call: reason = {e.message}, retry = {retries + 1}')
+                else:
                     raise e
-
-                _LOGGER.debug(f'Retry gRPC Call: reason = {e.message}')
 
             retries += 1
 
@@ -437,6 +445,8 @@ def get_grpc_method(uri_info):
         conn = client(endpoint=uri_info['endpoint'], ssl_enabled=uri_info['ssl_enabled'])
         return getattr(getattr(conn, uri_info['service']), uri_info['method'])
 
+    except ERROR_BASE as e:
+        raise e
     except Exception as e:
         raise ERROR_GRPC_CONFIGURATION(endpoint=uri_info.get('endpoint'),
                                        service=uri_info.get('service'),
