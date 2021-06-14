@@ -42,7 +42,7 @@ class Locator(object):
 
     def get_connector(self, name: str, **kwargs):
         package = config.get_package()
-        connector_conf = config.get_connector(name)
+        connector_conf = config.get_connector(name, {})
         backend = connector_conf.get('backend')
 
         try:
