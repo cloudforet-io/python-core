@@ -5,7 +5,7 @@ from spaceone.core import utils
 from spaceone.core.cache import cacheable
 from spaceone.core.transaction import Transaction
 from spaceone.core.handler import BaseAuthenticationHandler
-from spaceone.core.error import ERROR_BASE, ERROR_AUTHENTICATE_FAILURE, ERROR_HANDLER_CONFIGURATION
+from spaceone.core.error import *
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,6 +62,8 @@ class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
             return True
 
         except ERROR_AUTHENTICATE_FAILURE as e:
+            raise e
+        except ERROR_GRPC_CONNECTION as e:
             raise e
         except Exception as e:
             _LOGGER.error(f'[_check_api_key] API Call Error: {e}')
