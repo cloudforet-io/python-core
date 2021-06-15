@@ -52,7 +52,7 @@ class Locator(object):
             else:
                 connector_module = _get_module(package, 'connector')
 
-            return getattr(connector_module, name)(self.transaction, connector_conf, **kwargs)
+            return getattr(connector_module, name)(transaction=self.transaction, config=connector_conf, **kwargs)
 
         except ERROR_BASE as e:
             raise e

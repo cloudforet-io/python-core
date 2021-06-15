@@ -13,8 +13,8 @@ __all__ = ["SpaceConnector"]
 
 class SpaceConnector(BaseConnector):
 
-    def __init__(self, transaction: Transaction = None, connector_conf: dict = None, **kwargs):
-        super().__init__(transaction, connector_conf)
+    def __init__(self, transaction: Transaction = None, config: dict = None, **kwargs):
+        super().__init__(transaction, config)
 
         self._mock_mode = config.get_global('MOCK_MODE', False)
         self._service = kwargs.get('service')
