@@ -108,6 +108,10 @@ class _ClientInterceptor(
                     change_method = self._FIELD_TYPE_MAP[message_name]['message_type'][key]
                     request[key] = change_method(value)
 
+            _LOGGER.debug(f'[_change_request] message_name: {message_name}')
+            _LOGGER.debug(f'[_change_request] message_type: {message_info.get("message_type")}')
+            _LOGGER.debug(f'[_change_request] request: {request}')
+
             change_message = message(**request)
 
             return change_message
