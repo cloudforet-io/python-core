@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import yaml
 import json
 import urllib
+import dateutil
 from typing import Tuple
 from pathlib import Path
 from typing import Union
@@ -377,6 +378,16 @@ def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
         # return value.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
         value = value.replace(tzinfo=None)
         return f"{value.isoformat(timespec='milliseconds')}Z"
+
+    return None
+
+
+def iso8601_to_datetime(value: str) -> Union[datetime.datetime, None]:
+    if isinstance(value, str):
+        try:
+            return dateutil.parser.parse(value)
+        except Exception as e:
+            raise ValueError(f'Datetime(ISO8601) format is invalid. (value={value})')
 
     return None
 
