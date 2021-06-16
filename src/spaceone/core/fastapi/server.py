@@ -11,7 +11,7 @@ def api_app():
     conf = config.get_global()
     package = conf['PACKAGE']
 
-    rest_route_module = __import__(f'{package}.interface.rest.rest_router', fromlist=['rest_router'])
+    rest_route_module = __import__(f'{package}.interface.rest.router', fromlist=['router'])
     return getattr(rest_route_module, 'app', {})
 
 
