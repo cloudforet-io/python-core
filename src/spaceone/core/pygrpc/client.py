@@ -100,11 +100,13 @@ class _ClientInterceptor(
 
         elif message_name:
             for key in self._FIELD_TYPE_MAP[message_name]['well_known_type']:
+                _LOGGER.debug(f'[_change_request] well_known_type: {key}')
                 change_method = self._FIELD_TYPE_MAP[message_name]['well_known_type'][key]
                 request = utils.change_dict_value(request, key, change_method, change_type='func')
 
             for key, value in request.items():
                 if key in self._FIELD_TYPE_MAP[message_name]['message_type']:
+                    _LOGGER.debug(f'[_change_request] {message_name}: {key}')
                     change_method = self._FIELD_TYPE_MAP[message_name]['message_type'][key]
                     request[key] = change_method(value)
 
