@@ -9,7 +9,7 @@ from uuid import uuid4
 import schedule
 from jsonschema import validate
 from scheduler import Scheduler as CronSchedulerServer
-from spaceone.core import queue
+from spaceone.core import queue, config
 from spaceone.core.error import ERROR_CONFIGURATION
 from spaceone.core.scheduler.task_schema import SPACEONE_TASK_SCHEMA
 
@@ -18,9 +18,11 @@ _LOGGER = logging.getLogger(__name__)
 
 class BaseScheduler(Process):
     def __init__(self, queue, **kwargs):
-        super().__init__()
         self.queue = queue
         self.config = None
+
+        self.global_config = config.get_global()
+        super().__init__()
 
     def push_task(self):
         # Create Task
@@ -64,6 +66,7 @@ class IntervalScheduler(BaseScheduler):
             _LOGGER.error(f'[parse_config] Wrong configraiton, {e}')
 
     def run(self):
+        config.set_global_force(**self.global_config)
 
         schedule.every(self.config).seconds.do(self.push_task)
         while True:
@@ -94,6 +97,8 @@ class HourlyScheduler(BaseScheduler):
             raise ERROR_CONFIGURATION(key='interval')
 
     def run(self):
+        config.set_global_force(**self.global_config)
+
         # Call push_task in every hour
         schedule.every(self.config).hours.at(self.minute).do(self.push_task)
         while True:
@@ -118,6 +123,8 @@ class CronScheduler(BaseScheduler):
         return expr
 
     def run(self):
+        config.set_global_force(**self.global_config)
+
         if self.config is False:
             # May be error format
             return
