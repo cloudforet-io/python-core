@@ -7,7 +7,7 @@ import logging
 
 from multiprocessing import Process
 
-from spaceone.core import queue
+from spaceone.core import queue, config
 from spaceone.core.locator import Locator
 from spaceone.core.transaction import Transaction
 from spaceone.core.error import ERROR_TASK_LOCATOR, ERROR_TASK_METHOD
@@ -83,15 +83,19 @@ class SpaceoneTask:
 class BaseWorker(Process):
 
     def __init__(self, queue, **kwargs):
-        super().__init__()
         self._name_ = 'worker-%s' % randomString()
         self.queue = queue
         _LOGGER.debug(f'[BaseWorker] BaseWorker name  : {self._name_}')
         _LOGGER.debug(f'[BaseWorker] BaseWorker queue : {self.queue}')
 
+        self.global_config = config.get_global()
+        super().__init__()
+
     def run(self):
         """ Infinite Loop
         """
+        config.set_global_force(**self.global_config)
+
         while True:
             # Read from Queue
             binary_task = queue.get(self.queue)

@@ -1,3 +1,4 @@
+import copy
 import logging
 import sys
 import consul
@@ -87,6 +88,11 @@ def set_global(**config):
                 global_conf[key] = utils.deep_merge(value, global_conf[key])
             else:
                 global_conf[key] = value
+
+
+def set_global_force(**config):
+    for key, value in config.items():
+        _GLOBAL[key] = value
 
 
 def set_file_conf(config_yml: str):
