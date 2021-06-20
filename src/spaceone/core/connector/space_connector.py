@@ -1,7 +1,7 @@
 import types
 from google.protobuf.json_format import MessageToDict
 
-from spaceone.core import config
+from spaceone.core import config as global_config
 from spaceone.core.transaction import Transaction
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
@@ -16,7 +16,7 @@ class SpaceConnector(BaseConnector):
     def __init__(self, transaction: Transaction = None, config: dict = None, **kwargs):
         super().__init__(transaction, config)
 
-        self._mock_mode = config.get_global('MOCK_MODE', False)
+        self._mock_mode = global_config.get_global('MOCK_MODE', False)
         self._service = kwargs.get('service')
         self._return_type = kwargs.get('return_type', 'dict')
         self._token = kwargs.get('token')
