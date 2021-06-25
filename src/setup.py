@@ -35,6 +35,7 @@ setup(
         "grpcio-reflection",
         "google-api-core",
         "grpcio-health-checking",
+        "asyncio",
         "PyYAML",
         "unittest-xml-reporting>=3.0.0",
         "pycryptodome==3.8.2",
