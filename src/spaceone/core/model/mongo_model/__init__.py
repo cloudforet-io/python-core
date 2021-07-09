@@ -30,6 +30,58 @@ class MongoCustomQuerySet(QuerySet):
     def last(self):
         return self.order_by('-id').first()
 
+    def update(self, data):
+        super().update(**data)
+
+    def increment(self, key, amount=1):
+        key = key.replace('.', '__')
+        inc_data = {
+            f'inc__{key}': amount
+        }
+
+        super().update(**inc_data)
+
+    def decrement(self, key, amount=1):
+        key = key.replace('.', '__')
+        dec_data = {
+            f'dec__{key}': amount
+        }
+
+        super().update(**dec_data)
+
+    def set_data(self, key, data):
+        key = key.replace('.', '__')
+        set_data = {
+            f'set__{key}': data
+        }
+
+        super().update(**set_data)
+
+    def unset_data(self, *keys):
+        unset_data = {}
+
+        for key in keys:
+            key = key.replace('.', '__')
+            unset_data[f'unset__{key}'] = 1
+
+        super().update(**unset_data)
+
+    def append(self, key, data):
+        key = key.replace('.', '__')
+        append_data = {
+            f'push__{key}': data
+        }
+
+        super().update(**append_data)
+
+
+    def remove(self, key, data):
+        key = key.replace('.', '__')
+        remove_data = {
+            f'pull__{key}': data
+        }
+        super().update(**remove_data)
+
 
 class MongoModel(Document, BaseModel):
 
@@ -236,6 +288,7 @@ class MongoModel(Document, BaseModel):
         return self
 
     def append(self, key, data):
+        key = key.replace('.', '__')
         append_data = {}
 
         field = getattr(self._fields.get(key, {}), 'field', None)
@@ -250,6 +303,7 @@ class MongoModel(Document, BaseModel):
         return self
 
     def remove(self, key, data):
+        key = key.replace('.', '__')
         remove_data = {
             f'pull__{key}': data
         }
