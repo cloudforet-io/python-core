@@ -155,7 +155,7 @@ class _ClientInterceptor(
                 elif response.code() == grpc.StatusCode.UNAUTHENTICATED:
                     raise ERROR_AUTHENTICATE_FAILURE(message=error_message)
                 else:
-                    raise ERROR_INTERNAL_API(error_code=error_code, message=error_message)
+                    raise ERROR_INTERNAL_API(_error_code=error_code, message=error_message)
 
             else:
                 if response.code() == grpc.StatusCode.PERMISSION_DENIED:
