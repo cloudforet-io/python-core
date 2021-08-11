@@ -4,12 +4,12 @@ class ERROR_BASE(Exception):
     _message = 'Base Error Class'
     _meta = {}
 
-    def __init__(self, error_code=None, _meta=None, **kwargs):
+    def __init__(self, _error_code=None, _meta=None, **kwargs):
         if isinstance(_meta, dict):
             self._meta = _meta
 
-        if error_code:
-            self._error_code = error_code.strip()
+        if _error_code:
+            self._error_code = _error_code.strip()
         else:
             self._error_code = self.__class__.__name__
 
