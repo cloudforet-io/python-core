@@ -30,8 +30,10 @@ class MongoCustomQuerySet(QuerySet):
     def last(self):
         return self.order_by('-id').first()
 
-    def update(self, data):
-        super().update(**data)
+    def update(self, *args, **kwargs):
+        if len(args) > 0 and isinstance(args[0], dict):
+            kwargs.update(args[0])
+        super().update(**kwargs)
 
     def increment(self, key, amount=1):
         key = key.replace('.', '__')
