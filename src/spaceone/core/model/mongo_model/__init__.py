@@ -76,7 +76,6 @@ class MongoCustomQuerySet(QuerySet):
 
         super().update(**append_data)
 
-
     def remove(self, key, data):
         key = key.replace('.', '__')
         remove_data = {
@@ -99,7 +98,7 @@ class MongoModel(Document, BaseModel):
     def init(cls):
         global_conf = config.get_global()
 
-        if global_conf.get('MOCK_MODE', False) == False:
+        if not global_conf.get('MOCK_MODE', False):
             cls.connect()
 
             if cls not in _MONGO_INIT_MODELS:
