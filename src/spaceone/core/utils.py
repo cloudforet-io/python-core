@@ -1,4 +1,5 @@
 import re
+import time
 import random
 import string
 import secrets
@@ -7,7 +8,7 @@ from urllib.parse import urlparse
 import yaml
 import json
 import urllib
-import dateutil
+from dateutil.parser import parse as dateparse
 from typing import Tuple
 from pathlib import Path
 from typing import Union
@@ -374,8 +375,6 @@ def _change_value_by_type(change_type, original_value, change_value):
 
 def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
     if isinstance(value, datetime.datetime):
-        # value = value.replace(tzinfo=datetime.timezone.utc)
-        # return value.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
         value = value.replace(tzinfo=None)
         return f"{value.isoformat(timespec='milliseconds')}Z"
 
@@ -385,9 +384,17 @@ def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
 def iso8601_to_datetime(value: str) -> Union[datetime.datetime, None]:
     if isinstance(value, str):
         try:
-            return dateutil.parser.parse(value)
+            return dateparse(value)
         except Exception as e:
             raise ValueError(f'Datetime(ISO8601) format is invalid. (value={value})')
+
+    return None
+
+
+def iso8601_to_timestamp(value: str) -> Union[int, None]:
+    dt = iso8601_to_datetime(value)
+    if dt:
+        return int(time.mktime(dt.timetuple()))
 
     return None
 
