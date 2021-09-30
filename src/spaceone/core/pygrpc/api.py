@@ -95,13 +95,6 @@ class BaseAPI(object):
                     'verb': func.__name__
                 }
 
-                context.handler = {
-                    'authentication': True,
-                    'authorization': True,
-                    'mutation': True,
-                    'event': True
-                }
-
                 response_or_iterator = func(self, request_or_iterator, context)
 
                 if isinstance(response_or_iterator, types.GeneratorType):
@@ -125,7 +118,6 @@ class BaseAPI(object):
             metadata[key.strip()] = value.strip()
 
         metadata.update(context.api_info)
-        metadata.update(context.handler)
 
         metadata.update({'peer': context.peer()})
 
