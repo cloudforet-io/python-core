@@ -19,6 +19,21 @@ EXTENSION_APIS = {
     'spaceone.core.extension.server_info': ['ServerInfo']
 }
 
+# Handler Configuration
+HANDLERS = {
+    'authentication': [],
+    'authorization': [],
+    'mutation': [],
+    'event': []
+}
+
+HANDLER_EXCLUDE_APIS = {
+    'authentication': [],
+    'authorization': [],
+    'mutation': [],
+    'event': []
+}
+
 # Logging Configuration
 SET_LOGGING = True
 LOG = {}
