@@ -39,6 +39,8 @@ class BaseService(object):
             'event': {'handlers': [], 'methods': []},
         }
 
+        self.handler_exclude_apis = config.get_global('HANDLER_EXCLUDE_APIS', {})
+
     def __enter__(self):
         self.is_with_statement = True
         return self
@@ -258,7 +260,13 @@ def _bind_handler(self, handler_type, methods, exclude):
 
 
 def _check_handler_method(self, handler_type):
-    if self.transaction.get_meta(handler_type, True) and self.func_name in self.handler[handler_type]['methods']:
-        return True
+    if self.func_name in self.handler[handler_type]['methods']:
+        tnx_method = f'{self.transaction.resource}.{self.transaction.verb}'
+        exclude_apis = self.handler_exclude_apis.get(handler_type, [])
+
+        if tnx_method in exclude_apis:
+            return False
+        else:
+            return True
     else:
         return False
