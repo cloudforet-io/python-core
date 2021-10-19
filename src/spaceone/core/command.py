@@ -111,11 +111,6 @@ def _set_file_config(conf_file):
         config.set_file_conf(conf_file)
 
 
-# def _set_remote_config(conf_file):
-#     if conf_file:
-#         config.set_remote_conf_from_file(conf_file)
-
-
 def _set_python_path(package, module_path):
     current_path = os.getcwd()
 
@@ -153,9 +148,6 @@ def _set_server_config(command, package, module_path=None, port=None, config_fil
 
     # 4. Merge file conf
     _set_file_config(config_file)
-
-    # 5. Merge remote conf
-    # _set_remote_config(config_file)
 
 
 def init_project_file(path, text):
