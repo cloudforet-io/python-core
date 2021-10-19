@@ -31,7 +31,7 @@ def create_project(project_name=None, directory=None):
               help='Port of gRPC server', show_default=True)
 @click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='config file path')
-@click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
+@click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
 def grpc(package, port=None, config=None, module_path=None):
     """Run a gRPC server"""
     _set_server_config('grpc', package, module_path, port, config_file=config)
@@ -46,7 +46,7 @@ def grpc(package, port=None, config=None, module_path=None):
               help='Port of REST server', show_default=True)
 @click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='config file path')
-@click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
+@click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
 def rest(package, host=None, port=None, config=None, module_path=None):
     """Run a FastAPI REST server"""
     _set_server_config('rest', package, module_path, port, config_file=config)
@@ -57,7 +57,7 @@ def rest(package, host=None, port=None, config=None, module_path=None):
 @click.argument('package')
 @click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='config file path')
-@click.option('-m', '--module_path', type=click.Path(exists=True), help='Module path')
+@click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
 def scheduler(package, config=None, module_path=None):
     """Run a scheduler server"""
     _set_server_config('scheduler', package, module_path, config_file=config)
@@ -68,7 +68,7 @@ def scheduler(package, config=None, module_path=None):
 @click.argument('package')
 @click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='config file path')
-@click.option('-m', '--module-path', 'module_path', type=click.Path(exists=True), help='Module path')
+@click.option('-m', '--module-path', 'module_path', type=click.Path(exists=True), multiple=True, help='Module path')
 def celery(package, config=None, module_path=None):
     """Run a celery server(worker or beat)"""
     _set_server_config('celery', package, module_path, config_file=config)
@@ -111,28 +111,25 @@ def _set_file_config(conf_file):
         config.set_file_conf(conf_file)
 
 
-# def _set_remote_config(conf_file):
-#     if conf_file:
-#         config.set_remote_conf_from_file(conf_file)
-
-
 def _set_python_path(package, module_path):
     current_path = os.getcwd()
 
     if current_path not in sys.path:
         sys.path.insert(0, current_path)
 
-    if module_path and module_path not in sys.path:
-        sys.path.insert(0, module_path)
+    if isinstance(module_path, tuple):
+        for path in module_path:
+            if path not in sys.path:
+                sys.path.insert(0, path)
 
-        if '.' in package:
-            pkg_resources.declare_namespace(package)
+                if '.' in package:
+                    pkg_resources.declare_namespace(package)
 
-    try:
-        __import__(package)
-    except Exception:
-        raise Exception(f'The package({package}) can not imported. '
-                        'Please check the module path.')
+            try:
+                __import__(package)
+            except Exception:
+                raise Exception(f'The package({package}) can not imported. '
+                                'Please check the module path.')
 
 
 def _set_server_config(command, package, module_path=None, port=None, config_file=None):
@@ -151,9 +148,6 @@ def _set_server_config(command, package, module_path=None, port=None, config_fil
 
     # 4. Merge file conf
     _set_file_config(config_file)
-
-    # 5. Merge remote conf
-    # _set_remote_config(config_file)
 
 
 def init_project_file(path, text):
