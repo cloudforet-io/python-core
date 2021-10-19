@@ -115,6 +115,9 @@ def set_file_conf(config_yml: str):
 def import_remote_conf(uri):
     endpoint = utils.parse_endpoint(uri)
     scheme = endpoint.get('scheme')
+
+    remote_conf = None
+
     if scheme == 'file':
         remote_conf = utils.load_yaml_from_file(endpoint['path'])
 
@@ -126,6 +129,7 @@ def import_remote_conf(uri):
 
     if isinstance(remote_conf, dict):
         set_global(**remote_conf)
+
 
 def load_consul_config(endpoint):
     hostname = endpoint.get('hostname')
