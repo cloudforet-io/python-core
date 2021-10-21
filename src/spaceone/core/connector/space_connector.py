@@ -1,4 +1,5 @@
 import types
+import logging
 from google.protobuf.json_format import MessageToDict
 
 from spaceone.core import config as global_config
@@ -9,6 +10,8 @@ from spaceone.core.utils import parse_grpc_endpoint
 from spaceone.core.error import *
 
 __all__ = ["SpaceConnector"]
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class SpaceConnector(BaseConnector):
@@ -31,17 +34,15 @@ class SpaceConnector(BaseConnector):
         return self._client
 
     def dispatch(self, method: str, params: dict = None, **kwargs):
-        if self._mock_mode:
-            raise ERROR_CONNECTOR(connector='SpaceConnector',
-                                  reason=f'Dispatch cannot be executed in mock mode. '
-                                         f'(service = {self._service}, method = {method})')
+        return self._call_api(method, params, **kwargs)
+
+    def _call_api(self, method: str, params: dict = None, **kwargs):
+        self._check_mock_mode(method)
 
         resource, verb = self._parse_method(method)
         self._check_method(resource, verb)
 
-        if params is None:
-            params = {}
-
+        params = params or {}
         kwargs['metadata'] = self._get_connection_metadata()
 
         response_or_iterator = getattr(getattr(self._client, resource), verb)(params, **kwargs)
@@ -53,6 +54,11 @@ class SpaceConnector(BaseConnector):
                 return self._change_message(response_or_iterator)
         else:
             return response_or_iterator
+
+    def _check_mock_mode(self, method):
+        if self._mock_mode:
+            raise ERROR_CONNECTOR(connector='SpaceConnector', reason=f'Dispatch cannot be executed in mock mode. '
+                                                                     f'(service = {self._service}, method = {method})')
 
     def _verify(self):
         if self._service is None:
@@ -102,4 +108,5 @@ class SpaceConnector(BaseConnector):
 
         if supported_verb is None or verb not in supported_verb:
             raise ERROR_CONNECTOR(connector='SpaceConnector',
-                                  reason=f'Method not supported. (service = {self._service}, method = {method})')
+                                  reason=f'Method not supported. (service = {self._service}, '
+                                         f'method = {resource}.{verb})')
