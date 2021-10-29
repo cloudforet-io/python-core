@@ -206,6 +206,28 @@ def change_timestamp_value(timestamp_keys=None, timestamp_format='google_timesta
     return wrapper
 
 
+def change_date_value(date_keys=None, date_format='%Y-%m-%d'):
+    if date_keys is None:
+        date_keys = []
+
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped_func(cls, params):
+            change_params = {}
+
+            for key, value in params.items():
+                if key in date_keys:
+                    value = _convert_date_from_string(value, key, date_format)
+
+                change_params[key] = value
+
+            return func(cls, change_params)
+
+        return wrapped_func
+
+    return wrapper
+
+
 def change_timestamp_filter(filter_keys=None, timestamp_format='google_timestamp'):
     if filter_keys is None:
         filter_keys = []
@@ -269,4 +291,11 @@ def _convert_datetime_from_timestamp(timestamp, key, timestamp_format):
             return datetime.utcfromtimestamp((int(seconds)))
     except Exception as e:
         raise ERROR_INVALID_PARAMETER_TYPE(key=key, type=type_message)
+
+
+def _convert_date_from_string(date_str, key, date_format):
+    try:
+        return datetime.strptime(date_str, date_format).date()
+    except Exception as e:
+        raise ERROR_INVALID_PARAMETER_TYPE(key=key, type=date_format)
 
