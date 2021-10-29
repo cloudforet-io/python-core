@@ -243,7 +243,7 @@ class _GRPCClient:
         return re.findall(r'%s/(.*?).proto' % package, proto_name)[0]
 
     def _create_grpc_stub(self, package, module_name, service_name):
-        grpc_pb2_module = __import__(f'{package}.{module_name}_pb2_grpc', fromlist=['{module_name}_pb2_grpc'])
+        grpc_pb2_module = __import__(f'{package}.{module_name}_pb2_grpc', fromlist=[f'{module_name}_pb2_grpc'])
 
         setattr(self, service_name,
                 getattr(grpc_pb2_module, f'{service_name}Stub')(self._intercept_channel))
@@ -388,12 +388,14 @@ def _check_server_port(host, port, endpoint):
     if result != 0:
         raise ERROR_GRPC_CONNECTION(channel=endpoint, message='failed to connect to all addresses')
 
+
 def _parse_endpoint(endpoint):
     try:
         host, port = endpoint.split(':')
         return host, int(port)
     except Exception:
         raise ERROR_GRPC_CONNECTION(channel=endpoint, message='Endpoint format is invalid. (format = <host>:<port>)')
+
 
 def _create_secure_channel(endpoint, options):
     host, port = _parse_endpoint(endpoint)
@@ -407,11 +409,13 @@ def _create_secure_channel(endpoint, options):
 
     return grpc.secure_channel(endpoint, creds, options=options)
 
+
 def _create_insecure_channel(endpoint, options):
     host, port = _parse_endpoint(endpoint)
     _check_server_port(host, port, endpoint)
 
     return grpc.insecure_channel(endpoint, options=options)
+
 
 def client(endpoint=None, ssl_enabled=False, max_message_length=None, **client_opts):
     if endpoint is None:

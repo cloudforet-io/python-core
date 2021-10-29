@@ -373,6 +373,13 @@ def _change_value_by_type(change_type, original_value, change_value):
         return original_value
 
 
+def date_to_string(value: datetime.date, date_format: str = '%Y-%m-%d') -> Union[str, None]:
+    if isinstance(value, datetime.date):
+        return value.strftime(date_format)
+
+    return None
+
+
 def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
     if isinstance(value, datetime.datetime):
         value = value.replace(tzinfo=None)
