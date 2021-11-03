@@ -783,7 +783,6 @@ class MongoModel(Document, BaseModel):
                 raise ERROR_REQUIRED_PARAMETER(key='aggregate.unwind or aggregate.group or '
                                                    'aggregate.count or aggregate.sort')
 
-        print(_aggregate_rules)
         return _aggregate_rules, _group_keys
 
     @classmethod
