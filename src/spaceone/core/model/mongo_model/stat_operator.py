@@ -20,14 +20,6 @@ def _stat_average_resolver(key, operator, name, *args):
     }
 
 
-def _stat_add_to_set_resolver(key, operator, name, *args):
-    return {
-        'group': {
-            name: {'$addToSet': f'${key}'}
-        }
-    }
-
-
 def _stat_size_resolver(key, operator, name, *args):
     return {
         'group': {
@@ -39,34 +31,38 @@ def _stat_size_resolver(key, operator, name, *args):
     }
 
 
+def _stat_push_resolver(key, operator, name, sub_fields, *args):
+    push_query = {}
+
+    for sub_field in sub_fields:
+        f_key = sub_field.get('key', sub_field.get('k'))
+        f_name = sub_field.get('name', sub_field.get('n'))
+
+        push_query[f_name] = f'${f_key}'
+
+    return {
+        'group': {
+            name: {
+                '$push': push_query
+            }
+        }
+    }
+
+
+def _stat_add_to_set_resolver(key, operator, name, *args):
+    return {
+        'group': {
+            name: {'$addToSet': f'${key}'}
+        }
+    }
+
+
 def _stat_merge_objects_resolver(key, operator, name, *args):
     return {
         'group': {
             name: {'$mergeObjects': f'${key}'}
         }
     }
-
-
-def _stat_date_resolver(key, operator, name, value, date_format):
-    dt = utils.parse_timediff_query(value)
-
-    rule = {
-        'project': {
-            name: {'$add': dt}
-        }
-    }
-
-    if date_format:
-        rule['second_project'] = {
-            name: {
-                '$dateToString': {
-                    'format': date_format,
-                    'date': f'${name}'
-                }
-            }
-        }
-
-    return rule
 
 
 def _stat_default_resolver(key, operator, name, *args):
@@ -86,7 +82,7 @@ STAT_OPERATORS = {
     'first': _stat_default_resolver,
     'last': _stat_default_resolver,
     'size': _stat_size_resolver,
+    'push': _stat_push_resolver,
     'add_to_set': _stat_add_to_set_resolver,
     'merge_objects': _stat_merge_objects_resolver,
-    'date': _stat_date_resolver,
 }
