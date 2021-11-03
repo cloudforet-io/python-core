@@ -491,16 +491,22 @@ class MongoModel(Document, BaseModel):
         if page is None:
             page = {}
 
-        _order_by = None
+        _order_by = []
         minimal_fields = cls._meta.get('minimal_fields')
 
         _filter = cls._make_filter(filter, filter_or)
 
         if 'key' in sort:
             if sort.get('desc', False):
-                _order_by = f'-{sort["key"]}'
+                _order_by.append(f'-{sort["key"]}')
             else:
-                _order_by = f'{sort["key"]}'
+                _order_by.append(f'{sort["key"]}')
+        elif 'keys' in sort:
+            for s in sort['keys']:
+                if s.get('desc', False):
+                    _order_by.append(f'-{s["key"]}')
+                else:
+                    _order_by.append(f'{s["key"]}')
 
         try:
             if cls.case_insensitive_index:
@@ -508,20 +514,20 @@ class MongoModel(Document, BaseModel):
             else:
                 vos = cls.objects.filter(_filter)
 
-            if _order_by:
-                vos = vos.order_by(_order_by)
+            if len(_order_by) > 0:
+                vos = vos.order_by(*_order_by)
 
             if only:
-                if 'key' in sort:
-                    if sort['key'] not in only:
-                        only.append(sort['key'])
+                if len(_order_by) > 0:
+                    ordering = _order_by
                 else:
                     ordering = cls._meta.get('ordering')
-                    for key in ordering:
-                        if key.startswith('+') or key.startswith('-'):
-                            key = key[1:]
-                        if key not in only:
-                            only.append(key)
+
+                for key in ordering:
+                    if key.startswith('+') or key.startswith('-'):
+                        key = key[1:]
+                    if key not in only:
+                        only.append(key)
 
                 only = cls._remove_duplicate_only_keys(only)
                 vos = vos.only(*only)
@@ -595,26 +601,38 @@ class MongoModel(Document, BaseModel):
         key = condition.get('key', condition.get('k'))
         name = condition.get('name', condition.get('n'))
         operator = condition.get('operator', condition.get('o'))
-        value = condition.get('value', condition.get('v'))
-        date_format = condition.get('date_format')
+        sub_fields = condition.get('fields', [])
 
         if operator not in STAT_OPERATORS:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' operator is not supported. "
                                         f"(operator = {STAT_OPERATORS.keys()})")
 
-        if operator not in ['count', 'date'] and key is None:
+        if operator not in ['count', 'push'] and key is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
+
+        if operator == 'push' and len(sub_fields) == 0:
+            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a fields: {condition}")
 
         if name is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a name: {condition}")
 
-        if operator == 'date' and value is None:
-            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a value: {condition}")
-
         if key in _before_group_keys:
             key = f'_id.{key}'
 
-        return key, name, operator, value, date_format
+        for sub_field in sub_fields:
+            f_key = sub_field.get('key', sub_field.get('k'))
+            f_name = sub_field.get('name', sub_field.get('n'))
+
+            if f_key is None:
+                raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields.fields' condition requires a key: {condition}")
+
+            if f_name is None:
+                raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields.fields' condition requires a name: {condition}")
+
+            if f_key in _before_group_keys:
+                sub_field['key'] = f'_id.{f_key}'
+
+        return key, name, operator, sub_fields
 
     @classmethod
     def _get_group_keys(cls, condition, _before_group_keys):
@@ -647,9 +665,7 @@ class MongoModel(Document, BaseModel):
     def _make_group_rule(cls, options, _before_group_keys):
         _group_keys = []
         _include_project = False
-        _include_second_project = False
         _project_fields = {}
-        _second_project_fields = {}
         _project_rules = []
         _rules = []
         _group_rule = {
@@ -669,9 +685,9 @@ class MongoModel(Document, BaseModel):
             _group_rule['$group']['_id'][name] = rule
 
         for condition in _fields:
-            key, name, operator, value, date_format = cls._get_group_fields(condition, _before_group_keys)
+            key, name, operator, sub_fields = cls._get_group_fields(condition, _before_group_keys)
 
-            rule = STAT_OPERATORS[operator](key, operator, name, value, date_format)
+            rule = STAT_OPERATORS[operator](key, operator, name, sub_fields)
 
             if rule.get('group') is not None:
                 _group_rule['$group'].update(rule['group'])
@@ -682,22 +698,11 @@ class MongoModel(Document, BaseModel):
             else:
                 _project_fields[name] = 1
 
-            if rule.get('second_project') is not None:
-                _include_second_project = True
-                _second_project_fields.update(rule['second_project'])
-            else:
-                _second_project_fields[name] = 1
-
         _rules.append(_group_rule)
 
         if _include_project:
             _rules.append({
                 '$project': _project_fields
-            })
-
-        if _include_second_project:
-            _rules.append({
-                '$project': _second_project_fields
             })
 
         return _rules, _group_keys
@@ -722,22 +727,35 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def _make_sort_rule(cls, options, _group_keys):
-        if 'key' not in options:
+        key = options.get('key')
+        desc = options.get('desc', False)
+        keys = options.get('keys')
+
+        order_by = {}
+
+        if key:
+            if key in _group_keys:
+                sort_key = f'_id.{key}'
+            else:
+                sort_key = key
+
+            order_by[sort_key] = -1 if desc else 1
+
+        elif keys:
+            for k in keys:
+                if k['key'] in _group_keys:
+                    sort_key = f'_id.{k["key"]}'
+                else:
+                    sort_key = k['key']
+
+                order_by[sort_key] = -1 if k.get('desc', False) else 1
+
+        else:
             raise ERROR_REQUIRED_PARAMETER(key='aggregate.sort.key')
 
-        if options['key'] in _group_keys:
-            sort_name = f'_id.{options["key"]}'
-        else:
-            sort_name = options['key']
-
-        if options.get('desc', False):
-            return {
-                '$sort': {sort_name: -1}
-            }
-        else:
-            return {
-                '$sort': {sort_name: 1}
-            }
+        return {
+            '$sort': order_by
+        }
 
     @classmethod
     def _make_aggregate_rules(cls, aggregate):
@@ -765,6 +783,7 @@ class MongoModel(Document, BaseModel):
                 raise ERROR_REQUIRED_PARAMETER(key='aggregate.unwind or aggregate.group or '
                                                    'aggregate.count or aggregate.sort')
 
+        print(_aggregate_rules)
         return _aggregate_rules, _group_keys
 
     @classmethod
