@@ -4,20 +4,72 @@ from spaceone.core import utils
 __all__ = ['STAT_OPERATORS']
 
 
-def _stat_count_resolver(key, operator, name, *args):
-    return {
-        'group': {
-            name: {'$sum': 1}
+def _stat_count_resolver(key, operator, name, sub_condition, *args):
+    if sub_condition:
+        return {
+            'group': {
+                name: {
+                    '$sum': {
+                        '$cond': [
+                            sub_condition,
+                            1,
+                            0
+                        ]
+                    }
+                }
+            }
         }
-    }
+    else:
+        return {
+            'group': {
+                name: {'$sum': 1}
+            }
+        }
 
 
-def _stat_average_resolver(key, operator, name, *args):
-    return {
-        'group': {
-            name: {'$avg': f'${key}'}
+def _stat_average_resolver(key, operator, name, sub_condition, *args):
+    if sub_condition:
+        return {
+            'group': {
+                name: {
+                    '$avg': {
+                        '$cond': [
+                            sub_condition,
+                            f'${key}',
+                            0
+                        ]
+                    }
+                }
+            }
         }
-    }
+    else:
+        return {
+            'group': {
+                name: {'$avg': f'${key}'}
+            }
+        }
+
+def _stat_sum_resolver(key, operator, name, sub_condition, *args):
+    if sub_condition:
+        return {
+            'group': {
+                name: {
+                    '$sum': {
+                        '$cond': [
+                            sub_condition,
+                            f'${key}',
+                            0
+                        ]
+                    }
+                }
+            }
+        }
+    else:
+        return {
+            'group': {
+                name: {'$sum': f'${key}'}
+            }
+        }
 
 
 def _stat_size_resolver(key, operator, name, *args):
@@ -31,7 +83,7 @@ def _stat_size_resolver(key, operator, name, *args):
     }
 
 
-def _stat_push_resolver(key, operator, name, sub_fields, *args):
+def _stat_push_resolver(key, operator, name, sub_condition, sub_fields, *args):
     push_query = {}
 
     for sub_field in sub_fields:
@@ -75,7 +127,7 @@ def _stat_default_resolver(key, operator, name, *args):
 
 STAT_OPERATORS = {
     'count': _stat_count_resolver,
-    'sum': _stat_default_resolver,
+    'sum': _stat_sum_resolver,
     'average': _stat_average_resolver,
     'max': _stat_default_resolver,
     'min': _stat_default_resolver,

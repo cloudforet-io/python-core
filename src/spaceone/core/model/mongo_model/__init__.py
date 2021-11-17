@@ -597,15 +597,49 @@ class MongoModel(Document, BaseModel):
         return changed_values
 
     @classmethod
+    def _make_sub_condition(cls, sub_condition, _before_group_keys):
+        key = sub_condition.get('key', sub_condition.get('k'))
+        value = sub_condition.get('value', sub_condition.get('v'))
+        operator = sub_condition.get('operator', sub_condition.get('o'))
+
+        if key is None:
+            raise ERROR_DB_QUERY(
+                reason=f"'aggregate.group.fields.condition.key' condition requires a key: {condition}")
+
+        if value is None:
+            raise ERROR_DB_QUERY(
+                reason=f"'aggregate.group.fields.condition.value' condition requires a value: {condition}")
+
+        if operator is None:
+            raise ERROR_DB_QUERY(
+                reason=f"'aggregate.group.fields.condition.operator' condition requires a operator: {condition}")
+
+        if operator not in ['eq', 'not', 'gt', 'gte', 'lt', 'lte']:
+            raise ERROR_DB_QUERY(
+                reason=f"'aggregate.group.fields.condition.operator' condition's operator is not supported: "
+                       f"supported operator = eq | not | gt | gte | lt | lte")
+
+        if key in _before_group_keys:
+            key = f'_id.{key}'
+
+        return {
+            f'${operator}': [f'${key}', value]
+        }
+
+    @classmethod
     def _get_group_fields(cls, condition, _before_group_keys):
         key = condition.get('key', condition.get('k'))
         name = condition.get('name', condition.get('n'))
         operator = condition.get('operator', condition.get('o'))
+        sub_condition = condition.get('condition', condition.get('c'))
         sub_fields = condition.get('fields', [])
 
         if operator not in STAT_OPERATORS:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' operator is not supported. "
                                         f"(operator = {STAT_OPERATORS.keys()})")
+
+        if sub_condition and operator not in ['count', 'avg', 'sum']:
+            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition is not supported: {condition}")
 
         if operator not in ['count', 'push'] and key is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
@@ -632,7 +666,10 @@ class MongoModel(Document, BaseModel):
             if f_key in _before_group_keys:
                 sub_field['key'] = f'_id.{f_key}'
 
-        return key, name, operator, sub_fields
+        if sub_condition:
+            sub_condition = cls._make_sub_condition(sub_condition, _before_group_keys)
+
+        return key, name, operator, sub_fields, sub_condition
 
     @classmethod
     def _get_group_keys(cls, condition, _before_group_keys):
@@ -685,9 +722,9 @@ class MongoModel(Document, BaseModel):
             _group_rule['$group']['_id'][name] = rule
 
         for condition in _fields:
-            key, name, operator, sub_fields = cls._get_group_fields(condition, _before_group_keys)
+            key, name, operator, sub_fields, sub_condition = cls._get_group_fields(condition, _before_group_keys)
 
-            rule = STAT_OPERATORS[operator](key, operator, name, sub_fields)
+            rule = STAT_OPERATORS[operator](key, operator, name, sub_condition, sub_fields)
 
             if rule.get('group') is not None:
                 _group_rule['$group'].update(rule['group'])
