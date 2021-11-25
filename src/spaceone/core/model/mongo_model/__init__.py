@@ -87,7 +87,6 @@ class MongoCustomQuerySet(QuerySet):
 class MongoModel(Document, BaseModel):
 
     auto_create_index = True
-    case_insensitive_index = False
     meta = {
         'abstract': True,
         'queryset_class': MongoCustomQuerySet,
@@ -103,7 +102,6 @@ class MongoModel(Document, BaseModel):
 
             if cls not in _MONGO_INIT_MODELS:
                 cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-                cls.case_insensitive_index = global_conf.get('DATABASE_CASE_INSENSITIVE_INDEX', False)
                 cls._create_index()
 
                 _MONGO_INIT_MODELS.append(cls)
@@ -141,10 +139,7 @@ class MongoModel(Document, BaseModel):
 
                 for index in indexes:
                     try:
-                        if cls.case_insensitive_index:
-                            cls.create_index(index, collation={"locale": "en", "strength": 2})
-                        else:
-                            cls.create_index(index)
+                        cls.create_index(index)
 
                     except Exception as e:
                         _LOGGER.error(f'Index Creation Failure: {e}')
@@ -509,10 +504,7 @@ class MongoModel(Document, BaseModel):
                     _order_by.append(f'{s["key"]}')
 
         try:
-            if cls.case_insensitive_index:
-                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
-            else:
-                vos = cls.objects.filter(_filter)
+            vos = cls.objects.filter(_filter)
 
             if len(_order_by) > 0:
                 vos = vos.order_by(*_order_by)
@@ -894,10 +886,7 @@ class MongoModel(Document, BaseModel):
         _filter = cls._make_filter(filter, filter_or)
 
         try:
-            if cls.case_insensitive_index:
-                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
-            else:
-                vos = cls.objects.filter(_filter)
+            vos = cls.objects.filter(_filter)
 
             if aggregate:
                 return cls._stat_aggregate(vos, aggregate, page)
