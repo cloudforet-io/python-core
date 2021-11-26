@@ -218,7 +218,7 @@ class MongoModel(Document, BaseModel):
                 if name not in data.keys():
                     data[name] = datetime.utcnow()
 
-        for unique_field in cls._get_unique_fields():
+        for unique_field in self._get_unique_fields():
             conditions = {'pk__ne': self.pk}
             for f in unique_field:
                 conditions[f] = data.get(f)
