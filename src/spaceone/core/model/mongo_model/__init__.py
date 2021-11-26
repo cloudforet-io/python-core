@@ -87,7 +87,6 @@ class MongoCustomQuerySet(QuerySet):
 class MongoModel(Document, BaseModel):
 
     auto_create_index = True
-    case_insensitive_index = False
     meta = {
         'abstract': True,
         'queryset_class': MongoCustomQuerySet,
@@ -103,7 +102,6 @@ class MongoModel(Document, BaseModel):
 
             if cls not in _MONGO_INIT_MODELS:
                 cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-                cls.case_insensitive_index = global_conf.get('DATABASE_CASE_INSENSITIVE_INDEX', False)
                 cls._create_index()
 
                 _MONGO_INIT_MODELS.append(cls)
@@ -139,21 +137,29 @@ class MongoModel(Document, BaseModel):
             if len(indexes) > 0:
                 _LOGGER.debug(f'Create MongoDB Indexes ({cls.__name__} Model: {len(indexes)} Indexes)')
 
-                for index in indexes:
+                unique_fields = cls._get_unique_fields()
+
+                for unique_field in unique_fields:
                     try:
-                        if cls.case_insensitive_index:
-                            cls.create_index(index, collation={"locale": "en", "strength": 2})
-                        else:
-                            cls.create_index(index)
+                        cls.create_index({
+                            'fields': unique_field,
+                            'unique': True
+                        })
 
                     except Exception as e:
-                        _LOGGER.error(f'Index Creation Failure: {e}')
+                        _LOGGER.error(f'Unique Index Creation Failure: {e}')
+
+                for index in indexes:
+                    try:
+                        cls.create_index(index)
+
+                    except Exception as e:
+                        if e.code != 85: # 85: IndexOptionsConflict
+                            _LOGGER.error(f'Index Creation Failure: {e}')
 
     @classmethod
-    def create(cls, data):
-        create_data = {}
+    def _get_unique_fields(cls):
         unique_fields = []
-
         for name, field in cls._fields.items():
             if field.unique:
                 if isinstance(field.unique_with, str):
@@ -163,6 +169,13 @@ class MongoModel(Document, BaseModel):
                 else:
                     unique_fields.append([field.name])
 
+        return unique_fields
+
+    @classmethod
+    def create(cls, data):
+        create_data = {}
+
+        for name, field in cls._fields.items():
             if name in data:
                 create_data[name] = data[name]
             else:
@@ -175,7 +188,7 @@ class MongoModel(Document, BaseModel):
                 elif getattr(field, 'auto_now_add', False):
                     create_data[name] = datetime.utcnow()
 
-        for unique_field in unique_fields:
+        for unique_field in cls._get_unique_fields():
             conditions = {}
             for f in unique_field:
                 conditions[f] = data.get(f)
@@ -201,19 +214,11 @@ class MongoModel(Document, BaseModel):
         )
 
         for name, field in self._fields.items():
-            if field.unique:
-                if isinstance(field.unique_with, str):
-                    unique_fields.append([field.name, field.unique_with])
-                elif isinstance(field.unique_with, list):
-                    unique_fields.append([field.name] + field.unique_with)
-                else:
-                    unique_fields.append([field.name])
-
             if getattr(field, 'auto_now', False):
                 if name not in data.keys():
                     data[name] = datetime.utcnow()
 
-        for unique_field in unique_fields:
+        for unique_field in cls._get_unique_fields():
             conditions = {'pk__ne': self.pk}
             for f in unique_field:
                 conditions[f] = data.get(f)
@@ -509,10 +514,7 @@ class MongoModel(Document, BaseModel):
                     _order_by.append(f'{s["key"]}')
 
         try:
-            if cls.case_insensitive_index:
-                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
-            else:
-                vos = cls.objects.filter(_filter)
+            vos = cls.objects.filter(_filter)
 
             if len(_order_by) > 0:
                 vos = vos.order_by(*_order_by)
@@ -894,10 +896,7 @@ class MongoModel(Document, BaseModel):
         _filter = cls._make_filter(filter, filter_or)
 
         try:
-            if cls.case_insensitive_index:
-                vos = cls.objects.filter(_filter).collation({'locale': 'en', 'strength': 2})
-            else:
-                vos = cls.objects.filter(_filter)
+            vos = cls.objects.filter(_filter)
 
             if aggregate:
                 return cls._stat_aggregate(vos, aggregate, page)
