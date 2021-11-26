@@ -137,18 +137,29 @@ class MongoModel(Document, BaseModel):
             if len(indexes) > 0:
                 _LOGGER.debug(f'Create MongoDB Indexes ({cls.__name__} Model: {len(indexes)} Indexes)')
 
+                unique_fields = cls._get_unique_fields()
+
+                for unique_field in unique_fields:
+                    try:
+                        cls.create_index({
+                            'fields': unique_field,
+                            'unique': True
+                        })
+
+                    except Exception as e:
+                        _LOGGER.error(f'Unique Index Creation Failure: {e}')
+
                 for index in indexes:
                     try:
                         cls.create_index(index)
 
                     except Exception as e:
-                        _LOGGER.error(f'Index Creation Failure: {e}')
+                        if e.code != 85: # 85: IndexOptionsConflict
+                            _LOGGER.error(f'Index Creation Failure: {e}')
 
     @classmethod
-    def create(cls, data):
-        create_data = {}
+    def _get_unique_fields(cls):
         unique_fields = []
-
         for name, field in cls._fields.items():
             if field.unique:
                 if isinstance(field.unique_with, str):
@@ -158,6 +169,13 @@ class MongoModel(Document, BaseModel):
                 else:
                     unique_fields.append([field.name])
 
+        return unique_fields
+
+    @classmethod
+    def create(cls, data):
+        create_data = {}
+
+        for name, field in cls._fields.items():
             if name in data:
                 create_data[name] = data[name]
             else:
@@ -170,7 +188,7 @@ class MongoModel(Document, BaseModel):
                 elif getattr(field, 'auto_now_add', False):
                     create_data[name] = datetime.utcnow()
 
-        for unique_field in unique_fields:
+        for unique_field in cls._get_unique_fields():
             conditions = {}
             for f in unique_field:
                 conditions[f] = data.get(f)
@@ -196,19 +214,11 @@ class MongoModel(Document, BaseModel):
         )
 
         for name, field in self._fields.items():
-            if field.unique:
-                if isinstance(field.unique_with, str):
-                    unique_fields.append([field.name, field.unique_with])
-                elif isinstance(field.unique_with, list):
-                    unique_fields.append([field.name] + field.unique_with)
-                else:
-                    unique_fields.append([field.name])
-
             if getattr(field, 'auto_now', False):
                 if name not in data.keys():
                     data[name] = datetime.utcnow()
 
-        for unique_field in unique_fields:
+        for unique_field in cls._get_unique_fields():
             conditions = {'pk__ne': self.pk}
             for f in unique_field:
                 conditions[f] = data.get(f)
