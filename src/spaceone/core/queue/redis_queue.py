@@ -7,9 +7,10 @@ from spaceone.core.queue import BaseQueue
 
 _LOGGER = logging.getLogger(__name__)
 
-# Wait max 1 hour to recover
-MAX_TRY = 60
+# Wait max 1 minute to recover
+MAX_TRY = 6
 WAIT_INTERVAL = 10
+
 
 class RedisQueue(BaseQueue):
     """

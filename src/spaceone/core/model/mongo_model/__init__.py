@@ -204,7 +204,6 @@ class MongoModel(Document, BaseModel):
         return new_vo
 
     def update(self, data):
-        unique_fields = []
         updatable_fields = self._meta.get(
             'updatable_fields', list(
                 filter(
