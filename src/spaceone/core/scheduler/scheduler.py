@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import json
 import logging
 import time
+import copy
 from multiprocessing import Process
 from uuid import uuid4
 
@@ -37,7 +36,7 @@ class BaseScheduler(Process):
             try:
                 validate(task, schema=SPACEONE_TASK_SCHEMA)
                 json_task = json.dumps(task)
-                _LOGGER.debug(f'[push_task] Task schema: {task}')
+                _LOGGER.debug(f'[push_task] Task schema: {self._remove_metadata(task)}')
                 queue.put(self.queue, json_task)
             except Exception as e:
                 print(e)
@@ -48,6 +47,17 @@ class BaseScheduler(Process):
 
     def create_task(self):
         NotImplementedError('scheduler.create_task is not implemented')
+
+    def _remove_metadata(self, task):
+        copied_task = copy.deepcopy(task)
+        change_stages = []
+        for stage in copied_task.get('stages', []):
+            if 'metadata' in stage:
+                stage['metadata'] = '*****'
+            change_stages.append(stage)
+
+        copied_task['stages'] = change_stages
+        return copied_task
 
 
 class IntervalScheduler(BaseScheduler):
