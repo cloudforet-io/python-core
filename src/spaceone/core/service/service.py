@@ -72,7 +72,11 @@ def transaction(func=None, append_meta=None):
 def _pipeline(func, self, params, append_meta):
     try:
         self.func_name = func.__name__
-        _LOGGER.info('(REQUEST) =>', extra={'parameter': copy.deepcopy(params)})
+
+        disable_info_log = str(self.transaction.get_meta('disable_info_log', 'false')).lower()
+
+        if disable_info_log != 'true':
+            _LOGGER.info('(REQUEST) =>', extra={'parameter': copy.deepcopy(params)})
 
         # 0. Set Extra Metadata
         if append_meta and isinstance(append_meta, dict):
