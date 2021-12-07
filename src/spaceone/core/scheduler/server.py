@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 from spaceone.core import config
 from spaceone.core.error import ERROR_BASE
@@ -8,6 +6,7 @@ from spaceone.core.logger import set_logger
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_POOL = 8
+
 
 class Server(object):
     def __init__(self, service, config):
