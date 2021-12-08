@@ -1,6 +1,6 @@
 import grpc
 import traceback
-import collections
+from collections.abc import Iterable
 import inspect
 import types
 import logging
@@ -128,7 +128,7 @@ class BaseAPI(object):
             yield self._convert_message(request)
 
     def parse_request(self, request_or_iterator, context):
-        if isinstance(request_or_iterator, collections.Iterable):
+        if isinstance(request_or_iterator, Iterable):
             return self._generate_message(request_or_iterator), self._get_metadata(context)
         else:
             return self._convert_message(request_or_iterator), self._get_metadata(context)
