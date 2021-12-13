@@ -7,6 +7,7 @@ import datetime
 from urllib.parse import urlparse
 import yaml
 import json
+import hashlib
 import urllib
 from dateutil.parser import parse as dateparse
 from typing import Tuple
@@ -428,6 +429,14 @@ def dict_to_tags(dict_value: dict) -> list:
             })
 
     return tags
+
+
+def dict_to_hash(dict_value: dict) -> str:
+    """MD5 hash of a dictionary."""
+    dhash = hashlib.md5()
+    encoded = json.dumps(dict_value, sort_keys=True).encode()
+    dhash.update(encoded)
+    return dhash.hexdigest()
 
 
 if __name__ == '__main__':
