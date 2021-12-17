@@ -194,10 +194,12 @@ def change_timestamp_value(timestamp_keys=None, timestamp_format='google_timesta
             change_params = {}
 
             for key, value in params.items():
-                if key in timestamp_keys and _is_not_null(value):
-                    value = _convert_datetime_from_timestamp(value, key, timestamp_format)
-
-                change_params[key] = value
+                if key in timestamp_keys:
+                    if not _is_null(value):
+                        value = _convert_datetime_from_timestamp(value, key, timestamp_format)
+                        change_params[key] = value
+                else:
+                    change_params[key] = value
 
             return func(cls, change_params)
 
@@ -216,10 +218,12 @@ def change_date_value(date_keys=None, date_format='%Y-%m-%d'):
             change_params = {}
 
             for key, value in params.items():
-                if key in date_keys and _is_not_null(value):
-                    value = _convert_date_from_string(value, key, date_format)
-
-                change_params[key] = value
+                if key in date_keys:
+                    if not _is_null(value):
+                        value = _convert_date_from_string(value, key, date_format)
+                        change_params[key] = value
+                else:
+                    change_params[key] = value
 
             return func(cls, change_params)
 
@@ -255,8 +259,8 @@ def change_timestamp_filter(filter_keys=None, timestamp_format='google_timestamp
     return wrapper
 
 
-def _is_not_null(value):
-    if value is not None and str(value).strip() != '':
+def _is_null(value):
+    if value is None or str(value).strip() == '':
         return True
 
     return False
