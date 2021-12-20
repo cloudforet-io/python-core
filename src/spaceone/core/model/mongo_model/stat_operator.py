@@ -49,6 +49,7 @@ def _stat_average_resolver(key, operator, name, sub_condition, *args):
             }
         }
 
+
 def _stat_sum_resolver(key, operator, name, sub_condition, *args):
     if sub_condition:
         return {
