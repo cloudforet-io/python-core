@@ -902,7 +902,6 @@ class MongoModel(Document, BaseModel):
                 '$limit': limit
             })
 
-        print(pipeline)
         cursor = vos.aggregate(pipeline)
         result['results'] = cls._make_aggregate_values(cursor)
         return result
