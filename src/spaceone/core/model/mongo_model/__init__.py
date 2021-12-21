@@ -11,7 +11,7 @@ from spaceone.core import utils
 from spaceone.core.error import *
 from spaceone.core.model import BaseModel
 from spaceone.core.model.mongo_model.filter_operator import FILTER_OPERATORS
-from spaceone.core.model.mongo_model.stat_operator import STAT_OPERATORS
+from spaceone.core.model.mongo_model.stat_operator import STAT_GROUP_OPERATORS, STAT_PROJECT_OPERATORS
 
 _REFERENCE_ERROR_FORMAT = r'Could not delete document \((\w+)\.\w+ refers to it\)'
 _MONGO_CONNECTIONS = []
@@ -598,33 +598,42 @@ class MongoModel(Document, BaseModel):
         return changed_values
 
     @classmethod
-    def _make_sub_condition(cls, sub_condition, _before_group_keys):
-        key = sub_condition.get('key', sub_condition.get('k'))
-        value = sub_condition.get('value', sub_condition.get('v'))
-        operator = sub_condition.get('operator', sub_condition.get('o'))
+    def _make_sub_conditions(cls, sub_conditions, _before_group_keys):
+        and_sub_conditions = []
 
-        if key is None:
-            raise ERROR_DB_QUERY(
-                reason=f"'aggregate.group.fields.condition.key' condition requires a key: {sub_condition}")
+        for sub_condition in sub_conditions:
+            key = sub_condition.get('key', sub_condition.get('k'))
+            value = sub_condition.get('value', sub_condition.get('v'))
+            operator = sub_condition.get('operator', sub_condition.get('o'))
 
-        if value is None:
-            raise ERROR_DB_QUERY(
-                reason=f"'aggregate.group.fields.condition.value' condition requires a value: {sub_condition}")
+            if key is None:
+                raise ERROR_DB_QUERY(
+                    reason=f"'aggregate.group.fields.conditions.key' condition requires a key: {sub_condition}")
 
-        if operator is None:
-            raise ERROR_DB_QUERY(
-                reason=f"'aggregate.group.fields.condition.operator' condition requires a operator: {sub_condition}")
+            if value is None:
+                raise ERROR_DB_QUERY(
+                    reason=f"'aggregate.group.fields.conditions.value' condition requires a value: {sub_condition}")
 
-        if operator not in ['eq', 'not', 'gt', 'gte', 'lt', 'lte']:
-            raise ERROR_DB_QUERY(
-                reason=f"'aggregate.group.fields.condition.operator' condition's operator is not supported: "
-                       f"supported operator = eq | not | gt | gte | lt | lte")
+            if operator is None:
+                raise ERROR_DB_QUERY(
+                    reason=f"'aggregate.group.fields.conditions.operator' condition requires a operator: {sub_condition}")
 
-        if key in _before_group_keys:
-            key = f'_id.{key}'
+            if operator not in ['eq', 'not', 'gt', 'gte', 'lt', 'lte']:
+                raise ERROR_DB_QUERY(
+                    reason=f"'aggregate.group.fields.conditions.operator' condition's operator is not supported: "
+                           f"supported operator = eq | not | gt | gte | lt | lte")
+
+            if key in _before_group_keys:
+                key = f'_id.{key}'
+
+            and_sub_conditions.append(
+                {
+                    f'${operator}': [f'${key}', value]
+                }
+            )
 
         return {
-            f'${operator}': [f'${key}', value]
+            '$and': and_sub_conditions
         }
 
     @classmethod
@@ -632,21 +641,12 @@ class MongoModel(Document, BaseModel):
         key = condition.get('key', condition.get('k'))
         name = condition.get('name', condition.get('n'))
         operator = condition.get('operator', condition.get('o'))
-        sub_condition = condition.get('condition', condition.get('c'))
+        sub_conditions = condition.get('conditions')
         sub_fields = condition.get('fields', [])
 
-        if operator not in STAT_OPERATORS:
+        if operator not in STAT_GROUP_OPERATORS:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' operator is not supported. "
-                                        f"(operator = {STAT_OPERATORS.keys()})")
-
-        if sub_condition and operator not in ['count', 'avg', 'sum']:
-            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition is not supported: {condition}")
-
-        if operator not in ['count', 'push'] and key is None:
-            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
-
-        if operator == 'push' and len(sub_fields) == 0:
-            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a fields: {condition}")
+                                        f"(operator = {STAT_GROUP_OPERATORS.keys()})")
 
         if name is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a name: {condition}")
@@ -667,10 +667,10 @@ class MongoModel(Document, BaseModel):
             if f_key in _before_group_keys:
                 sub_field['key'] = f'_id.{f_key}'
 
-        if sub_condition:
-            sub_condition = cls._make_sub_condition(sub_condition, _before_group_keys)
+        if sub_conditions:
+            sub_conditions = cls._make_sub_conditions(sub_conditions, _before_group_keys)
 
-        return key, name, operator, sub_fields, sub_condition
+        return key, name, operator, sub_fields, sub_conditions
 
     @classmethod
     def _get_group_keys(cls, condition, _before_group_keys):
@@ -697,15 +697,11 @@ class MongoModel(Document, BaseModel):
         else:
             rule = f'${key}'
 
-        return key, name, rule
+        return name, rule
 
     @classmethod
     def _make_group_rule(cls, options, _before_group_keys):
         _group_keys = []
-        _include_project = False
-        _project_fields = {}
-        _project_rules = []
-        _rules = []
         _group_rule = {
             '$group': {
                 '_id': {}
@@ -714,36 +710,67 @@ class MongoModel(Document, BaseModel):
         _keys = options.get('keys', [])
         _fields = options.get('fields', [])
 
-        # if len(_keys) == 0:
-        #     raise ERROR_REQUIRED_PARAMETER(key='aggregate.group.keys')
+        if len(_keys) == 0 and len(_fields) == 0:
+            raise ERROR_REQUIRED_PARAMETER(key='aggregate.group.keys || aggregate.group.fields')
 
         for condition in _keys:
-            key, name, rule = cls._get_group_keys(condition, _before_group_keys)
-            _group_keys.append(name)
+            name, rule = cls._get_group_keys(condition, _before_group_keys)
             _group_rule['$group']['_id'][name] = rule
+            _group_keys.append(name)
 
         for condition in _fields:
-            key, name, operator, sub_fields, sub_condition = cls._get_group_fields(condition, _before_group_keys)
+            key, name, operator, sub_fields, sub_conditions = cls._get_group_fields(condition, _before_group_keys)
 
-            rule = STAT_OPERATORS[operator](key, operator, name, sub_condition, sub_fields)
+            rule = STAT_GROUP_OPERATORS[operator](condition, key, operator, name, sub_conditions, sub_fields)
+            _group_rule['$group'].update(rule)
 
-            if rule.get('group') is not None:
-                _group_rule['$group'].update(rule['group'])
+        return _group_rule, _group_keys
 
-            if rule.get('project') is not None:
-                _include_project = True
-                _project_fields.update(rule['project'])
+    @classmethod
+    def _get_project_fields(cls, condition, _group_keys):
+        key = condition.get('key', condition.get('k'))
+        name = condition.get('name', condition.get('n'))
+        operator = condition.get('operator', condition.get('o'))
+
+        if operator and operator not in STAT_PROJECT_OPERATORS:
+            raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' operator is not supported. "
+                                        f"(operator = {STAT_PROJECT_OPERATORS.keys()})")
+
+        if name is None:
+            raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a name: {condition}")
+
+        if key in _group_keys:
+            key = f'_id.{key}'
+
+        return key, name, operator
+
+    @classmethod
+    def _make_project_rule(cls, options, _group_keys):
+        _rules = []
+        _fields = options.get('fields', [])
+        _exclude_keys = options.get('exclude_keys', False)
+        _project_rule = {
+            '$project': {
+            }
+        }
+
+        if len(_fields) == 0:
+            raise ERROR_REQUIRED_PARAMETER(key='aggregate.project.fields')
+
+        for condition in _fields:
+            key, name, operator = cls._get_project_fields(condition, _group_keys)
+
+            if operator:
+                rule = STAT_PROJECT_OPERATORS[operator](condition, key, operator, name)
+                _project_rule['$project'].update(rule)
             else:
-                _project_fields[name] = 1
+                _project_rule['$project'][name] = f'${key}'
 
-        _rules.append(_group_rule)
+        if _exclude_keys:
+            _project_rule['$project']['_id'] = 0
+            _group_keys = []
 
-        if _include_project:
-            _rules.append({
-                '$project': _project_fields
-            })
-
-        return _rules, _group_keys
+        return _project_rule, _group_keys
 
     @classmethod
     def _make_unwind_rule(cls, options):
@@ -796,6 +823,18 @@ class MongoModel(Document, BaseModel):
         }
 
     @classmethod
+    def _make_limit_rule(cls, options):
+        return {
+            '$limit': options
+        }
+
+    @classmethod
+    def _make_skip_rule(cls, options):
+        return {
+            '$skip': options
+        }
+
+    @classmethod
     def _make_aggregate_rules(cls, aggregate):
         _aggregate_rules = []
         _group_keys = []
@@ -808,8 +847,8 @@ class MongoModel(Document, BaseModel):
                 rule = cls._make_unwind_rule(stage['unwind'])
                 _aggregate_rules.append(rule)
             elif 'group' in stage:
-                rules, group_keys = cls._make_group_rule(stage['group'], _group_keys)
-                _aggregate_rules += rules
+                rule, group_keys = cls._make_group_rule(stage['group'], _group_keys)
+                _aggregate_rules.append(rule)
                 _group_keys += group_keys
             elif 'count' in stage:
                 rule = cls._make_count_rule(stage['count'])
@@ -817,17 +856,28 @@ class MongoModel(Document, BaseModel):
             elif 'sort' in stage:
                 rule = cls._make_sort_rule(stage['sort'], _group_keys)
                 _aggregate_rules.append(rule)
+            elif 'project' in stage:
+                rule, _group_keys = cls._make_project_rule(stage['project'], _group_keys)
+                _aggregate_rules.append(rule)
+            elif 'limit' in stage:
+                rule = cls._make_limit_rule(stage['limit'])
+                _aggregate_rules.append(rule)
+            elif 'skip' in stage:
+                rule = cls._make_skip_rule(stage['skip'])
+                _aggregate_rules.append(rule)
             else:
                 raise ERROR_REQUIRED_PARAMETER(key='aggregate.unwind or aggregate.group or '
-                                                   'aggregate.count or aggregate.sort')
+                                                   'aggregate.count or aggregate.sort or '
+                                                   'aggregate.project or aggregate.limit or '
+                                                   'aggregate.skip')
 
-        return _aggregate_rules, _group_keys
+        return _aggregate_rules
 
     @classmethod
     def _stat_aggregate(cls, vos, aggregate, page):
         result = {}
         pipeline = []
-        _aggregate_rules, _group_keys = cls._make_aggregate_rules(aggregate)
+        _aggregate_rules = cls._make_aggregate_rules(aggregate)
 
         for rule in _aggregate_rules:
             pipeline.append(rule)
@@ -852,6 +902,7 @@ class MongoModel(Document, BaseModel):
                 '$limit': limit
             })
 
+        print(pipeline)
         cursor = vos.aggregate(pipeline)
         result['results'] = cls._make_aggregate_values(cursor)
         return result
