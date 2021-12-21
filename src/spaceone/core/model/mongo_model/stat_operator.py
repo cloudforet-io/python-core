@@ -1,89 +1,35 @@
 from spaceone.core.error import *
 from spaceone.core import utils
 
-__all__ = ['STAT_OPERATORS']
+__all__ = ['STAT_GROUP_OPERATORS', 'STAT_PROJECT_OPERATORS']
 
 
-def _stat_count_resolver(key, operator, name, sub_condition, *args):
-    if sub_condition:
+def _group_count_resolver(condition, key, operator, name, sub_conditions, *args):
+    if sub_conditions:
         return {
-            'group': {
-                name: {
-                    '$sum': {
-                        '$cond': [
-                            sub_condition,
-                            1,
-                            0
-                        ]
-                    }
+            name: {
+                '$sum': {
+                    '$cond': [
+                        sub_conditions,
+                        1,
+                        0
+                    ]
                 }
             }
         }
     else:
         return {
-            'group': {
-                name: {'$sum': 1}
-            }
+            name: {'$sum': 1}
         }
 
 
-def _stat_average_resolver(key, operator, name, sub_condition, *args):
-    if sub_condition:
-        return {
-            'group': {
-                name: {
-                    '$avg': {
-                        '$cond': [
-                            sub_condition,
-                            f'${key}',
-                            0
-                        ]
-                    }
-                }
-            }
-        }
-    else:
-        return {
-            'group': {
-                name: {'$avg': f'${key}'}
-            }
-        }
+def _group_push_resolver(condition, key, operator, name, sub_conditions, sub_fields, *args):
+    if len(sub_fields) == 0:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires fields: {condition}")
 
-def _stat_sum_resolver(key, operator, name, sub_condition, *args):
-    if sub_condition:
-        return {
-            'group': {
-                name: {
-                    '$sum': {
-                        '$cond': [
-                            sub_condition,
-                            f'${key}',
-                            0
-                        ]
-                    }
-                }
-            }
-        }
-    else:
-        return {
-            'group': {
-                name: {'$sum': f'${key}'}
-            }
-        }
+    if sub_conditions:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's conditions not supported: {condition}")
 
-
-def _stat_size_resolver(key, operator, name, *args):
-    return {
-        'group': {
-            name: {'$addToSet': f'${key}'}
-        },
-        'project': {
-            name: {'$size': f'${name}'}
-        }
-    }
-
-
-def _stat_push_resolver(key, operator, name, sub_condition, sub_fields, *args):
     push_query = {}
 
     for sub_field in sub_fields:
@@ -93,48 +39,134 @@ def _stat_push_resolver(key, operator, name, sub_condition, sub_fields, *args):
         push_query[f_name] = f'${f_key}'
 
     return {
-        'group': {
+        name: {
+            '$push': push_query
+        }
+    }
+
+
+def _group_average_resolver(condition, key, operator, name, sub_conditions, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
+
+    if sub_conditions:
+        return {
             name: {
-                '$push': push_query
+                '$avg': {
+                    '$cond': [
+                        sub_conditions,
+                        f'${key}',
+                        0
+                    ]
+                }
             }
         }
-    }
-
-
-def _stat_add_to_set_resolver(key, operator, name, *args):
-    return {
-        'group': {
-            name: {'$addToSet': f'${key}'}
+    else:
+        return {
+            name: {'$avg': f'${key}'}
         }
-    }
 
 
-def _stat_merge_objects_resolver(key, operator, name, *args):
-    return {
-        'group': {
-            name: {'$mergeObjects': f'${key}'}
+def _group_sum_resolver(condition, key, operator, name, sub_conditions, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
+
+    if sub_conditions:
+        return {
+            name: {
+                '$sum': {
+                    '$cond': [
+                        sub_conditions,
+                        f'${key}',
+                        0
+                    ]
+                }
+            }
         }
-    }
-
-
-def _stat_default_resolver(key, operator, name, *args):
-    return {
-        'group': {
-            name: {f'${operator}': f'${key}'}
+    else:
+        return {
+            name: {'$sum': f'${key}'}
         }
+
+
+def _group_add_to_set_resolver(condition, key, operator, name, sub_conditions, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
+
+    if sub_conditions:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's conditions not supported: {condition}")
+
+    return {
+        name: {'$addToSet': f'${key}'}
     }
 
 
-STAT_OPERATORS = {
-    'count': _stat_count_resolver,
-    'sum': _stat_sum_resolver,
-    'average': _stat_average_resolver,
-    'max': _stat_default_resolver,
-    'min': _stat_default_resolver,
-    'first': _stat_default_resolver,
-    'last': _stat_default_resolver,
-    'size': _stat_size_resolver,
-    'push': _stat_push_resolver,
-    'add_to_set': _stat_add_to_set_resolver,
-    'merge_objects': _stat_merge_objects_resolver,
+def _group_merge_objects_resolver(condition, key, operator, name, sub_conditions, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
+
+    if sub_conditions:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's conditions not supported: {condition}")
+
+    return {
+        name: {'$mergeObjects': f'${key}'}
+    }
+
+
+def _group_default_resolver(condition, key, operator, name, sub_conditions, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
+
+    if sub_conditions:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's conditions not supported: {condition}")
+
+    return {
+        name: {f'${operator}': f'${key}'}
+    }
+
+
+def _project_size_resolver(condition, key, operator, name, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
+
+    return {
+        name: {'$size': f'${key}'}
+    }
+
+
+def _project_array_to_object_resolver(condition, key, operator, name, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
+
+    return {
+        name: {'$arrayToObject': f'${key}'}
+    }
+
+
+def _project_object_to_array_resolver(condition, key, operator, name, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
+
+    return {
+        name: {'$objectToArray': f'${key}'}
+    }
+
+
+STAT_GROUP_OPERATORS = {
+    'count': _group_count_resolver,
+    'sum': _group_sum_resolver,
+    'average': _group_average_resolver,
+    'max': _group_default_resolver,
+    'min': _group_default_resolver,
+    'first': _group_default_resolver,
+    'last': _group_default_resolver,
+    'push': _group_push_resolver,
+    'add_to_set': _group_add_to_set_resolver,
+    'merge_objects': _group_merge_objects_resolver,
+}
+
+STAT_PROJECT_OPERATORS = {
+    'size': _project_size_resolver,
+    'array_to_object': _project_array_to_object_resolver,
+    'object_to_array': _project_object_to_array_resolver,
 }

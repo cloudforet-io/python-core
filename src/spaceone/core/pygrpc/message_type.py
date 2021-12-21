@@ -70,7 +70,7 @@ def change_empty_type(value):
     return Empty()
 
 
-def _change_filter_type(condition):
+def _change_condition_type(condition):
     if 'value' in condition:
         condition['value'] = change_value_type(condition['value'])
     elif 'v' in condition:
@@ -81,16 +81,27 @@ def _change_filter_type(condition):
 
 def change_query(value):
     change_value = value.copy()
-    change_value['filter'] = map(_change_filter_type, value.get('filter', []))
-    change_value['filter_or'] = map(_change_filter_type, value.get('filter_or', []))
+    change_value['filter'] = map(_change_condition_type, value.get('filter', []))
+    change_value['filter_or'] = map(_change_condition_type, value.get('filter_or', []))
 
     return query_pb2.Query(**change_value)
 
 
 def change_stat_query(value):
     change_value = value.copy()
-    change_value['filter'] = map(_change_filter_type, value.get('filter', []))
-    change_value['filter_or'] = map(_change_filter_type, value.get('filter_or', []))
+    change_value['filter'] = map(_change_condition_type, value.get('filter', []))
+    change_value['filter_or'] = map(_change_condition_type, value.get('filter_or', []))
+
+    for stage in change_value.get('aggregate', []):
+        if 'group' in stage:
+            for field in stage['group'].get('fields', []):
+                if 'conditions' in field:
+                    field['conditions'] = map(_change_condition_type, field.get('conditions', []))
+
+        elif 'project' in stage:
+            for field in stage['project'].get('fields', []):
+                if 'options' in field:
+                    field['options'] = change_struct_type(field['options'])
 
     return query_pb2.StatisticsQuery(**change_value)
 
