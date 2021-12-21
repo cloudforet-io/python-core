@@ -605,15 +605,15 @@ class MongoModel(Document, BaseModel):
 
         if key is None:
             raise ERROR_DB_QUERY(
-                reason=f"'aggregate.group.fields.condition.key' condition requires a key: {condition}")
+                reason=f"'aggregate.group.fields.condition.key' condition requires a key: {sub_condition}")
 
         if value is None:
             raise ERROR_DB_QUERY(
-                reason=f"'aggregate.group.fields.condition.value' condition requires a value: {condition}")
+                reason=f"'aggregate.group.fields.condition.value' condition requires a value: {sub_condition}")
 
         if operator is None:
             raise ERROR_DB_QUERY(
-                reason=f"'aggregate.group.fields.condition.operator' condition requires a operator: {condition}")
+                reason=f"'aggregate.group.fields.condition.operator' condition requires a operator: {sub_condition}")
 
         if operator not in ['eq', 'not', 'gt', 'gte', 'lt', 'lte']:
             raise ERROR_DB_QUERY(
