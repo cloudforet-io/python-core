@@ -618,10 +618,12 @@ class MongoModel(Document, BaseModel):
                 raise ERROR_DB_QUERY(
                     reason=f"'aggregate.group.fields.conditions.operator' condition requires a operator: {sub_condition}")
 
-            if operator not in ['eq', 'not', 'gt', 'gte', 'lt', 'lte']:
+            _SUPPORTED_OPERATOR = ['eq', 'not', 'gt', 'gte', 'lt', 'lte']
+
+            if operator not in _SUPPORTED_OPERATOR:
                 raise ERROR_DB_QUERY(
-                    reason=f"'aggregate.group.fields.conditions.operator' condition's operator is not supported: "
-                           f"supported operator = eq | not | gt | gte | lt | lte")
+                    reason=f"'aggregate.group.fields.conditions.operator' condition's {operator} operator is not "
+                           f"supported. (supported_operator = {_SUPPORTED_OPERATOR})")
 
             if key in _before_group_keys:
                 key = f'_id.{key}'
@@ -645,8 +647,8 @@ class MongoModel(Document, BaseModel):
         sub_fields = condition.get('fields', [])
 
         if operator not in STAT_GROUP_OPERATORS:
-            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' operator is not supported. "
-                                        f"(operator = {STAT_GROUP_OPERATORS.keys()})")
+            raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's {operator} operator is not supported. "
+                                        f"(supported_operator = {list(STAT_GROUP_OPERATORS.keys())})")
 
         if name is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a name: {condition}")
@@ -733,8 +735,8 @@ class MongoModel(Document, BaseModel):
         operator = condition.get('operator', condition.get('o'))
 
         if operator and operator not in STAT_PROJECT_OPERATORS:
-            raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' operator is not supported. "
-                                        f"(operator = {STAT_PROJECT_OPERATORS.keys()})")
+            raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition's {operator} operator is not supported. "
+                                        f"(supported_operator = {list(STAT_PROJECT_OPERATORS.keys())})")
 
         if name is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a name: {condition}")
