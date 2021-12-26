@@ -14,6 +14,7 @@ _EXCLUDE_METHODS = [
     'identity.Authorization.verify'
 ]
 
+
 class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
 
     def __init__(self, transaction: Transaction, config):

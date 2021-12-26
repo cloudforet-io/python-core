@@ -46,6 +46,7 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
         user_id_key = self.transaction.get_meta('authorization.user_id', 'user_id')
         require_project_group_id = self.transaction.get_meta('authorization.require_project_group_id', False)
         require_project_id = self.transaction.get_meta('authorization.require_project_id', False)
+        require_user_id = self.transaction.get_meta('authorization.require_user_id', False)
 
         try:
             response = self.grpc_method(
@@ -59,7 +60,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
                     'project_group_id': params.get(project_group_id_key),
                     'user_id': params.get(user_id_key),
                     'require_project_id': require_project_id,
-                    'require_project_group_id': require_project_group_id
+                    'require_project_group_id': require_project_group_id,
+                    'require_user_id': require_user_id
                 },
                 metadata=self.transaction.get_connection_meta()
             )

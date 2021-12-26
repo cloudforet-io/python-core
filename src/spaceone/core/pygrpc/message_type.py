@@ -98,11 +98,6 @@ def change_stat_query(value):
                 if 'conditions' in field:
                     field['conditions'] = map(_change_condition_type, field.get('conditions', []))
 
-        elif 'project' in stage:
-            for field in stage['project'].get('fields', []):
-                if 'options' in field:
-                    field['options'] = change_struct_type(field['options'])
-
     return query_pb2.StatisticsQuery(**change_value)
 
 
