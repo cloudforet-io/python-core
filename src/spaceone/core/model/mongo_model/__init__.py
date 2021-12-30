@@ -690,12 +690,25 @@ class MongoModel(Document, BaseModel):
             key = f'_id.{key}'
 
         if date_format:
-            rule = {
-                '$dateToString': {
-                    'format': date_format,
-                    'date': f'${key}'
+            if date_format == 'year':
+                rule = {
+                    '$year': f'${key}'
                 }
-            }
+            elif date_format == 'month':
+                rule = {
+                    '$month': f'${key}'
+                }
+            elif date_format == 'day':
+                rule = {
+                    '$dayOfMonth': f'${key}'
+                }
+            else:
+                rule = {
+                    '$dateToString': {
+                        'format': date_format,
+                        'date': f'${key}'
+                    }
+                }
         else:
             rule = f'${key}'
 
