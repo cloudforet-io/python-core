@@ -163,7 +163,6 @@ def _project_concat_resolver(condition, key, operator, name, *args):
         else:
             concat_keys.append(key)
 
-    print(concat_keys)
     return {
         name: {'$concat': concat_keys}
     }
