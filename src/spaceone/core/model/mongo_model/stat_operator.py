@@ -152,6 +152,23 @@ def _project_object_to_array_resolver(condition, key, operator, name, *args):
     }
 
 
+def _project_concat_resolver(condition, key, operator, name, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
+
+    concat_keys = []
+    for key in key.split('|'):
+        if key in ['$_id.year', '$_id.month', '$_id.day']:
+            concat_keys.append({'$substr': [key, 0, 4]})
+        else:
+            concat_keys.append(key)
+
+    print(concat_keys)
+    return {
+        name: {'$concat': concat_keys}
+    }
+
+
 STAT_GROUP_OPERATORS = {
     'count': _group_count_resolver,
     'sum': _group_sum_resolver,
@@ -169,4 +186,5 @@ STAT_PROJECT_OPERATORS = {
     'size': _project_size_resolver,
     'array_to_object': _project_array_to_object_resolver,
     'object_to_array': _project_object_to_array_resolver,
+    'concat': _project_concat_resolver,
 }
