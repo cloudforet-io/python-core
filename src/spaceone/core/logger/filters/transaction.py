@@ -1,19 +1,19 @@
 import logging
+from spaceone.core.transaction import LOCAL_STORAGE
 
 
 class TransactionFilter(logging.Filter):
-    def __init__(self, transaction=None):
-        self.transaction = transaction
 
     def filter(self, record):
-        if self.transaction:
-            record.service = self.transaction.service
-            record.tnx_id = self.transaction.id
-            record.tnx_status = self.transaction.status
-            record.peer = self.transaction.get_meta('peer')
-
-            if self.transaction.resource and self.transaction.verb:
-                record.tnx_method = f'{self.transaction.resource}.{self.transaction.verb}'
+        transaction = getattr(LOCAL_STORAGE, 'transaction', None)
+        print(transaction)
+        if transaction:
+            record.service = transaction.service
+            record.tnx_id = transaction.id
+            record.tnx_status = transaction.status
+            record.peer = transaction.get_meta('peer')
+            if transaction.resource and transaction.verb:
+                record.tnx_method = f'{transaction.resource}.{transaction.verb}'
             else:
                 record.tnx_method = ''
         else:
@@ -22,5 +22,4 @@ class TransactionFilter(logging.Filter):
             record.tnx_status = ""
             record.tnx_method = ""
             record.peer = ""
-
         return True
