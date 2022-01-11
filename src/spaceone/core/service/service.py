@@ -8,7 +8,6 @@ import traceback
 from spaceone.core import config
 from spaceone.core.error import *
 from spaceone.core.locator import Locator
-from spaceone.core.logger import set_logger
 from spaceone.core.transaction import Transaction
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,9 +26,6 @@ class BaseService(object):
             self.transaction = transaction
         else:
             self.transaction = Transaction(metadata)
-
-        if config.get_global('SET_LOGGING', True):
-            set_logger(transaction=self.transaction)
 
         self.locator = Locator(self.transaction)
         self.handler = {
