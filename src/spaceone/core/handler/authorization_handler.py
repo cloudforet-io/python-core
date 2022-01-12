@@ -66,8 +66,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
                 metadata=self.transaction.get_connection_meta()
             )
 
-            projects = list(response.projects) + [None]
-            project_groups = list(response.project_groups) + [None]
+            projects = list(response.projects)
+            project_groups = list(response.project_groups)
 
             self.transaction.set_meta('authorization.role_type', response.role_type)
             self.transaction.set_meta('authorization.projects', projects)
