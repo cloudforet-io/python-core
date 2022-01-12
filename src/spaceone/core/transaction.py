@@ -2,8 +2,12 @@ import traceback
 import logging
 from spaceone.core import utils
 from spaceone.core.error import *
+from threading import local
+
+__all__ = ['LOCAL_STORAGE', 'Transaction']
 
 _LOGGER = logging.getLogger(__name__)
+LOCAL_STORAGE = local()
 
 
 class Transaction(object):
@@ -18,6 +22,8 @@ class Transaction(object):
         self._status = 'STARTED'
         self._set_transaction_id()
         self._event_handlers = []
+
+        LOCAL_STORAGE.transaction = self
 
     def __repr__(self):
         return f"<Transaction ({self.resource}.{self.verb})>"
