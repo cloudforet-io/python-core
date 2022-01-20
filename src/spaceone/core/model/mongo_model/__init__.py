@@ -969,4 +969,7 @@ class MongoModel(Document, BaseModel):
                 return cls._stat_distinct(vos, distinct, page)
 
         except Exception as e:
-            raise ERROR_DB_QUERY(reason=e)
+            if not isinstance(e, ERROR_BASE):
+                e = ERROR_UNKNOWN(message=str(e))
+
+            raise ERROR_DB_QUERY(reason=e.message)
