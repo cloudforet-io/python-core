@@ -53,7 +53,7 @@ def append_query_filter(filter_keys):
             query['filter'] = query.get('filter', [])
 
             for key in filter_keys:
-                if params.get(key):
+                if key in params:
                     if isinstance(params[key], list):
                         query['filter'].append({'k': key, 'v': params[key], 'o': 'in'})
                     else:
