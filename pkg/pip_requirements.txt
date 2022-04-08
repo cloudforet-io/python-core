@@ -5,11 +5,11 @@ grpcio-health-checking
 asyncio
 PyYAML
 unittest-xml-reporting>=3.0.0
-pycryptodome==3.8.2
+pycryptodome
 schedule
 cachetools
-jwcrypto==0.7
-python-jose==3.1.0
+jwcrypto
+python-jose
 factory-boy
 jsonschema
 python-dateutil
