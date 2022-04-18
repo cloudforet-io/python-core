@@ -21,7 +21,7 @@ with open('VERSION', 'r') as f:
     f.close()
 
 setup(
-    name='spaceone-core',
+    name='cloudforet-core',
     version=VERSION,
     description='SpaceONE core library',
     long_description='',
