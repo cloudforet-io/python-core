@@ -7,16 +7,31 @@ _LOGGER = logging.getLogger(__name__)
 class SpaceONEMutationHandler(BaseMutationHandler):
 
     def request(self, params):
+        scope = self.transaction.get_meta('authorization.scope')
         role_type = self.transaction.get_meta('authorization.role_type')
         domain_id = self.transaction.get_meta('domain_id')
+
+        if self._check_mutation(scope, role_type):
+            params = self._append_parameter(params)
 
         if role_type in ['DOMAIN', 'PROJECT', 'USER']:
             params['domain_id'] = domain_id
 
-        if role_type in ['PROJECT', 'USER']:
-            params = self._append_parameter(params)
-
         return params
+
+    @staticmethod
+    def _check_mutation(scope, role_type):
+        if scope == 'DOMAIN':
+            if role_type in ['DOMAIN', 'PROJECT', 'USER']:
+                return True
+        elif scope == 'PROJECT':
+            if role_type in ['PROJECT', 'USER']:
+                return True
+        elif scope == 'USER':
+            if role_type == 'USER':
+                return True
+
+        return False
 
     def _append_parameter(self, params):
         append_parameter = self.transaction.get_meta('mutation.append_parameter', {})
