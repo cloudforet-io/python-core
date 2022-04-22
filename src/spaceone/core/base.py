@@ -12,4 +12,3 @@ class CoreObject(object):
             self.transaction = Transaction()
 
         self.locator = Locator(self.transaction)
-        print("PoC")
