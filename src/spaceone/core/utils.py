@@ -141,6 +141,7 @@ def parse_grpc_endpoint(endpoint: str) -> dict:
         'ssl_enabled': ssl_enabled
     }
 
+
 def parse_grpc_uri(uri: str) -> dict:
     try:
         endpoint_info = parse_endpoint(uri)
