@@ -32,6 +32,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         # "grpcio",
+        "protobuf==3.*",
         "grpcio-reflection",
         "google-api-core",
         "grpcio-health-checking",
