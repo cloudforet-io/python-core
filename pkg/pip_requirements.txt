@@ -21,3 +21,4 @@ celery[redis]==4.4.7
 uvicorn
 fastapi
 python-consul
+dnspython
