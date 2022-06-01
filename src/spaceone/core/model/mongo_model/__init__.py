@@ -1,6 +1,7 @@
 import bson
 import re
 import logging
+import certifi
 from datetime import datetime
 from functools import reduce
 from mongoengine import EmbeddedDocumentField, EmbeddedDocument, Document, QuerySet, register_connection
@@ -124,6 +125,10 @@ class MongoModel(Document, BaseModel):
                     db_conf['read_preference'] = read_preference
                 else:
                     del db_conf['read_preference']
+
+            host: str = str(db_conf.get('host', '')).strip()
+            if host.startswith('mongodb+srv://'):
+                db_conf['tlsCAFile'] = certifi.where()
 
             register_connection(db_alias, **db_conf)
 
