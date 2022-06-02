@@ -34,23 +34,23 @@ def set_default_conf():
 
 
 def get_package():
-    return copy.deepcopy(_GLOBAL['PACKAGE'])
+    return _GLOBAL['PACKAGE']
 
 
 def get_service():
-    return copy.deepcopy(_GLOBAL['SERVICE'])
+    return _GLOBAL['SERVICE']
 
 
 def get_extension_apis():
-    return copy.deepcopy(_GLOBAL.get('EXTENSION_APIS', {}))
+    return _GLOBAL.get('EXTENSION_APIS', {})
 
 
 def get_handler(name):
-    return copy.deepcopy(_GLOBAL.get('HANDLERS', {}).get(name, {}))
+    return _GLOBAL.get('HANDLERS', {}).get(name, {})
 
 
 def get_connector(name):
-    return copy.deepcopy(_GLOBAL.get('CONNECTORS', {}).get(name, {}))
+    return _GLOBAL.get('CONNECTORS', {}).get(name, {})
 
 
 def set_service_config():
@@ -88,6 +88,8 @@ def set_global(**config):
                 global_conf[key] = utils.deep_merge(value, global_conf[key])
             else:
                 global_conf[key] = value
+
+    _GLOBAL.update(global_conf)
 
 
 def set_global_force(**config):
