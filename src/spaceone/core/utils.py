@@ -15,6 +15,19 @@ from pathlib import Path
 from typing import Union
 
 
+YAML_LOADER = yaml.Loader
+YAML_LOADER.add_implicit_resolver(
+    u'tag:yaml.org,2002:float',
+    re.compile(u'''^(?:
+     [-+]?(?:[0-9][0-9_]*)\\.[0-9_]*(?:[eE][-+]?[0-9]+)?
+    |[-+]?(?:[0-9][0-9_]*)(?:[eE][-+]?[0-9]+)
+    |\\.[0-9_]+(?:[eE][-+][0-9]+)?
+    |[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\\.[0-9_]*
+    |[-+]?\\.(?:inf|Inf|INF)
+    |\\.(?:nan|NaN|NAN))$''', re.X),
+    list(u'-+0123456789.'))
+
+
 def generate_id(prefix: str = 'id', nbytes: int = 6) -> str:
     random_id = secrets.token_hex(nbytes)
     return f'{prefix}-{random_id}'
@@ -86,7 +99,7 @@ def save_yaml_to_file(data: dict, yaml_file: str):
 
 def load_yaml(yaml_str: str) -> dict:
     try:
-        return yaml.load(yaml_str, Loader=yaml.Loader)
+        return yaml.load(yaml_str, Loader=YAML_LOADER)
     except Exception:
         raise ValueError(f'YAML Load Error: {yaml_str}')
 
