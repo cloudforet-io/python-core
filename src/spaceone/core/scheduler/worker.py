@@ -8,6 +8,7 @@ from multiprocessing import Process
 from spaceone.core import queue, config
 from spaceone.core.locator import Locator
 from spaceone.core.transaction import Transaction
+from spaceone.core.logger import set_logger
 from spaceone.core.error import ERROR_TASK_LOCATOR, ERROR_TASK_METHOD
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,6 +94,10 @@ class BaseWorker(Process):
         """ Infinite Loop
         """
         config.set_global_force(**self.global_config)
+
+        # Enable logging configuration
+        if self.global_config.get('SET_LOGGING', True):
+            set_logger()
 
         while True:
             # Read from Queue
