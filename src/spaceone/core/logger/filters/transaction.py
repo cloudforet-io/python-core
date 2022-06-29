@@ -5,7 +5,7 @@ from spaceone.core.transaction import LOCAL_STORAGE
 class TransactionFilter(logging.Filter):
 
     def filter(self, record):
-        if transaction:= getattr(LOCAL_STORAGE, 'transaction', None):
+        if transaction := getattr(LOCAL_STORAGE, 'transaction', None):
             record.service = transaction.service
             record.tnx_id = transaction.id
             record.tnx_status = transaction.status

@@ -9,6 +9,7 @@ import schedule
 from jsonschema import validate
 from scheduler import Scheduler as CronSchedulerServer
 from spaceone.core import queue, config
+from spaceone.core.logger import set_logger
 from spaceone.core.error import ERROR_CONFIGURATION
 from spaceone.core.scheduler.task_schema import SPACEONE_TASK_SCHEMA
 
@@ -78,6 +79,10 @@ class IntervalScheduler(BaseScheduler):
     def run(self):
         config.set_global_force(**self.global_config)
 
+        # Enable logging configuration
+        if self.global_config.get('SET_LOGGING', True):
+            set_logger()
+
         schedule.every(self.config).seconds.do(self.push_task)
         while True:
             schedule.run_pending()
@@ -109,6 +114,10 @@ class HourlyScheduler(BaseScheduler):
     def run(self):
         config.set_global_force(**self.global_config)
 
+        # Enable logging configuration
+        if self.global_config.get('SET_LOGGING', True):
+            set_logger()
+
         # Call push_task in every hour
         schedule.every(self.config).hours.at(self.minute).do(self.push_task)
         while True:
@@ -134,6 +143,10 @@ class CronScheduler(BaseScheduler):
 
     def run(self):
         config.set_global_force(**self.global_config)
+
+        # Enable logging configuration
+        if self.global_config.get('SET_LOGGING', True):
+            set_logger()
 
         if self.config is False:
             # May be error format
