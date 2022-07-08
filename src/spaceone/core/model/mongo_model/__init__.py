@@ -341,15 +341,15 @@ class MongoModel(Document, BaseModel):
         return vos.first()
 
     @classmethod
-    def filter(cls, target=None, **conditions):
+    def filter(cls, **conditions):
         change_conditions = {}
         for key, value in conditions.items():
             if isinstance(value, list):
                 change_conditions[f'{key}__in'] = value
             else:
-                    change_conditions[key] = value
+                change_conditions[key] = value
 
-        vos = cls._get_target_objects(target).filter(**change_conditions)
+        return cls.objects.filter(**change_conditions)
 
     def to_dict(self):
         return self.to_mongo()
