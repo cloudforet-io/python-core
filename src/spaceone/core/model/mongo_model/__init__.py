@@ -341,18 +341,27 @@ class MongoModel(Document, BaseModel):
         return vos.first()
 
     @classmethod
-    def filter(cls, **conditions):
+    def filter(cls, target=None, **conditions):
         change_conditions = {}
         for key, value in conditions.items():
             if isinstance(value, list):
                 change_conditions[f'{key}__in'] = value
             else:
-                change_conditions[key] = value
+                    change_conditions[key] = value
 
-        return cls.objects.filter(**change_conditions)
+        vos = cls._get_target_objects(target).filter(**change_conditions)
 
     def to_dict(self):
         return self.to_mongo()
+
+    @classmethod
+    def _get_target_objects(cls, target):
+        if target:
+            read_preference = getattr(ReadPreference, target, None)
+            if read_preference:
+                return cls.objects.read_preference(read_preference)
+
+        return cls.objects
 
     @staticmethod
     def _check_operator_value(is_multiple, operator, value, condition):
@@ -486,7 +495,7 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def query(cls, *args, only=None, exclude=None, all_fields=False, filter=None, filter_or=None,
-              sort=None, page=None, minimal=False, count_only=False, **kwargs):
+              sort=None, page=None, minimal=False, count_only=False, target=None, **kwargs):
 
         if filter is None:
             filter = []
@@ -518,7 +527,7 @@ class MongoModel(Document, BaseModel):
                     _order_by.append(f'{s["key"]}')
 
         try:
-            vos = cls.objects.filter(_filter)
+            vos = cls._get_target_objects(target).filter(_filter)
 
             if len(_order_by) > 0:
                 vos = vos.order_by(*_order_by)
@@ -948,7 +957,8 @@ class MongoModel(Document, BaseModel):
         return result
 
     @classmethod
-    def stat(cls, *args, aggregate=None, distinct=None, filter=None, filter_or=None, page=None, **kwargs):
+    def stat(cls, *args, aggregate=None, distinct=None, filter=None, filter_or=None, page=None,
+             target='SECONDARY_PREFERRED', **kwargs):
 
         if filter is None:
             filter = []
@@ -965,7 +975,7 @@ class MongoModel(Document, BaseModel):
         _filter = cls._make_filter(filter, filter_or)
 
         try:
-            vos = cls.objects.filter(_filter)
+            vos = cls._get_target_objects(target).filter(_filter)
 
             if aggregate:
                 return cls._stat_aggregate(vos, aggregate, page)
