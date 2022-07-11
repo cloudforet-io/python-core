@@ -233,10 +233,13 @@ def _convert_base_time(time_str: str) -> datetime:
     elif time_str == 'now/w':
         today = datetime.datetime.combine(now.date(), datetime.time(0))
         return today - datetime.timedelta(days=now.date().weekday())
+    elif time_str == 'now/m':
+        today = datetime.datetime.combine(now.date(), datetime.time(0))
+        return today.replace(day=1)
 
 
 def _parse_timediff_from_regex(query: str) -> Tuple[dict, bool]:
-    p = r'^\s?(?P<base_time>now(\/[dw])?)\s?' \
+    p = r'^\s?(?P<base_time>now(\/[dwm])?)\s?' \
         r'(?P<operator>[+|-])\s?' \
         r'(?P<time_delta_number>\d+)' \
         r'(?P<time_delta_unit>[s|m|h|d|w])\s?$'
@@ -245,7 +248,7 @@ def _parse_timediff_from_regex(query: str) -> Tuple[dict, bool]:
     if match:
         return match.groupdict(), True
     else:
-        if query.strip() not in ['now', 'now/d', 'now/w']:
+        if query.strip() not in ['now', 'now/d', 'now/w', 'now/m']:
             raise ValueError(f'Timediff format is invalid. (value={query})')
 
         return {'base_time': query.strip()}, False
