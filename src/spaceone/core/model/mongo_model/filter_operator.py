@@ -1,4 +1,3 @@
-from dateutil.parser import iso
 from functools import reduce
 from mongoengine.queryset.visitor import Q
 
