@@ -9,7 +9,7 @@ import yaml
 import json
 import hashlib
 import urllib
-from dateutil.parser import parse as dateparse
+from dateutil.parser import isoparse
 from typing import Tuple
 from pathlib import Path
 from typing import Union
@@ -409,7 +409,7 @@ def datetime_to_iso8601(value: datetime.datetime) -> Union[str, None]:
 def iso8601_to_datetime(value: str) -> Union[datetime.datetime, None]:
     if isinstance(value, str):
         try:
-            return dateparse(value)
+            return isoparse(value)
         except Exception as e:
             raise ValueError(f'Datetime(ISO8601) format is invalid. (value={value})')
 
