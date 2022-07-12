@@ -72,7 +72,8 @@ class SpaceConnector(BaseConnector):
 
     def _init_client(self):
         e = parse_grpc_endpoint(self._endpoints[self._service])
-        self._client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'])
+        self._client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'],
+                                     max_message_length=1024*1024*256)
 
     @staticmethod
     def _change_message(message):
