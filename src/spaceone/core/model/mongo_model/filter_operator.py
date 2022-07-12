@@ -1,4 +1,4 @@
-from dateutil.parser import parse
+from dateutil.parser import iso
 from functools import reduce
 from mongoengine.queryset.visitor import Q
 
@@ -54,7 +54,7 @@ def _regex_resolver(key, value, operator, is_multiple):
 
 def _datetime_resolver(key, value, operator, is_multiple):
     try:
-        dt = parse(value)
+        dt = utils.iso8601_to_datetime(value)
     except Exception as e:
         raise ERROR_DB_QUERY(reason=f'The value of datetime_{operator} operator is required ISO 8601 format.')
     return Q(**{f'{key}__{operator}': dt})
