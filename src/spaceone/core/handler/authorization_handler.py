@@ -1,4 +1,5 @@
 import logging
+import fnmatch
 from spaceone.core import pygrpc
 from spaceone.core import utils
 from spaceone.core.transaction import Transaction
@@ -28,6 +29,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
         self.grpc_method = pygrpc.get_grpc_method(uri_info)
 
     def verify(self, params=None):
+        self._check_permissions()
+
         user_type = self.transaction.get_meta('authorization.user_type')
         scope = self.transaction.get_meta('authorization.scope', 'DOMAIN')
 
@@ -35,6 +38,18 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
             self._verify_domain_owner(params)
         else:
             self._verify_auth(params, scope)
+
+    def _check_permissions(self):
+        permissions = self.transaction.get_meta('authorization.permissions')
+        if isinstance(permissions, list):
+            for permission in permissions:
+                request_api = f'{self.transaction.service}.{self.transaction.resource}.{self.transaction.verb}'
+                if fnmatch.fnmatch(request_api, permission):
+                    return True
+
+            raise ERROR_PERMISSION_DENIED()
+
+        return True
 
     def _verify_domain_owner(self, params):
         # Pass all methods
