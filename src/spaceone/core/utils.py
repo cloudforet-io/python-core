@@ -66,7 +66,7 @@ def create_dir(path: str):
     p.mkdir(parents=True, exist_ok=True)
 
 
-def dump_json(data: dict, indent=None, sort_keys=False) -> str:
+def dump_json(data, indent=None, sort_keys=False) -> str:
     try:
         return json.dumps(data, indent=indent, sort_keys=sort_keys, ensure_ascii=False)
     except Exception as e:
