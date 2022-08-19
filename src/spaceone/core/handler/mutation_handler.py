@@ -34,6 +34,7 @@ class SpaceONEMutationHandler(BaseMutationHandler):
 
         if role_type in 'PROJECT':
             params['user_projects'] = self.transaction.get_meta('authorization.projects')
+            params['user_project_groups'] = self.transaction.get_meta('authorization.project_groups')
 
         return params
 
@@ -50,6 +51,7 @@ class SpaceONEMutationHandler(BaseMutationHandler):
 
         if role_type in 'PROJECT':
             params['user_projects'] = self.transaction.get_meta('authorization.projects') + [None]
+            params['user_project_groups'] = self.transaction.get_meta('authorization.project_groups') + [None]
 
         return params
 
