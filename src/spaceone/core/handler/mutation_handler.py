@@ -11,55 +11,49 @@ class SpaceONEMutationHandler(BaseMutationHandler):
         role_type = self.transaction.get_meta('authorization.role_type')
         domain_id = self.transaction.get_meta('domain_id')
 
-        if self._check_mutation(scope, role_type):
-            params = self._append_parameter(params)
-
-        if role_type in ['DOMAIN', 'PROJECT', 'USER']:
-            params['domain_id'] = domain_id
+        if role_type != 'SYSTEM':
+            if scope == 'DOMAIN':
+                params = self._apply_domain_scope(params, role_type)
+            elif scope == 'PROJECT':
+                params = self._apply_project_scope(params, role_type)
+            elif scope == 'USER':
+                params = self._apply_user_scope(params, role_type)
+            elif scope == 'PUBLIC_OR_DOMAIN':
+                params = self._apply_domain_or_project_scope(params, role_type)
+            elif scope == 'PUBLIC_OR_DOMAIN':
+                params = self._apply_public_or_domain_scope(params, role_type)
 
         return params
 
-    @staticmethod
-    def _check_mutation(scope, role_type):
-        if scope == 'DOMAIN':
-            if role_type in ['DOMAIN', 'PROJECT', 'USER']:
-                return True
-        elif scope == 'PROJECT':
-            if role_type in ['PROJECT', 'USER']:
-                return True
-        elif scope == 'USER':
-            if role_type == 'USER':
-                return True
+    def _apply_domain_scope(self, params, role_type):
+        params['domain_id'] = self.transaction.get_meta('domain_id')
+        return params
 
-        return False
+    def _apply_project_scope(self, params, role_type):
+        params['domain_id'] = self.transaction.get_meta('domain_id')
 
-    def _append_parameter(self, params):
-        append_parameter = self.transaction.get_meta('mutation.append_parameter', {})
-        if isinstance(append_parameter, dict):
-            for key, value in append_parameter.items():
-                if key not in params:
-                    if isinstance(value, dict):
-                        meta_key = value.get('meta')
-                        data = value.get('data')
+        if role_type in 'PROJECT':
+            params['user_projects'] = self.transaction.get_meta('authorization.projects')
 
-                        if meta_key and data:
-                            params[key] = []
+        return params
 
-                            meta_value = self.transaction.get_meta(meta_key)
-                            if isinstance(meta_value, list):
-                                params[key] += meta_value
-                            else:
-                                params[key].append(meta_value)
+    def _apply_user_scope(self, params, role_type):
+        params['domain_id'] = self.transaction.get_meta('domain_id')
 
-                            if data:
-                                params[key] += data
+        if role_type in ['PROJECT', 'USER']:
+            params['user_id'] = self.transaction.get_meta('user_id')
 
-                        elif meta_key:
-                            params[key] = self.transaction.get_meta(meta_key)
-                        elif data:
-                            params[key] = data
+        return params
 
-                    else:
-                        params[key] = self.transaction.get_meta(value)
+    def _apply_domain_or_project_scope(self, params, role_type):
+        params['domain_id'] = self.transaction.get_meta('domain_id')
+
+        if role_type in 'PROJECT':
+            params['user_projects'] = self.transaction.get_meta('authorization.projects') + [None]
+
+        return params
+
+    def _apply_public_or_domain_scope(self, params, role_type):
+        params['user_domains'] = [self.transaction.get_meta('domain_id'), None]
 
         return params
