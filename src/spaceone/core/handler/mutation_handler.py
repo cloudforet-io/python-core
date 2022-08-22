@@ -33,7 +33,7 @@ class SpaceONEMutationHandler(BaseMutationHandler):
     def _apply_project_scope(self, params, role_type, domain_id):
         params['domain_id'] = domain_id
 
-        if role_type in 'PROJECT':
+        if role_type == 'PROJECT':
             params['user_projects'] = self.transaction.get_meta('authorization.projects')
             params['user_project_groups'] = self.transaction.get_meta('authorization.project_groups')
 
@@ -50,7 +50,7 @@ class SpaceONEMutationHandler(BaseMutationHandler):
     def _apply_domain_or_project_scope(self, params, role_type, domain_id):
         params['domain_id'] = domain_id
 
-        if role_type in 'PROJECT':
+        if role_type == 'PROJECT':
             params['user_projects'] = self.transaction.get_meta('authorization.projects') + [None]
             params['user_project_groups'] = self.transaction.get_meta('authorization.project_groups') + [None]
 
