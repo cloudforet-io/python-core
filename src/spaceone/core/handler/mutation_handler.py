@@ -19,7 +19,7 @@ class SpaceONEMutationHandler(BaseMutationHandler):
                 params = self._apply_project_scope(params, role_type, domain_id)
             elif scope == 'USER':
                 params = self._apply_user_scope(params, role_type, domain_id)
-            elif scope == 'PUBLIC_OR_DOMAIN':
+            elif scope == 'DOMAIN_OR_PROJECT':
                 params = self._apply_domain_or_project_scope(params, role_type, domain_id)
             elif scope == 'PUBLIC_OR_DOMAIN':
                 params = self._apply_public_or_domain_scope(params, role_type, domain_id)
