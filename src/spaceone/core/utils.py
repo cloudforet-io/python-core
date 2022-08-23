@@ -428,7 +428,7 @@ def tags_to_dict(tags: list) -> Union[dict, None]:
     if isinstance(tags, list):
         dict_value = {}
         for tag in tags:
-            dict_value[tag.key] = tag.value
+            dict_value[tag['key']] = tag['value']
 
         return dict_value
 
