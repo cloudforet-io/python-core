@@ -22,3 +22,5 @@ uvicorn
 fastapi
 python-consul
 dnspython
+dotty-dict
+deepmerge

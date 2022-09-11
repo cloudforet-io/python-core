@@ -13,7 +13,8 @@ from dateutil.parser import isoparse
 from typing import Tuple
 from pathlib import Path
 from typing import Union
-
+import dotty_dict
+import mergedeep
 
 YAML_LOADER = yaml.Loader
 YAML_LOADER.add_implicit_resolver(
@@ -138,7 +139,7 @@ def parse_grpc_endpoint(endpoint: str) -> dict:
     try:
         endpoint_info = parse_endpoint(endpoint)
 
-        if endpoint_info['scheme'] not in  ['grpc', 'grpc+ssl']:
+        if endpoint_info['scheme'] not in ['grpc', 'grpc+ssl']:
             raise ValueError(f'Unsupported protocol. (supported_protocol=grpc|grpc+ssl, endpoint={endpoint})')
 
     except Exception:
@@ -159,7 +160,7 @@ def parse_grpc_uri(uri: str) -> dict:
     try:
         endpoint_info = parse_endpoint(uri)
 
-        if endpoint_info['scheme'] not in  ['grpc', 'grpc+ssl']:
+        if endpoint_info['scheme'] not in ['grpc', 'grpc+ssl']:
             raise ValueError(f'Unsupported protocol. (supported_protocol=grpc|grpc+ssl, uri={uri})')
 
         version, service, method = \
@@ -254,7 +255,7 @@ def _parse_timediff_from_regex(query: str) -> Tuple[dict, bool]:
         return {'base_time': query.strip()}, False
 
 
-def get_dict_value(data: dict, dotted_key: str, default_value: any=None):
+def get_dict_value(data: dict, dotted_key: str, default_value: any = None):
     if '.' in dotted_key:
         key, rest = dotted_key.split(".", 1)
 
@@ -454,6 +455,26 @@ def dict_to_hash(dict_value: dict) -> str:
     encoded = json.dumps(dict_value, sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
+
+
+def change_dict_with_nested_key(dict_value: dict) -> dict:
+    gen_dict = {}
+    for key, value in dict_value.items():
+        dot = dotty_dict.dotty()
+        dot[key] = value
+        mergedeep.merge(gen_dict, dot.to_dict())
+    return gen_dict
+
+
+def change_dict_with_dot_notation(dict_value: dict, key='', dots=None) -> dict:
+    if dots is None:
+        dots = {}
+    if isinstance(dict_value, dict):
+        for (k, v) in dict_value.items():
+            change_dict_with_dot_notation(dict_value[k], f'{key}.{k}' if key else k, dots)
+    else:
+        dots[key] = dict_value
+    return dots
 
 
 if __name__ == '__main__':
