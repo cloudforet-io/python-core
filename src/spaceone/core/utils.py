@@ -13,8 +13,6 @@ from dateutil.parser import isoparse
 from typing import Tuple
 from pathlib import Path
 from typing import Union
-import dotty_dict
-import mergedeep
 
 YAML_LOADER = yaml.Loader
 YAML_LOADER.add_implicit_resolver(
@@ -455,15 +453,6 @@ def dict_to_hash(dict_value: dict) -> str:
     encoded = json.dumps(dict_value, sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
-
-
-def change_dict_with_nested_key(dict_value: dict) -> dict:
-    gen_dict = {}
-    for key, value in dict_value.items():
-        dot = dotty_dict.dotty()
-        dot[key] = value
-        mergedeep.merge(gen_dict, dot.to_dict())
-    return gen_dict
 
 
 def change_dict_with_dot_notation(dict_value: dict, key='', dots=None) -> dict:
