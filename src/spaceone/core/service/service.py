@@ -69,11 +69,6 @@ def _pipeline(func, self, params, append_meta):
     try:
         self.func_name = func.__name__
 
-        disable_info_log = str(self.transaction.get_meta('disable_info_log', 'false')).lower()
-
-        if disable_info_log != 'true':
-            _LOGGER.info('(REQUEST) =>', extra={'parameter': copy.deepcopy(params)})
-
         # 0. Set Extra Metadata
         if append_meta and isinstance(append_meta, dict):
             for key, value in append_meta.items():
@@ -97,16 +92,21 @@ def _pipeline(func, self, params, append_meta):
             for handler in self.handler['authorization']['handlers']:
                 handler.verify(params)
 
-        # 4. Mutation
+        # 4. Print Info Log
+        disable_info_log = str(self.transaction.get_meta('disable_info_log', 'false')).lower()
+        if disable_info_log != 'true':
+            _LOGGER.info('(REQUEST) =>', extra={'parameter': copy.deepcopy(params)})
+
+        # 5. Mutation
         if _check_handler_method(self, 'mutation'):
             for handler in self.handler['mutation']['handlers']:
                 params = handler.request(params)
 
-        # 5. Service Body
+        # 6. Service Body
         self.transaction.status = 'IN_PROGRESS'
         response_or_iterator = func(self, params)
 
-        # 6. Response Handlers
+        # 7. Response Handlers
         if isinstance(response_or_iterator, types.GeneratorType):
             return _generate_response(self, response_or_iterator)
         else:
