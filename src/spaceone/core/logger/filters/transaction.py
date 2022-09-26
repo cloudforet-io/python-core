@@ -8,7 +8,7 @@ class TransactionFilter(logging.Filter):
         if transaction := getattr(LOCAL_STORAGE, 'transaction', None):
             record.service = transaction.service
             record.tnx_id = transaction.id
-            record.user_id = transaction.get_meta('user_id')
+            record.user_id = transaction.get_meta('user_id','')
             record.tnx_status = transaction.status
             record.peer = transaction.get_meta('peer')
             if transaction.resource and transaction.verb:

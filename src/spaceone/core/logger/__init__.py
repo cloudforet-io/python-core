@@ -33,7 +33,7 @@ HANDLER_DEFAULT_TMPL = {
 
 FORMATTER_DEFAULT_TMPL = {
     'standard': {
-        'format': '%(asctime)s.%(msecs)03dZ [%(levelname)s] %(tnx_id)s %(tnx_method)s %(user_id)s (%(filename)s:%(lineno)d) %(message)s %(params)s %(traceback)s',
+        'format': '%(asctime)s.%(msecs)03dZ [%(levelname)s] %(tnx_id)s %(user_id)s %(tnx_method)s (%(filename)s:%(lineno)d) %(message)s %(params)s %(traceback)s',
         'datefmt': '%Y-%m-%dT%H:%M:%S',
     },
     'file': {
