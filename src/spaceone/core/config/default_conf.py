@@ -1,3 +1,12 @@
+# Service Description
+TITLE = ''
+DESCRIPTION = ''
+CONTACT = {
+    'name': '',
+    'url': '',
+    'email': ''
+}
+
 # Service Configuration
 PACKAGE = None
 SERVICE = None
@@ -18,6 +27,14 @@ EXTENSION_APIS = {
     'spaceone.core.extension.grpc_health': ['GRPCHealth'],
     'spaceone.core.extension.server_info': ['ServerInfo']
 }
+
+# Uvicorn Options for Rest Server
+UVICORN_OPTIONS = {
+    'factory': True
+}
+
+# Rest Middlewares
+REST_MIDDLEWARES = []
 
 # Handler Configuration
 HANDLERS = {
