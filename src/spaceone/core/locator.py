@@ -1,4 +1,5 @@
 import logging
+from typing import Union
 
 from spaceone.core import config
 from spaceone.core.error import *
@@ -15,11 +16,14 @@ class Locator(object):
     def __init__(self, transaction=None):
         self.transaction = transaction
 
-    def get_service(self, name: str, metadata: dict = {}, **kwargs):
+    def get_service(self, name: [str, object], metadata: dict = {}, **kwargs):
         package = config.get_package()
         try:
-            service_module = _get_module(package, 'service')
-            return getattr(service_module, name)(metadata=metadata, **kwargs)
+            if isinstance(name, str):
+                service_module = _get_module(package, 'service')
+                return getattr(service_module, name)(metadata=metadata, **kwargs)
+            else:
+                return name(metadata=metadata, **kwargs)
 
         except ERROR_BASE as e:
             e.set_meta['type'] = 'service'
@@ -28,11 +32,14 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'service'})
 
-    def get_manager(self, name: str, **kwargs):
+    def get_manager(self, name: [str, object], **kwargs):
         package = config.get_package()
         try:
-            manager_module = _get_module(package, 'manager')
-            return getattr(manager_module, name)(transaction=self.transaction, **kwargs)
+            if isinstance(name, str):
+                manager_module = _get_module(package, 'manager')
+                return getattr(manager_module, name)(transaction=self.transaction, **kwargs)
+            else:
+                return name(transaction=self.transaction, **kwargs)
 
         except ERROR_BASE as e:
             raise e
