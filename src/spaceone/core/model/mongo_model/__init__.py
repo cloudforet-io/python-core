@@ -932,7 +932,8 @@ class MongoModel(Document, BaseModel):
             })
 
         if allow_disk_use:
-            cursor = vos.allow_disk_use(True).aggregate(pipeline)
+            _LOGGER.debug(f'[_stat_aggregate] allow_disk_use: {allow_disk_use}')
+            cursor = vos.aggregate(pipeline, allowDiskUse=True)
         else:
             cursor = vos.aggregate(pipeline)
         result['results'] = cls._make_aggregate_values(cursor)
