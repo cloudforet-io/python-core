@@ -903,7 +903,7 @@ class MongoModel(Document, BaseModel):
         return _aggregate_rules
 
     @classmethod
-    def _stat_aggregate(cls, vos, aggregate, page):
+    def _stat_aggregate(cls, vos, aggregate, page, allow_disk_use):
         result = {}
         pipeline = []
         _aggregate_rules = cls._make_aggregate_rules(aggregate)
@@ -931,7 +931,7 @@ class MongoModel(Document, BaseModel):
                 '$limit': limit
             })
 
-        cursor = vos.aggregate(pipeline)
+        cursor = vos.aggregate(pipeline, allowDiskUse=allow_disk_use)
         result['results'] = cls._make_aggregate_values(cursor)
         return result
 
@@ -958,7 +958,7 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def stat(cls, *args, aggregate=None, distinct=None, filter=None, filter_or=None, page=None,
-             target='SECONDARY_PREFERRED', **kwargs):
+             target='SECONDARY_PREFERRED', allow_disk_use=False, **kwargs):
 
         if filter is None:
             filter = []
@@ -978,7 +978,7 @@ class MongoModel(Document, BaseModel):
             vos = cls._get_target_objects(target).filter(_filter)
 
             if aggregate:
-                return cls._stat_aggregate(vos, aggregate, page)
+                return cls._stat_aggregate(vos, aggregate, page, allow_disk_use)
 
             elif distinct:
                 return cls._stat_distinct(vos, distinct, page)
