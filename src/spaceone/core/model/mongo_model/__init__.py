@@ -931,7 +931,10 @@ class MongoModel(Document, BaseModel):
                 '$limit': limit
             })
 
-        cursor = vos.aggregate(pipeline, allowDiskUse=allow_disk_use)
+        if allow_disk_use:
+            cursor = vos.allow_disk_use(True).aggregate(pipeline)
+        else:
+            cursor = vos.aggregate(pipeline)
         result['results'] = cls._make_aggregate_values(cursor)
         return result
 
