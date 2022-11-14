@@ -2,9 +2,6 @@
 TITLE = ''
 DESCRIPTION = ''
 CONTACT = {
-    'name': '',
-    'url': '',
-    'email': ''
 }
 
 # Service Configuration
@@ -35,6 +32,14 @@ UVICORN_OPTIONS = {
 
 # Rest Middlewares
 REST_MIDDLEWARES = []
+REST_EXTENSION_ROUTERS = [
+    {
+        'path': 'spaceone.core.fastapi.extension.health:router'
+    },
+    {
+        'path': 'spaceone.core.fastapi.extension.reflection:router'
+    }
+]
 
 # Handler Configuration
 HANDLERS = {

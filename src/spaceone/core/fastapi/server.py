@@ -1,7 +1,7 @@
 import logging
 import uvicorn
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from spaceone.core import config
@@ -19,10 +19,11 @@ def _get_router_conf(package):
 def _get_router(path):
     try:
         module_path, router_name = path.split(':')
-        router_module = __import__(module_path, fromlist=[module_path[-1:]])
-        return router_module.getattr(router_module, router_name)
+        module_name = module_path.rsplit('.')[-1:]
+        router_module = __import__(module_path, fromlist=[module_name])
+        return getattr(router_module, router_name)
     except Exception as e:
-        _LOGGER.warning(f'[_get_router] Invalid router path. (router_path = {path})')
+        _LOGGER.warning(f'[_get_router] Invalid router path. (router_path = {path})', exc_info=True)
 
 
 def include_routers(app):
@@ -30,23 +31,41 @@ def include_routers(app):
     routers = _get_router_conf(config.get_package())
 
     all_routers_path = []
-    for router_options in routers:
-        if 'path' in router_options:
-            all_routers_path.append(router_options['path'])
-            router = _get_router(router_options['path'])
-            del router_options['path']
 
-            app.include_router(
-                router.router,
-                **router_options
-            )
-        else:
-            _LOGGER.warning(f'[_include_router] Undefined router path. (router = {router_options})')
+    # App Routers
+    for router_options in routers:
+        router_path = append_router(app, router_options)
+        if router_path:
+            all_routers_path.append(router_path)
+
+    # Extension Routers
+    ext_routers = config.get_global('REST_EXTENSION_ROUTERS', [])
+    for router_options in ext_routers:
+        router_path = append_router(app, router_options)
+        if router_path:
+            all_routers_path.append(router_path)
 
     all_routers_path_str = '\n\t - '.join(all_routers_path)
     _LOGGER.debug(f'Loaded Routers: \n\t - {all_routers_path_str}')
 
     return app
+
+
+def append_router(app, router_options):
+    if 'path' in router_options:
+        router = _get_router(router_options['path'])
+        router_path = router_options['path']
+        del router_options['path']
+
+        app.include_router(
+            router,
+            **router_options
+        )
+
+        return router_path
+    else:
+        _LOGGER.warning(f'[_include_router] Undefined router path. (router = {router_options})')
+        return None
 
 
 def add_middlewares(app):
@@ -63,16 +82,27 @@ def add_middlewares(app):
 def init_fast_api():
     global_conf = config.get_global()
     server_info = ServerInfoManager()
+
     return FastAPI(
-        title=global_conf.get('TITLE'),
+        title=global_conf.get('TITLE', ''),
         version=server_info.get_version(),
-        contact=global_conf.get('CONTACT'),
-        description=global_conf.get('DESCRIPTION'),
+        contact=global_conf.get('CONTACT', {}),
+        description=global_conf.get('DESCRIPTION', ''),
     )
+
+
+def init_fast_api_system_logger(app):
+    @app.on_event("startup")
+    async def startup_event():
+       logger = logging.getLogger("uvicorn.access")
+       handler = logging.StreamHandler()
+       handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+       logger.addHandler(handler)
 
 
 def fast_api_app():
     app = init_fast_api()
+    init_fast_api_system_logger(app)
     app = add_middlewares(app)
     app = include_routers(app)
     return app

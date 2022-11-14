@@ -61,6 +61,14 @@ class Transaction(object):
         self._meta['verb'] = value
 
     @property
+    def url(self):
+        return self._meta.get('url')
+
+    @url.setter
+    def url(self, value):
+        self._meta['url'] = value
+
+    @property
     def status(self):
         return self._status
 
