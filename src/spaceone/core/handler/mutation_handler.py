@@ -23,10 +23,6 @@ class SpaceONEMutationHandler(BaseMutationHandler):
                 params = self._apply_domain_or_project_scope(params, role_type, domain_id)
             elif scope == 'PUBLIC_OR_DOMAIN':
                 params = self._apply_public_or_domain_scope(params, role_type, domain_id)
-            elif scope == 'DOMAIN_OR_USER':
-                params = self._apply_domain_or_user_scope(params, role_type, domain_id)
-            elif scope == 'PROJECT_OR_USER':
-                params = self._apply_project_or_user_scope(params, role_type, domain_id)
 
         return params
 
@@ -62,21 +58,5 @@ class SpaceONEMutationHandler(BaseMutationHandler):
 
     def _apply_public_or_domain_scope(self, params, role_type, domain_id):
         params['user_domains'] = [domain_id, None]
-
-        return params
-
-    def _apply_domain_or_user_scope(self, params, role_type, domain_id):
-        params['domain_id'] = domain_id
-        params['users'] = [self.transaction.get_meta('user_id'), None]
-
-        return params
-
-    def _apply_project_or_user_scope(self, params, role_type, domain_id):
-        params['domain_id'] = domain_id
-        params['users'] = [self.transaction.get_meta('user_id'), None]
-
-        if role_type == 'PROJECT':
-            params['user_projects'] = self.transaction.get_meta('authorization.projects')
-            params['user_project_groups'] = self.transaction.get_meta('authorization.project_groups')
 
         return params
