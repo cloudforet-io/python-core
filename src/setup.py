@@ -56,9 +56,9 @@ setup(
         'celery[redis]==4.4.7',
         'uvicorn',
         'fastapi',
+        'fastapi-utils',
         'python-consul',
         'dnspython',
-        'fastapi-utils',
         'pydantic'
     ],
     zip_safe=False,
