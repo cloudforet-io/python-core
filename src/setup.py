@@ -57,7 +57,9 @@ setup(
         'uvicorn',
         'fastapi',
         'python-consul',
-        'dnspython'
+        'dnspython',
+        'fastapi-utils',
+        'pydantic'
     ],
     zip_safe=False,
     entry_points={
