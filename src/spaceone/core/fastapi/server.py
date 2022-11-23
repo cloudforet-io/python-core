@@ -84,25 +84,15 @@ def init_fast_api():
     server_info = ServerInfoManager()
 
     return FastAPI(
-        title=global_conf.get('TITLE', ''),
+        title=global_conf.get('TITLE', 'Document'),
         version=server_info.get_version(),
         contact=global_conf.get('CONTACT', {}),
         description=global_conf.get('DESCRIPTION', ''),
     )
 
 
-def init_fast_api_system_logger(app):
-    @app.on_event("startup")
-    async def startup_event():
-       logger = logging.getLogger("uvicorn.access")
-       handler = logging.StreamHandler()
-       handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-       logger.addHandler(handler)
-
-
 def fast_api_app():
     app = init_fast_api()
-    init_fast_api_system_logger(app)
     app = add_middlewares(app)
     app = include_routers(app)
     return app

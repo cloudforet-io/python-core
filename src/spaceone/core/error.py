@@ -64,6 +64,11 @@ class ERROR_INVALID_ARGUMENT(ERROR_BASE):
     _message = 'Argument is invalid.'
 
 
+class ERROR_REQUEST_TIMEOUT(ERROR_BASE):
+    _status_code = 'DEADLINE_EXCEEDED'
+    _message = 'Request timeout!'
+
+
 class ERROR_REQUIRED_PARAMETER(ERROR_INVALID_ARGUMENT):
     _message = 'Required parameter. (key = {key})'
 

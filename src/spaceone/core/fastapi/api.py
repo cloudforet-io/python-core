@@ -72,7 +72,7 @@ class BaseAPI(object):
     async def parse_request(self, request: Request, token=None):
         try:
             metadata = {
-                'url': '/dashboard/domain-dashboard/create',
+                'url': request.url.path,
                 'service': self.service
             }
 
