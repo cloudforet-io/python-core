@@ -9,7 +9,6 @@ import pkg_resources
 
 from spaceone.core import config, pygrpc, fastapi
 from spaceone.core import scheduler as scheduler_v1
-from spaceone.core.celery import app as celery_app
 from spaceone.core.unittest.runner import RichTestRunner
 
 
@@ -62,17 +61,6 @@ def scheduler(package, config=None, module_path=None):
     """Run a scheduler server"""
     _set_server_config('scheduler', package, module_path, config_file=config)
     scheduler_v1.serve()
-
-
-@cli.command()
-@click.argument('package')
-@click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
-              help='config file path')
-@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
-def celery(package, config=None, module_path=None):
-    """Run a celery server(worker or beat)"""
-    _set_server_config('celery', package, module_path, config_file=config)
-    celery_app.serve()
 
 
 @cli.command()
