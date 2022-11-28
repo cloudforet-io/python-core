@@ -69,15 +69,15 @@ class BaseAPI(object):
     def name(self):
         return self.__class__.__name__
 
-    async def parse_request(self, request: Request, token=None):
+    async def parse_request(self, request: Request, token=None, resource=None, verb=None):
         try:
             metadata = {
                 'url': request.url.path,
-                'service': self.service
+                'service': self.service,
+                'resource': resource,
+                'verb': verb,
+                'token': token
             }
-
-            if token:
-                metadata['token'] = token
 
             return await request.json(), metadata
         except Exception as e:
