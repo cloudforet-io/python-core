@@ -80,19 +80,23 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=f'{name} Model', reason=e, _meta={'type': 'model'})
 
-    def get_connector(self, name: str, **kwargs):
+    def get_connector(self, name: [str, object], **kwargs):
         package = config.get_package()
-        connector_conf = config.get_connector(name)
-        backend = connector_conf.get('backend')
 
         try:
-            if backend:
-                connector_module, name = backend.rsplit('.', 1)
-                connector_module = __import__(connector_module, fromlist=[name])
-            else:
-                connector_module = _get_module(package, 'connector')
+            if isinstance(name, str):
+                connector_conf = config.get_connector(name)
+                backend = connector_conf.get('backend')
 
-            return getattr(connector_module, name)(transaction=self.transaction, config=connector_conf, **kwargs)
+                if backend:
+                    connector_module, name = backend.rsplit('.', 1)
+                    connector_module = __import__(connector_module, fromlist=[name])
+                else:
+                    connector_module = _get_module(package, 'connector')
+
+                return getattr(connector_module, name)(transaction=self.transaction, config=connector_conf, **kwargs)
+            else:
+                name(transitions=self.transaction, **kwargs)
 
         except ERROR_BASE as e:
             raise e
