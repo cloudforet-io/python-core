@@ -47,6 +47,39 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'manager'})
 
+    def get_info(self, name: [str, object], *args, **kwargs):
+        package = config.get_package()
+        try:
+            if isinstance(name, str):
+                info_module = _get_module(package, 'info')
+                return getattr(info_module, name)(*args, **kwargs)
+            else:
+                return name(*args, **kwargs)
+
+        except ERROR_BASE as e:
+            raise e
+
+        except Exception as e:
+            raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'info'})
+
+    def get_model(self, name: [str, object]):
+        package = config.get_package()
+        try:
+            if isinstance(name, str):
+                model_module = _get_module(package, 'model')
+                model = getattr(model_module, name)
+                model.init()
+                return model
+            else:
+                name.init()
+                return name
+
+        except ERROR_BASE as e:
+            raise e
+
+        except Exception as e:
+            raise ERROR_LOCATOR(name=f'{name} Model', reason=e, _meta={'type': 'model'})
+
     def get_connector(self, name: str, **kwargs):
         package = config.get_package()
         connector_conf = config.get_connector(name)
@@ -66,29 +99,3 @@ class Locator(object):
 
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'connector'})
-
-    def get_info(self, name: str, *args, **kwargs):
-        package = config.get_package()
-        try:
-            info_module = _get_module(package, 'info')
-            return getattr(info_module, name)(*args, **kwargs)
-
-        except ERROR_BASE as e:
-            raise e
-
-        except Exception as e:
-            raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'info'})
-
-    def get_model(self, name: str):
-        package = config.get_package()
-        try:
-            model_module = _get_module(package, 'model')
-            model = getattr(model_module, name)
-            model.init()
-            return model
-
-        except ERROR_BASE as e:
-            raise e
-
-        except Exception as e:
-            raise ERROR_LOCATOR(name=f'{name} Model', reason=e, _meta={'type': 'model'})
