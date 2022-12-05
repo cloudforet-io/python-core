@@ -47,31 +47,14 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'manager'})
 
-    def get_connector(self, name: str, **kwargs):
+    def get_info(self, name: [str, object], *args, **kwargs):
         package = config.get_package()
-        connector_conf = config.get_connector(name)
-        backend = connector_conf.get('backend')
-
         try:
-            if backend:
-                connector_module, name = backend.rsplit('.', 1)
-                connector_module = __import__(connector_module, fromlist=[name])
+            if isinstance(name, str):
+                info_module = _get_module(package, 'info')
+                return getattr(info_module, name)(*args, **kwargs)
             else:
-                connector_module = _get_module(package, 'connector')
-
-            return getattr(connector_module, name)(transaction=self.transaction, config=connector_conf, **kwargs)
-
-        except ERROR_BASE as e:
-            raise e
-
-        except Exception as e:
-            raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'connector'})
-
-    def get_info(self, name: str, *args, **kwargs):
-        package = config.get_package()
-        try:
-            info_module = _get_module(package, 'info')
-            return getattr(info_module, name)(*args, **kwargs)
+                return name(*args, **kwargs)
 
         except ERROR_BASE as e:
             raise e
@@ -79,16 +62,44 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'info'})
 
-    def get_model(self, name: str):
+    def get_model(self, name: [str, object]):
         package = config.get_package()
         try:
-            model_module = _get_module(package, 'model')
-            model = getattr(model_module, name)
-            model.init()
-            return model
+            if isinstance(name, str):
+                model_module = _get_module(package, 'model')
+                model = getattr(model_module, name)
+                model.init()
+                return model
+            else:
+                name.init()
+                return name
 
         except ERROR_BASE as e:
             raise e
 
         except Exception as e:
             raise ERROR_LOCATOR(name=f'{name} Model', reason=e, _meta={'type': 'model'})
+
+    def get_connector(self, name: [str, object], **kwargs):
+        package = config.get_package()
+
+        try:
+            if isinstance(name, str):
+                connector_conf = config.get_connector(name)
+                backend = connector_conf.get('backend')
+
+                if backend:
+                    connector_module, name = backend.rsplit('.', 1)
+                    connector_module = __import__(connector_module, fromlist=[name])
+                else:
+                    connector_module = _get_module(package, 'connector')
+
+                return getattr(connector_module, name)(transaction=self.transaction, config=connector_conf, **kwargs)
+            else:
+                return name(transitions=self.transaction, **kwargs)
+
+        except ERROR_BASE as e:
+            raise e
+
+        except Exception as e:
+            raise ERROR_LOCATOR(name=name, reason=e, _meta={'type': 'connector'})
