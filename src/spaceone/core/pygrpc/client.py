@@ -398,12 +398,13 @@ def _parse_endpoint(endpoint):
 
 
 def _create_secure_channel(endpoint, options):
-    host, port = _parse_endpoint(endpoint)
-    _check_server_port(host, port, endpoint)
+    # host, port = _parse_endpoint(endpoint)
+    # _check_server_port(host, port, endpoint)
 
     try:
-        cert = ssl.get_server_certificate((host, port))
-        creds = grpc.ssl_channel_credentials(str.encode(cert))
+        # cert = ssl.get_server_certificate((host, port))
+        # creds = grpc.ssl_channel_credentials(str.encode(cert))
+        creds = grpc.ssl_channel_credentials()
     except Exception as e:
         raise ERROR_GRPC_TLS_HANDSHAKE(reason=e)
 
@@ -411,8 +412,8 @@ def _create_secure_channel(endpoint, options):
 
 
 def _create_insecure_channel(endpoint, options):
-    host, port = _parse_endpoint(endpoint)
-    _check_server_port(host, port, endpoint)
+    # host, port = _parse_endpoint(endpoint)
+    # _check_server_port(host, port, endpoint)
 
     return grpc.insecure_channel(endpoint, options=options)
 
@@ -432,6 +433,11 @@ def client(endpoint=None, ssl_enabled=False, max_message_length=None, **client_o
             channel = _create_secure_channel(endpoint, options)
         else:
             channel = _create_insecure_channel(endpoint, options)
+
+        try:
+            grpc.channel_ready_future(channel).result(timeout=3)
+        except Exception as e:
+            raise ERROR_GRPC_CONNECTION(channel=endpoint, message='Channel is not ready.')
 
         try:
             _GRPC_CHANNEL[endpoint] = _GRPCClient(channel, client_opts, endpoint)
