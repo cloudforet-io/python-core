@@ -101,6 +101,17 @@ def change_stat_query(value):
     return query_pb2.StatisticsQuery(**change_value)
 
 
+def change_analyze_query(value):
+    change_value = value.copy()
+    change_value['filter'] = map(_change_condition_type, value.get('filter', []))
+    change_value['filter_or'] = map(_change_condition_type, value.get('filter_or', []))
+
+    if 'fields' in value:
+        change_value['fields'] = change_struct_type(value['fields'])
+
+    return query_pb2.Query(**change_value)
+
+
 def change_handler_authentication_request(value):
     return handler_pb2.AuthenticationRequest(**value)
 
@@ -122,6 +133,8 @@ def get_well_known_types():
         '.google.protobuf.Empty': change_empty_type,
         '.spaceone.api.core.v1.Query': change_query,
         '.spaceone.api.core.v1.StatisticsQuery': change_stat_query,
+        '.spaceone.api.core.v1.AnalyzeQuery': change_analyze_query,
+        '.spaceone.api.core.v1.TimeSeriesAnalyzeQuery': change_analyze_query,
         '.spaceone.api.core.v1.AuthorizationRequest': change_handler_authorization_request,
         '.spaceone.api.core.v1.AuthenticationRequest': change_handler_authentication_request,
     }
