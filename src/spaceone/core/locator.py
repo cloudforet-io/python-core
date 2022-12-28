@@ -26,7 +26,7 @@ class Locator(object):
                 return name(metadata=metadata, **kwargs)
 
         except ERROR_BASE as e:
-            e.set_meta['type'] = 'service'
+            e.meta['type'] = 'service'
             raise e
 
         except Exception as e:
