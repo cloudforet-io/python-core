@@ -142,6 +142,7 @@ class _ClientInterceptor(
     def _check_error(self, response):
         if isinstance(response, Exception):
             details = response.details()
+            status_code = response.code().name
             if details.startswith('ERROR_'):
                 details_split = details.split(':', 1)
                 if len(details_split) == 2:
@@ -150,23 +151,30 @@ class _ClientInterceptor(
                     error_code = details_split[0]
                     error_message = details
 
-                if response.code() == grpc.StatusCode.PERMISSION_DENIED:
+                if status_code == 'PERMISSION_DENIED':
                     raise ERROR_PERMISSION_DENIED()
-                elif response.code() == grpc.StatusCode.UNAUTHENTICATED:
+                elif status_code == 'UNAUTHENTICATED':
                     raise ERROR_AUTHENTICATE_FAILURE(message=error_message)
                 else:
-                    raise ERROR_INTERNAL_API(_error_code=error_code, message=error_message)
+                    e = ERROR_INTERNAL_API(message=error_message)
+                    e.error_code = error_code
+                    e.status_code = status_code
+                    raise e
 
             else:
-                if response.code() == grpc.StatusCode.PERMISSION_DENIED:
+                error_message = response.details()
+                if status_code == 'PERMISSION_DENIED':
                     raise ERROR_PERMISSION_DENIED()
-                elif response.code() == grpc.StatusCode.UNAUTHENTICATED:
-                    raise ERROR_AUTHENTICATE_FAILURE(message=response.details())
-                elif response.code() == grpc.StatusCode.UNAVAILABLE:
-                    raise ERROR_GRPC_CONNECTION(channel=self._channel_key, message=response.details(),
-                                                _meta={'channel': self._channel_key})
+                elif status_code == 'PERMISSION_DENIED':
+                    raise ERROR_AUTHENTICATE_FAILURE(message=error_message)
+                elif status_code == 'UNAVAILABLE':
+                    e = ERROR_GRPC_CONNECTION(channel=self._channel_key, message=error_message)
+                    e.meta['channel'] = self._channel_key
+                    raise e
                 else:
-                    raise ERROR_INTERNAL_API(message=response.details())
+                    e = ERROR_INTERNAL_API(message=error_message)
+                    e.status_code = status_code
+                    raise e
 
         return response
 

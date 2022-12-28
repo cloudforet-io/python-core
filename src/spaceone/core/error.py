@@ -26,16 +26,24 @@ class ERROR_BASE(Exception):
     def error_code(self):
         return self._error_code
 
+    @error_code.setter
+    def error_code(self, value):
+        self._error_code = value
+
     @property
     def status_code(self):
         return self._status_code
+
+    @status_code.setter
+    def status_code(self, value):
+        self._status_code = value
 
     @property
     def meta(self):
         return self._meta
 
     @meta.setter
-    def set_meta(self, key, value):
+    def meta(self, key, value):
         self._meta[key] = value
 
     def _repr(self):
