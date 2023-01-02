@@ -217,3 +217,8 @@ class BaseModel(object):
             values (list)
         """
         raise NotImplementedError('model.stat not implemented!')
+
+
+    @classmethod
+    def analyze(cls, **query):
+        raise NotImplementedError('model.analyze not implemented!')
