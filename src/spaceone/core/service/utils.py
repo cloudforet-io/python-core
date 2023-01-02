@@ -2,6 +2,7 @@ import re
 import functools
 from dateutil.parser import parse
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from spaceone.core import utils
 from spaceone.core.error import *
@@ -35,8 +36,30 @@ def check_required(required_keys):
         @functools.wraps(func)
         def wrapped_func(cls, params):
             for key in required_keys:
-                if key not in params:
+                value = utils.get_dict_value(params, key)
+                if value is None:
                     raise ERROR_REQUIRED_PARAMETER(key=key)
+
+            return func(cls, params)
+
+        return wrapped_func
+
+    return wrapper
+
+
+def set_query_page_limit(default_limit):
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped_func(cls, params):
+            query = params.get('query', {})
+            query['page'] = query.get('page', {})
+            page_limit = query['page'].get('limit', 1000)
+
+            if page_limit > default_limit:
+                page_limit = default_limit
+
+            query['page']['limit'] = page_limit
+            params['query'] = query
 
             return func(cls, params)
 
@@ -309,4 +332,3 @@ def _convert_date_from_string(date_str, key, date_format):
         return datetime.strptime(date_str, date_format).date()
     except Exception as e:
         raise ERROR_INVALID_PARAMETER_TYPE(key=key, type=date_format)
-

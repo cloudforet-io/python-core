@@ -992,3 +992,249 @@ class MongoModel(Document, BaseModel):
                 e = ERROR_UNKNOWN(message=str(e))
 
             raise ERROR_DB_QUERY(reason=e.message)
+
+    @classmethod
+    def _check_field_group(cls, field_group):
+        for key in field_group:
+            if key.startswith('_total_'):
+                raise ERROR_INVALID_PARAMETER(key='field_group',
+                                              reason='Field group keys cannot contain _total_ characters.')
+
+    @classmethod
+    def _make_group_keys(cls, group_by, granularity, date_field):
+        group_keys = []
+        for key in group_by:
+            group_keys.append({
+                'key': key,
+                'name': key
+            })
+
+        if granularity in ['DAILY', 'MONTHLY']:
+            group_keys.append({
+                'key': date_field,
+                'name': 'date'
+            })
+
+        return group_keys
+
+    @classmethod
+    def _make_group_fields(cls, fields):
+        group_fields = []
+        for name, field_info in fields.items():
+            cls._check_field_info(field_info)
+            operator = field_info['operator']
+            key = field_info.get('key')
+            fields = field_info.get('fields')
+
+            group_field = {
+                'name': name,
+                'operator': operator
+            }
+
+            if operator != 'count':
+                group_field['key'] = key
+
+            if operator == 'push':
+                group_field['fields'] = fields
+
+            group_fields.append(group_field)
+
+        return group_fields
+
+    @classmethod
+    def _check_field_info(cls, field_info):
+        key = field_info.get('key')
+        operator = field_info.get('operator')
+        fields = field_info.get('fields', [])
+
+        if operator is None:
+            raise ERROR_REQUIRED_PARAMETER(key='query.fields.operator')
+
+        # Check Operator
+
+        if operator != 'count' and key is None:
+            raise ERROR_REQUIRED_PARAMETER(key='query.fields.key')
+
+        if operator == 'push' and len(fields) == 0:
+            raise ERROR_REQUIRED_PARAMETER(key='query.fields.fields')
+
+    @classmethod
+    def _make_field_group_keys(cls, group_keys, field_group):
+        field_group_keys = []
+        for group_key in group_keys:
+            if group_key['name'] not in field_group:
+                if group_key['name'] == 'date':
+                    field_group_keys.append({
+                        'key': 'date',
+                        'name': 'date'
+                    })
+                else:
+                    field_group_keys.append(group_key)
+
+        return field_group_keys
+
+    @classmethod
+    def _make_field_group_fields(cls, group_fields, field_group):
+        field_group_fields = []
+        for group_field in group_fields:
+            field_name = group_field['name']
+            operator = group_field['operator']
+
+            if operator in ['sum', 'average', 'max', 'min', 'count']:
+                field_group_fields.append({
+                    'key': field_name,
+                    'name': f'_total_{field_name}',
+                    'operator': 'sum' if operator == 'count' else operator
+                })
+
+            field_group_fields.append({
+                'name': field_name,
+                'operator': 'push',
+                'fields': cls._make_field_group_push_fields(field_name, field_group)
+            })
+
+        return field_group_fields
+
+    @classmethod
+    def _make_field_group_push_fields(cls, field_name, field_group):
+        push_fields = [
+            {
+                'name': 'value',
+                'key': field_name
+            }
+        ]
+
+        for field_group_key in field_group:
+            push_fields.append({
+                'name': field_group_key,
+                'key': field_group_key
+            })
+
+        return push_fields
+
+    @classmethod
+    def _make_field_group_query(cls, group_keys, group_fields, field_group):
+        field_group_query = {
+            'group': {
+                'keys': cls._make_field_group_keys(group_keys, field_group),
+                'fields': cls._make_field_group_fields(group_fields, field_group)
+            }
+        }
+
+        return [field_group_query]
+
+    @classmethod
+    def _make_sort_query(cls, sort, group_fields, has_field_group):
+        sort_query = {
+            'sort': {
+                'keys': []
+            }
+        }
+        if has_field_group:
+            group_field_names = []
+            for group_field in group_fields:
+                group_field_names.append(group_field['name'])
+
+            for condition in sort:
+                key = condition.get('key')
+                desc = condition.get('desc', False)
+
+                if key in group_field_names:
+                    key = f'_total_{key}'
+
+                sort_query['sort']['keys'].append({
+                    'key': key,
+                    'desc': desc
+                })
+        else:
+            sort_query['sort']['keys'] = sort
+
+        return [sort_query]
+
+    @classmethod
+    def _make_page_query(cls, page):
+        page_query = []
+        start = page.get('start')
+        limit = page.get('limit')
+
+        if limit:
+            if start:
+                page_query.append({
+                    'skip': start - 1
+                })
+
+            page_query.append({
+                'limit': limit + 1
+            })
+
+        return page_query
+
+    @classmethod
+    def _make_date_filter(cls, date_field, key, operator):
+        return [{
+            'k': date_field,
+            'v': key,
+            'o': operator
+        }]
+
+    @classmethod
+    def analyze(cls, *args, granularity=None, fields=None, group_by=None, field_group=None, filter=None,
+                filter_or=None, page=None, sort=None, start=None, end=None, date_field='date',
+                target='SECONDARY_PREFERRED', **kwargs):
+
+        if granularity is None:
+            raise ERROR_REQUIRED_PARAMETER(key='granularity')
+
+        if fields is None:
+            raise ERROR_REQUIRED_PARAMETER(key='granularity')
+
+        filter = filter or []
+        filter_or = filter_or or []
+        group_by = group_by or []
+        sort = sort or []
+        page = page or {}
+        field_group = field_group or []
+        cls._check_field_group(field_group)
+        has_field_group = len(field_group) > 0
+        page_limit = page.get('limit')
+
+        if start:
+            filter += cls._make_date_filter(date_field, start, 'gte')
+
+        if end:
+            filter += cls._make_date_filter(date_field, end, 'lte')
+
+        group_keys = cls._make_group_keys(group_by, granularity, date_field)
+        group_fields = cls._make_group_fields(fields)
+
+        query = {
+            'filter': filter,
+            'filter_or': filter_or,
+            'aggregate': [
+                {
+                    'group': {
+                        'keys': group_keys,
+                        'fields': group_fields
+                    }
+                }
+            ],
+            'target': target
+        }
+
+
+        if has_field_group:
+            query['aggregate'] += cls._make_field_group_query(group_keys, group_fields, field_group)
+
+        if len(sort) > 0:
+            query['aggregate'] += cls._make_sort_query(sort, group_fields, has_field_group)
+
+        if page:
+            query['aggregate'] += cls._make_page_query(page)
+
+        response = cls.stat(**query)
+
+        if page_limit:
+            response['more'] = len(response['results']) > page_limit
+            response['results'] = response['results'][:page_limit]
+
+        return response
