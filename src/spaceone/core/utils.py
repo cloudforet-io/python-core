@@ -455,6 +455,12 @@ def dict_to_hash(dict_value: dict) -> str:
     return dhash.hexdigest()
 
 
+def string_to_hash(str_value: str) -> str:
+    """MD5 hash of a String."""
+    dhash = hashlib.md5(str_value.encode("utf-8"))
+    return dhash.hexdigest()
+
+
 def change_dict_with_dot_notation(dict_value: dict, key='', dots=None) -> dict:
     if dots is None:
         dots = {}
