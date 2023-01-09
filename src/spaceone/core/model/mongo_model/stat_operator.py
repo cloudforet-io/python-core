@@ -125,30 +125,84 @@ def _group_default_resolver(condition, key, operator, name, sub_conditions, *arg
     }
 
 
-def _project_size_resolver(condition, key, operator, name, *args):
+def _project_size_resolver(condition, key, operator, name, fields, group_keys, *args):
     if key is None:
         raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
+
+    if key in group_keys:
+        key = f'_id.{key}'
 
     return {
         name: {'$size': f'${key}'}
     }
 
 
-def _project_array_to_object_resolver(condition, key, operator, name, *args):
+def _project_array_to_object_resolver(condition, key, operator, name, fields, group_keys, *args):
     if key is None:
         raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
+
+    if key in group_keys:
+        key = f'_id.{key}'
 
     return {
         name: {'$arrayToObject': f'${key}'}
     }
 
 
-def _project_object_to_array_resolver(condition, key, operator, name, *args):
+def _project_object_to_array_resolver(condition, key, operator, name, fields, group_keys, *args):
     if key is None:
         raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
 
+    if key in group_keys:
+        key = f'_id.{key}'
+
     return {
         name: {'$objectToArray': f'${key}'}
+    }
+
+
+def _project_calculate_sub_query(condition, operator, fields, group_keys):
+    supported_operator = ['add', 'subtract', 'multiply', 'divide']
+
+    if operator is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.operator' condition requires a operator: {condition}")
+
+    if operator not in supported_operator:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.operator' condition operator are not allowed"
+                                    f" (supported_operator={supported_operator}): {condition}")
+
+    if fields is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a fields: {condition}")
+
+    if operator in ['subtract', 'divide'] and len(fields) != 2:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires two fields: {condition}")
+
+    expressions = []
+    for key in fields:
+        if isinstance(key, str):
+            if key in group_keys:
+                key = f'_id.{key}'
+
+            expressions.append(f'${key}')
+        elif isinstance(key, (int, float)) and not isinstance(key, bool):
+            expressions.append(key)
+        elif isinstance(key, dict):
+            sub_condition = key
+            sub_operator = sub_condition.get('operator', sub_condition.get('o'))
+            sub_fields = sub_condition.get('fields', sub_condition.get('f'))
+            expressions.append(_project_calculate_sub_query(sub_condition, sub_operator, sub_fields, group_keys))
+        else:
+            raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition accept only string or object or "
+                                        f"numeric types: {condition}")
+
+    return {
+        f'${operator}': expressions
+    }
+
+
+def _project_calculate_resolver(condition, key, operator, name, fields, group_keys, *args):
+    return {
+        name: _project_calculate_sub_query(condition, operator, fields, group_keys)
     }
 
 
@@ -169,4 +223,8 @@ STAT_PROJECT_OPERATORS = {
     'size': _project_size_resolver,
     'array_to_object': _project_array_to_object_resolver,
     'object_to_array': _project_object_to_array_resolver,
+    'add': _project_calculate_resolver,
+    'subtract': _project_calculate_resolver,
+    'multiply': _project_calculate_resolver,
+    'divide': _project_calculate_resolver,
 }

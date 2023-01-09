@@ -69,7 +69,7 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
         try:
             decoded = JWTUtil.unverified_decode(token)
         except Exception:
-            _LOGGER.debug(f'[ERROR_AUTHENTICATE_FAILURE] token: {token}')
+            _LOGGER.debug(f'[_extract_domain_id] failed to decode token: {token[:10]}')
             raise ERROR_AUTHENTICATE_FAILURE(message='Cannot decode token.')
 
         domain_id = decoded.get('did')

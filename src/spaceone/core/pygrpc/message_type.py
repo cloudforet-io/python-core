@@ -109,6 +109,9 @@ def change_analyze_query(value):
     if 'fields' in value:
         change_value['fields'] = change_struct_type(value['fields'])
 
+    if 'select' in value:
+        change_value['select'] = change_struct_type(value['select'])
+
     return query_pb2.AnalyzeQuery(**change_value)
 
 
@@ -119,6 +122,9 @@ def change_time_series_analyze_query(value):
 
     if 'fields' in value:
         change_value['fields'] = change_struct_type(value['fields'])
+
+    if 'select' in value:
+        change_value['select'] = change_struct_type(value['select'])
 
     return query_pb2.TimeSeriesAnalyzeQuery(**change_value)
 
