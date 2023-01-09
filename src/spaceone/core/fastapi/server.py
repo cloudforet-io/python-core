@@ -28,15 +28,31 @@ def _get_router(path):
 
 def include_routers(app):
     # Include All Routers from router_conf.py
+    sub_api_routers = {}
     routers = _get_router_conf(config.get_package())
-
     all_routers_path = []
 
     # App Routers
     for router_options in routers:
-        router_path = append_router(app, router_options)
+        if router_options.get('sub_api'):
+            sub_api_name = router_options['sub_api']
+
+            if sub_api_routers.get(sub_api_name) is None:
+                _sub_api = FastAPI()
+                sub_api_routers[sub_api_name] = _sub_api
+                router_path = append_router(_sub_api, router_options)
+            else:
+                _sub_api = sub_api_routers.get(sub_api_name)
+                router_path = append_router(_sub_api, router_options)
+        else:
+            router_path = append_router(app, router_options)
+
         if router_path:
             all_routers_path.append(router_path)
+
+    # Mount Apps
+    for path, sub_api in sub_api_routers.items():
+        app.mount(path=f'/{path}', app=sub_api, name=path)
 
     # Extension Routers
     ext_routers = config.get_global('REST_EXTENSION_ROUTERS', [])
@@ -56,6 +72,9 @@ def append_router(app, router_options):
         router = _get_router(router_options['path'])
         router_path = router_options['path']
         del router_options['path']
+
+        if router_options.get('sub_api'):
+            del router_options['sub_api']
 
         app.include_router(
             router,
