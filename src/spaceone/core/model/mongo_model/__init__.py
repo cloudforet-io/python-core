@@ -756,10 +756,11 @@ class MongoModel(Document, BaseModel):
         return _group_rule, _group_keys
 
     @classmethod
-    def _get_project_fields(cls, condition, _group_keys):
+    def _get_project_fields(cls, condition):
         key = condition.get('key', condition.get('k'))
         name = condition.get('name', condition.get('n'))
         operator = condition.get('operator', condition.get('o'))
+        fields = condition.get('fields', condition.get('f'))
 
         if operator and operator not in STAT_PROJECT_OPERATORS:
             raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition's {operator} operator is not supported. "
@@ -768,10 +769,7 @@ class MongoModel(Document, BaseModel):
         if name is None:
             raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a name: {condition}")
 
-        if key in _group_keys:
-            key = f'_id.{key}'
-
-        return key, name, operator
+        return key, name, operator, fields
 
     @classmethod
     def _make_project_rule(cls, options, _group_keys):
@@ -787,12 +785,15 @@ class MongoModel(Document, BaseModel):
             raise ERROR_REQUIRED_PARAMETER(key='aggregate.project.fields')
 
         for condition in _fields:
-            key, name, operator = cls._get_project_fields(condition, _group_keys)
+            key, name, operator, fields = cls._get_project_fields(condition)
 
             if operator:
-                rule = STAT_PROJECT_OPERATORS[operator](condition, key, operator, name)
+                rule = STAT_PROJECT_OPERATORS[operator](condition, key, operator, name, fields, _group_keys)
                 _project_rule['$project'].update(rule)
             else:
+                if key in _group_keys:
+                    key = f'_id.{key}'
+
                 _project_rule['$project'][name] = f'${key}'
 
         if _exclude_keys:
@@ -1020,11 +1021,11 @@ class MongoModel(Document, BaseModel):
     @classmethod
     def _make_group_fields(cls, fields):
         group_fields = []
-        for name, field_info in fields.items():
-            cls._check_field_info(field_info)
-            operator = field_info['operator']
-            key = field_info.get('key')
-            fields = field_info.get('fields')
+        for name, condition in fields.items():
+            cls._check_condition(condition)
+            operator = condition['operator']
+            key = condition.get('key')
+            fields = condition.get('fields')
 
             group_field = {
                 'name': name,
@@ -1042,10 +1043,10 @@ class MongoModel(Document, BaseModel):
         return group_fields
 
     @classmethod
-    def _check_field_info(cls, field_info):
-        key = field_info.get('key')
-        operator = field_info.get('operator')
-        fields = field_info.get('fields', [])
+    def _check_condition(cls, condition):
+        key = condition.get('key')
+        operator = condition.get('operator')
+        fields = condition.get('fields', [])
 
         if operator is None:
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.operator')
@@ -1124,6 +1125,42 @@ class MongoModel(Document, BaseModel):
         return [field_group_query]
 
     @classmethod
+    def _make_select_query(cls, select):
+        select_query = {
+            'project': {
+                'fields': [],
+                'exclude_keys': True
+            }
+        }
+
+        supported_operator = ['add', 'subtract', 'multiply', 'divide']
+
+        for name, condition in select.items():
+            if isinstance(condition, str):
+                select_query['project']['fields'].append({
+                    'name': name,
+                    'key': condition
+                })
+            elif isinstance(condition, dict):
+                operator = condition.get('operator')
+                fields = condition.get('fields')
+
+                if operator not in supported_operator:
+                    raise ERROR_INVALID_PARAMETER(key='query.select.operator',
+                                                  reason=f'supported_operator = {supported_operator}')
+
+                if fields is None:
+                    raise ERROR_REQUIRED_PARAMETER(key='query.select.fields')
+
+                select_query['project']['fields'].append({
+                    'name': name,
+                    'operator': operator,
+                    'fields': fields
+                })
+
+        return [select_query]
+
+    @classmethod
     def _make_sort_query(cls, sort, group_fields, has_field_group):
         sort_query = {
             'sort': {
@@ -1178,7 +1215,7 @@ class MongoModel(Document, BaseModel):
         }]
 
     @classmethod
-    def analyze(cls, *args, granularity=None, fields=None, group_by=None, field_group=None, filter=None,
+    def analyze(cls, *args, granularity=None, fields=None, select=None, group_by=None, field_group=None, filter=None,
                 filter_or=None, page=None, sort=None, start=None, end=None, date_field='date',
                 target='SECONDARY_PREFERRED', **kwargs):
 
@@ -1221,6 +1258,8 @@ class MongoModel(Document, BaseModel):
             'target': target
         }
 
+        if select:
+            query['aggregate'] += cls._make_select_query(select)
 
         if has_field_group:
             query['aggregate'] += cls._make_field_group_query(group_keys, group_fields, field_group)
