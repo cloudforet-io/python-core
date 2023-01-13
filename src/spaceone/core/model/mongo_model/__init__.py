@@ -1223,7 +1223,7 @@ class MongoModel(Document, BaseModel):
             raise ERROR_REQUIRED_PARAMETER(key='granularity')
 
         if fields is None:
-            raise ERROR_REQUIRED_PARAMETER(key='granularity')
+            raise ERROR_REQUIRED_PARAMETER(key='fields')
 
         filter = filter or []
         filter_or = filter_or or []
