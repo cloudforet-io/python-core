@@ -32,12 +32,17 @@ UVICORN_OPTIONS = {
 
 # Rest Middlewares
 REST_MIDDLEWARES = []
+# Scope : app(default), sub_app, all
 REST_EXTENSION_ROUTERS = [
     {
-        'path': 'spaceone.core.fastapi.extension.health:router'
+        'scope': 'app',
+        'router_path': 'spaceone.core.fastapi.extension.health:router',
+        'router_options': {}
     },
     {
-        'path': 'spaceone.core.fastapi.extension.reflection:router'
+        'scope': 'app',
+        'router_path': 'spaceone.core.fastapi.extension.reflection:router',
+        'router_options': {}
     }
 ]
 
