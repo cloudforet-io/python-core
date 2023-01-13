@@ -1002,7 +1002,7 @@ class MongoModel(Document, BaseModel):
                                               reason='Field group keys cannot contain _total_ characters.')
 
     @classmethod
-    def _make_group_keys(cls, group_by, granularity, date_field):
+    def _make_group_keys(cls, group_by, date_field, granularity=None):
         group_keys = []
         for key in group_by:
             group_keys.append({
@@ -1010,7 +1010,7 @@ class MongoModel(Document, BaseModel):
                 'name': key
             })
 
-        if granularity in ['DAILY', 'MONTHLY']:
+        if granularity and granularity in ['DAILY', 'MONTHLY']:
             group_keys.append({
                 'key': date_field,
                 'name': 'date'
@@ -1219,11 +1219,8 @@ class MongoModel(Document, BaseModel):
                 filter_or=None, page=None, sort=None, start=None, end=None, date_field='date',
                 target='SECONDARY_PREFERRED', **kwargs):
 
-        if granularity is None:
-            raise ERROR_REQUIRED_PARAMETER(key='granularity')
-
         if fields is None:
-            raise ERROR_REQUIRED_PARAMETER(key='granularity')
+            raise ERROR_REQUIRED_PARAMETER(key='fields')
 
         filter = filter or []
         filter_or = filter_or or []
@@ -1241,7 +1238,7 @@ class MongoModel(Document, BaseModel):
         if end:
             filter += cls._make_date_filter(date_field, end, 'lte')
 
-        group_keys = cls._make_group_keys(group_by, granularity, date_field)
+        group_keys = cls._make_group_keys(group_by, date_field, granularity)
         group_fields = cls._make_group_fields(fields)
 
         query = {
