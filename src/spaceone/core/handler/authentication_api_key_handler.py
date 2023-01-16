@@ -39,10 +39,14 @@ class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
         if request_method not in _EXCLUDE_METHODS:
             token_type = self.transaction.get_meta('token_type')
             api_key_id = self.transaction.get_meta('api_key_id')
+            api_key_ver = self.transaction.get_meta('api_key_ver')
             domain_id = self.transaction.get_meta('domain_id')
 
-            if token_type == 'API_KEY' and api_key_id and domain_id:
-                self._check_api_key(api_key_id, domain_id)
+            if token_type == 'API_KEY':
+                if api_key_id and domain_id:
+                    self._check_api_key(api_key_id, domain_id)
+                else:
+                    raise ERROR_AUTHENTICATE_FAILURE(message='This API Key is no longer supported.')
 
     @cacheable(key='api-key:{domain_id}:{api_key_id}', backend='local')
     def _check_api_key(self, api_key_id, domain_id):
