@@ -32,7 +32,7 @@ UVICORN_OPTIONS = {
 
 # Rest Middlewares
 REST_MIDDLEWARES = []
-# Scope : app(default), sub_app, all
+
 REST_EXTENSION_ROUTERS = [
     {
         'scope': 'app',
