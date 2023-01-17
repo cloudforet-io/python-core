@@ -11,9 +11,16 @@ from spaceone.core.extension.server_info import ServerInfoManager
 _LOGGER = logging.getLogger(__name__)
 
 
-def _get_router_conf(package):
+def _get_router_conf():
+    package = config.get_package()
     router_conf_module = __import__(f'{package}.conf.router_conf', fromlist=['router_conf'])
     return getattr(router_conf_module, 'ROUTER', [])
+
+
+def _get_sub_app_conf():
+    package = config.get_package()
+    router_conf_module = __import__(f'{package}.conf.router_conf', fromlist=['router_conf'])
+    return getattr(router_conf_module, 'SUB_APP', {})
 
 
 def _get_router(path):
@@ -26,24 +33,63 @@ def _get_router(path):
         _LOGGER.warning(f'[_get_router] Invalid router path. (router_path = {path})', exc_info=True)
 
 
-def include_routers(app):
-    # Include All Routers from router_conf.py
-    routers = _get_router_conf(config.get_package())
+def _mount_sub_apps(app, sub_apps):
+    sub_app_conf = _get_sub_app_conf()
+    for sub_app_name, sub_app_options in sub_app_conf.items():
+        sub_app = sub_apps.get(sub_app_name)
+        if sub_app:
+            sub_app_path = sub_app_options.get('path')
+            app.mount(path=sub_app_path, app=sub_app)
 
+
+def _create_sub_app(sub_app_options):
+    title = sub_app_options.get('title', 'FastAPI')
+    description = sub_app_options.get('description', '')
+    contact = sub_app_options.get('contact', {})
+
+    return FastAPI(title=title, description=description, contact=contact)
+
+
+def _include_routers(app):
+    # Include All Routers from router_conf.py
+    routers_conf = _get_router_conf()
+    sub_apps_conf = _get_sub_app_conf()
+
+    sub_apps = {}
     all_routers_path = []
 
     # App Routers
-    for router_options in routers:
-        router_path = append_router(app, router_options)
-        if router_path:
-            all_routers_path.append(router_path)
+    for router_conf in routers_conf:
+        sub_app_name = router_conf.get('sub_app')
+        router_path = router_conf.get('router_path')
+        router_options = router_conf.get('router_options', {})
+
+        if router_path is None:
+            _LOGGER.warning(f'[include_routers] Undefined router_path. (router = {router_conf})')
+            continue
+
+        if sub_app_name in sub_apps_conf:
+            if sub_app_name not in sub_apps:
+                sub_app_options = sub_apps_conf[sub_app_name]
+                sub_apps[sub_app_name] = _create_sub_app(sub_app_options)
+
+            _append_router(sub_apps[sub_app_name], router_path, router_options)
+        else:
+            _append_router(app, router_path, router_options)
+
+        all_routers_path.append(router_path)
 
     # Extension Routers
     ext_routers = config.get_global('REST_EXTENSION_ROUTERS', [])
-    for router_options in ext_routers:
-        router_path = append_router(app, router_options)
-        if router_path:
-            all_routers_path.append(router_path)
+    for router in ext_routers:
+        router_path = router.get('router_path')
+        router_options = router.get('router_options', {})
+        _append_router(app, router_path, router_options)
+
+        all_routers_path.append(router_path)
+
+    # Mount Sub Applications
+    _mount_sub_apps(app, sub_apps)
 
     all_routers_path_str = '\n\t - '.join(all_routers_path)
     _LOGGER.debug(f'Loaded Routers: \n\t - {all_routers_path_str}')
@@ -51,24 +97,16 @@ def include_routers(app):
     return app
 
 
-def append_router(app, router_options):
-    if 'path' in router_options:
-        router = _get_router(router_options['path'])
-        router_path = router_options['path']
-        del router_options['path']
+def _append_router(app, router_path, router_options):
+    router = _get_router(router_path)
 
-        app.include_router(
-            router,
-            **router_options
-        )
-
-        return router_path
-    else:
-        _LOGGER.warning(f'[_include_router] Undefined router path. (router = {router_options})')
-        return None
+    app.include_router(
+        router,
+        **router_options
+    )
 
 
-def add_middlewares(app):
+def _add_middlewares(app):
     app.add_middleware(
         CORSMiddleware,
         allow_origins=['*'],
@@ -79,7 +117,7 @@ def add_middlewares(app):
     return app
 
 
-def init_fast_api():
+def _init_fast_api():
     global_conf = config.get_global()
     server_info = ServerInfoManager()
 
@@ -92,9 +130,9 @@ def init_fast_api():
 
 
 def fast_api_app():
-    app = init_fast_api()
-    app = add_middlewares(app)
-    app = include_routers(app)
+    app = _init_fast_api()
+    app = _add_middlewares(app)
+    app = _include_routers(app)
     return app
 
 
