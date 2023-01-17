@@ -35,12 +35,10 @@ REST_MIDDLEWARES = []
 
 REST_EXTENSION_ROUTERS = [
     {
-        'scope': 'app',
         'router_path': 'spaceone.core.fastapi.extension.health:router',
         'router_options': {}
     },
     {
-        'scope': 'app',
         'router_path': 'spaceone.core.fastapi.extension.reflection:router',
         'router_options': {}
     }

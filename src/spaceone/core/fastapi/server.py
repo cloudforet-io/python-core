@@ -42,14 +42,6 @@ def _mount_sub_apps(app, sub_apps):
             app.mount(path=sub_app_path, app=sub_app)
 
 
-def _get_scope_from_ext_router_conf(router):
-    scope = router.get('scope')
-    if scope in ['app', 'sub_app', 'all']:
-        return scope
-    else:
-        return 'app'
-
-
 def _create_sub_app(sub_app_options):
     title = sub_app_options.get('title', 'FastAPI')
     description = sub_app_options.get('description', '')
@@ -90,16 +82,9 @@ def _include_routers(app):
     # Extension Routers
     ext_routers = config.get_global('REST_EXTENSION_ROUTERS', [])
     for router in ext_routers:
-        scope = _get_scope_from_ext_router_conf(router)
         router_path = router.get('router_path')
         router_options = router.get('router_options', {})
-
-        if scope in ['app', 'all']:
-            _append_router(app, router_path, router_options)
-
-        if scope in ['sub_app', 'all']:
-            for sub_app_name, sub_app in sub_apps.items():
-                _append_router(sub_app, router_path, router_options)
+        _append_router(app, router_path, router_options)
 
         all_routers_path.append(router_path)
 
