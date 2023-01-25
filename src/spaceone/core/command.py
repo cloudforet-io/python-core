@@ -7,7 +7,7 @@ from typing import List
 import click
 import pkg_resources
 
-from spaceone.core import config, pygrpc, fastapi
+from spaceone.core import config, pygrpc, fastapi, utils
 from spaceone.core import scheduler as scheduler_v1
 from spaceone.core.unittest.runner import RichTestRunner
 
@@ -29,11 +29,11 @@ def create_project(project_name=None, directory=None):
 @click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 50051),
               help='Port of gRPC server', show_default=True)
 @click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
-              help='config file path')
+              help='Config file path')
 @click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
 def grpc(package, port=None, config=None, module_path=None):
     """Run a gRPC server"""
-    _set_server_config('grpc', package, module_path, port, config_file=config)
+    _set_server_config(package, module_path, port, config_file=config)
     pygrpc.serve()
 
 
@@ -44,11 +44,11 @@ def grpc(package, port=None, config=None, module_path=None):
 @click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 8000),
               help='Port of REST server', show_default=True)
 @click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
-              help='config file path')
+              help='Config file path')
 @click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
 def rest(package, host=None, port=None, config=None, module_path=None):
     """Run a FastAPI REST server"""
-    _set_server_config('rest', package, module_path, port, config_file=config)
+    _set_server_config(package, module_path, port, config_file=config)
     fastapi.serve()
 
 
@@ -59,20 +59,33 @@ def rest(package, host=None, port=None, config=None, module_path=None):
 @click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
 def scheduler(package, config=None, module_path=None):
     """Run a scheduler server"""
-    _set_server_config('scheduler', package, module_path, config_file=config)
+    _set_server_config(package, module_path, config_file=config)
     scheduler_v1.serve()
 
 
 @cli.command()
-@click.option('-c', '--config', type=str, help='config file path for tester')
-@click.option('-d', '--dir', type=str, help="directory containing test files",
+@click.argument('package')
+@click.option('-c', '--config', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
+              help='Config file path')
+@click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
+@click.option('-o', '--output', default='yaml', help='Output format',
+              type=click.Choice(['json', 'yaml']), show_default=True)
+def show_config(package, config=None, module_path=None, output=None):
+    """Show global configurations"""
+    _set_server_config(package, module_path, config_file=config)
+    _print_config(output)
+
+
+@cli.command()
+@click.option('-c', '--config', type=str, help='Config file path')
+@click.option('-d', '--dir', type=str, help="Directory containing test files",
               default=lambda: os.environ.get('SPACEONE_WORKING_DIR', os.getcwd()))
-@click.option('-f', '--failfast', help="fast failure flag", is_flag=True)
-@click.option('-s', '--scenario', type=str, help="scenario file path")
-@click.option('-p', '--parameters', type=str, help="custom parameters to override a scenario file. "
+@click.option('-f', '--failfast', help="Fast failure flag", is_flag=True)
+@click.option('-s', '--scenario', type=str, help="Scenario file path")
+@click.option('-p', '--parameters', type=str, help="Custom parameters to override a scenario file. "
                                                    "ex) -p domain.domain.name=new_name -p options.update_mode=false",
               multiple=True)
-@click.option('-v', '--verbose', count=True, help='verbosity level', default=1)
+@click.option('-v', '--verbose', count=True, help='Verbosity level', default=1)
 def test(config=None, dir=None, failfast=False, scenario: str = None, parameters: List[str] = None, verbose=1):
     """Unit tests for source code"""
     # set config
@@ -120,14 +133,13 @@ def _set_python_path(package, module_path):
                         'Please check the module path.')
 
 
-def _set_server_config(command, package, module_path=None, port=None, config_file=None):
+def _set_server_config(package, module_path=None, port=None, config_file=None):
     # 1. Set a python path
     _set_python_path(package, module_path)
 
     # 2. Initialize config from command argument
     config.init_conf(
         package=package,
-        server_type=command,
         port=port
     )
 
@@ -166,6 +178,17 @@ def _create_project(project_name, directory=None):
         "}\n"
     )
     init_project_file(os.path.join(project_path, 'conf', 'proto_conf.py'), proto_conf)
+
+
+def _print_config(output):
+    data = {
+        'GLOBAL': config.get_global()
+    }
+
+    if output == 'json':
+        print(utils.dump_json(data, indent=4))
+    else:
+        print(utils.dump_yaml(data))
 
 
 if __name__ == '__main__':

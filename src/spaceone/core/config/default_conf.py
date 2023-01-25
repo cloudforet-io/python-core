@@ -9,7 +9,6 @@ PACKAGE = None
 SERVICE = None
 
 # Server Configuration
-SERVER_TYPE = None
 PORT = 50051
 HOST = '127.0.0.1'
 

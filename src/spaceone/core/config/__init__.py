@@ -1,6 +1,5 @@
 import copy
 import logging
-import sys
 import consul
 
 from spaceone.core import utils
@@ -16,9 +15,6 @@ def init_conf(package, **kwargs):
 
     _GLOBAL['PACKAGE'] = package
     _GLOBAL['SERVICE'] = package.rsplit('.', 1)[-1:][0]
-
-    if 'server_type' in kwargs:
-        _GLOBAL['SERVER_TYPE'] = kwargs['server_type']
 
     if 'host' in kwargs:
         _GLOBAL['HOST'] = kwargs['HOST']
