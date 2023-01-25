@@ -30,7 +30,7 @@ def create_project(project_name=None, directory=None):
               help='Port of gRPC server', show_default=True)
 @click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='Config file path')
-@click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
 def grpc(package, port=None, config_file=None, module_path=None):
     """Run a gRPC server"""
     _set_server_config(package, module_path, port, config_file=config_file)
@@ -45,7 +45,7 @@ def grpc(package, port=None, config_file=None, module_path=None):
               help='Port of REST server', show_default=True)
 @click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='Config file path')
-@click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
 def rest(package, host=None, port=None, config_file=None, module_path=None):
     """Run a FastAPI REST server"""
     _set_server_config(package, module_path, port, config_file=config_file)
@@ -56,7 +56,7 @@ def rest(package, host=None, port=None, config_file=None, module_path=None):
 @click.argument('package')
 @click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='config file path')
-@click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
 def scheduler(package, config_file=None, module_path=None):
     """Run a scheduler server"""
     _set_server_config(package, module_path, config_file=config_file)
@@ -67,7 +67,7 @@ def scheduler(package, config_file=None, module_path=None):
 @click.argument('package')
 @click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='Config file path')
-@click.option('-m', '--module_path', type=click.Path(exists=True), multiple=True, help='Module path')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
 @click.option('-o', '--output', default='yaml', help='Output format',
               type=click.Choice(['json', 'yaml']), show_default=True)
 def show_config(package, config_file=None, module_path=None, output=None):
