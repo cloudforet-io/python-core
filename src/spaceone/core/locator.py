@@ -96,7 +96,7 @@ class Locator(object):
 
                 return getattr(connector_module, name)(transaction=self.transaction, config=connector_conf, **kwargs)
             else:
-                return name(transitions=self.transaction, **kwargs)
+                return name(transaction=self.transaction, **kwargs)
 
         except ERROR_BASE as e:
             raise e
