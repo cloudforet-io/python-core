@@ -31,33 +31,50 @@ setup(
     license='Apache License 2.0',
     packages=find_packages(),
     install_requires=[
+        # grpc packages
         # 'grpcio',
         'protobuf==3.*',
         'grpcio-reflection',
         'google-api-core',
         'grpcio-health-checking',
-        'asyncio',
-        'PyYAML',
-        'unittest-xml-reporting>=3.0.0',
-        'pycryptodome',
-        # 'pycryptodome==3.8.2',
-        'schedule',
-        'cachetools',
-        'jwcrypto',
-        'python-jose',
-        # 'jwcrypto==0.7',
-        # 'python-jose==3.1.0',
-        'factory-boy',
-        'jsonschema',
-        'python-dateutil',
-        'python-consul',
-        'scheduler-cron',
-        'click',
-        'uvicorn',
+
+        # fastapi packages
         'fastapi',
         'fastapi-utils',
+        'uvicorn',
+
+        # asyncio packages
+        'asyncio',
+
+        # data parser packages
+        'PyYAML',
+        'jsonschema',
+
+        # test framework packages
+        'unittest-xml-reporting',
+        'factory-boy',
+
+        # scheduler packages
+        'schedule',
+        'scheduler-cron',
+
+        # cache packages
+        'cachetools',
+
+        # crypto(jwt) packages
+        'pycryptodome',
+        'jwcrypto',
+        'python-jose',
+
+        # utils packages
+        'python-dateutil',
         'python-consul',
         'dnspython',
+
+        # CLI packages
+        'click',
+
+        # model packages
         'pydantic'
     ],
     zip_safe=False,
