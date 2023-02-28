@@ -72,6 +72,16 @@ def dump_json(data, indent=None, sort_keys=False) -> str:
         raise ValueError(f'JSON Dump Error: {str(e)}')
 
 
+def save_json_to_file(data, json_file: str, indent=None, sort_keys=False):
+    try:
+        json_str = dump_json(data, indent, sort_keys)
+        with open(json_file, 'w') as f:
+            f.write(json_str)
+            f.close()
+    except Exception as e:
+        raise ValueError(f'JSON Save Error: {str(e)}')
+
+
 def load_json(json_str: str) -> dict:
     try:
         return json.loads(json_str)
