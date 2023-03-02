@@ -22,3 +22,8 @@ python-consul
 dnspython
 click
 pydantic
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-instrumentation-logging
+opentelemetry-exporter-prometheus

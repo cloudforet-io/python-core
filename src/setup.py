@@ -75,7 +75,14 @@ setup(
         'click',
 
         # model packages
-        'pydantic'
+        'pydantic',
+
+        # tracing packages
+        'opentelemetry-api',
+        'opentelemetry-sdk',
+        'opentelemetry-exporter-otlp-proto-grpc',
+        'opentelemetry-instrumentation-logging',
+        'opentelemetry-exporter-prometheus'
     ],
     zip_safe=False,
     entry_points={

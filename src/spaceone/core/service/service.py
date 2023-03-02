@@ -9,8 +9,11 @@ from spaceone.core import config
 from spaceone.core.error import *
 from spaceone.core.locator import Locator
 from spaceone.core.transaction import Transaction
+from spaceone.core.tracer import init_tracer
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 _LOGGER = logging.getLogger(__name__)
+tracer = init_tracer(__name__)
 
 
 class BaseService(object):
@@ -26,6 +29,7 @@ class BaseService(object):
             self.transaction = transaction
         else:
             self.transaction = Transaction(metadata)
+            init_tracer(__name__)
 
         self.locator = Locator(self.transaction)
         self.handler = {
@@ -55,7 +59,14 @@ def transaction(func=None, append_meta=None):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(self, params):
-            return _pipeline(func, self, params, append_meta)
+            with tracer.start_as_current_span(func.__class__.__name__) as span:
+                span.set_attribute('transaction_id', self.transaction.get_meta('transaction_id'))
+                span.set_attribute('service', self.transaction.get_meta('service'))
+                span.set_attribute('resource', self.transaction.get_meta('resource'))
+                span.set_attribute('user-agent', self.transaction.get_meta('user-agent'))
+                span.set_attribute('verb', self.transaction.get_meta('verb'))
+                span.set_attribute('peer', self.transaction.get_meta('peer'))
+                return _pipeline(func, self, params, append_meta)
 
         return wrapped_func
 
@@ -83,14 +94,16 @@ def _pipeline(func, self, params, append_meta):
                     _LOGGER.error(f'{handler.__class__.__name__} Error (STARTED): {e}')
 
         # 2. Authentication:
-        if _check_handler_method(self, 'authentication'):
-            for handler in self.handler['authentication']['handlers']:
-                handler.verify(params)
+        with tracer.start_as_current_span('Authentication') as span:
+            if _check_handler_method(self, 'authentication'):
+                for handler in self.handler['authentication']['handlers']:
+                    handler.verify(params)
 
         # 3. Authorization
-        if _check_handler_method(self, 'authorization'):
-            for handler in self.handler['authorization']['handlers']:
-                handler.verify(params)
+        with tracer.start_as_current_span('Authorization') as span:
+            if _check_handler_method(self, 'authorization'):
+                for handler in self.handler['authorization']['handlers']:
+                    handler.verify(params)
 
         # 4. Print Info Log
         disable_info_log = str(self.transaction.get_meta('disable_info_log', 'false')).lower()
@@ -98,13 +111,16 @@ def _pipeline(func, self, params, append_meta):
             _LOGGER.info('(REQUEST) =>', extra={'parameter': copy.deepcopy(params)})
 
         # 5. Mutation
-        if _check_handler_method(self, 'mutation'):
-            for handler in self.handler['mutation']['handlers']:
-                params = handler.request(params)
+        with tracer.start_as_current_span('Mutation') as span:
+            if _check_handler_method(self, 'mutation'):
+                for handler in self.handler['mutation']['handlers']:
+                    params = handler.request(params)
 
         # 6. Service Body
-        self.transaction.status = 'IN_PROGRESS'
-        response_or_iterator = func(self, params)
+        with tracer.start_as_current_span('service_body') as span:
+            span.set_attribute("method", func.__name__)
+            self.transaction.status = 'IN_PROGRESS'
+            response_or_iterator = func(self, params)
 
         # 7. Response Handlers
         if isinstance(response_or_iterator, types.GeneratorType):
