@@ -86,6 +86,7 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
         token_type = token_info.get('cat')
         api_key_id = token_info.get('api_key_id')
         permissions = token_info.get('permissions')
+        verify_code = token_info.get('verify_code')
 
         self.transaction.set_meta('domain_id', domain_id)
         self.transaction.set_meta('user_id', user_id)
@@ -93,4 +94,4 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
         self.transaction.set_meta('authorization.permissions', permissions)
         self.transaction.set_meta('token_type', token_type)
         self.transaction.set_meta('api_key_id', api_key_id)
-
+        self.transaction.set_meta('verify_code', verify_code)
