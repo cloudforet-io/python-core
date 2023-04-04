@@ -72,11 +72,6 @@ class ERROR_INVALID_ARGUMENT(ERROR_BASE):
     _message = 'Argument is invalid.'
 
 
-class ERROR_REQUEST_TIMEOUT(ERROR_BASE):
-    _status_code = 'DEADLINE_EXCEEDED'
-    _message = 'Request timeout!'
-
-
 class ERROR_REQUIRED_PARAMETER(ERROR_INVALID_ARGUMENT):
     _message = 'Required parameter. (key = {key})'
 
@@ -90,14 +85,16 @@ class ERROR_INVALID_PARAMETER(ERROR_INVALID_ARGUMENT):
 
 
 class ERROR_NOT_FOUND(ERROR_INVALID_ARGUMENT):
+    _status_code = 'NOT_FOUND'
     _message = 'Value not found. ({key} = {value})'
 
 
 class ERROR_NOT_UNIQUE(ERROR_INVALID_ARGUMENT):
+    _status_code = 'ALREADY_EXISTS'
     _message = 'Tried to save duplicate unique key. ({key} = {value})'
 
 
-class ERROR_SAVE_UNIQUE_VALUES(ERROR_INVALID_ARGUMENT):
+class ERROR_SAVE_UNIQUE_VALUES(ERROR_NOT_UNIQUE):
     _message = 'Tried to save duplicate unique values. (keys = {keys})'
 
 
@@ -129,17 +126,28 @@ class ERROR_JSON_FORMAT(ERROR_INVALID_ARGUMENT):
     _message = 'JSON format is invalid. ({key} = {value})'
 
 
+class ERROR_AUTHENTICATE_FAILURE(ERROR_INVALID_ARGUMENT):
+    _status_code = 'UNAUTHENTICATED'
+    _message = 'Authenticate failure. (message = {message})'
+
+
+class ERROR_PERMISSION_DENIED(ERROR_INVALID_ARGUMENT):
+    _status_code = 'PERMISSION_DENIED'
+    _message = 'Permission denied.'
+
+
 class ERROR_UNKNOWN(ERROR_BASE):
     _status_code = 'INTERNAL'
     _message = '{message}'
 
 
+class ERROR_REQUEST_TIMEOUT(ERROR_UNKNOWN):
+    _status_code = 'DEADLINE_EXCEEDED'
+    _message = 'Request timeout!'
+
+
 class ERROR_TRANSACTION_STATUS(ERROR_UNKNOWN):
     _message = 'Transaction status is incorrect. (status = {status})'
-
-
-class ERROR_LOCATOR(ERROR_UNKNOWN):
-    _message = '\'{name}\' load failed. (reason = {reason})'
 
 
 class ERROR_UNSUPPORTED_API(ERROR_UNKNOWN):
@@ -150,12 +158,36 @@ class ERROR_CONFIGURATION(ERROR_UNKNOWN):
     _message = 'Configuration is invalid. (key = {key})'
 
 
-class ERROR_DB_CONFIGURATION(ERROR_UNKNOWN):
+class ERROR_DB_CONFIGURATION(ERROR_CONFIGURATION):
     _message = 'Database configuration is invalid. (backend = {backend})'
 
 
-class ERROR_DB_QUERY(ERROR_UNKNOWN):
-    _message = 'Database query failed. (reason = {reason})'
+class ERROR_CACHE_CONFIGURATION(ERROR_CONFIGURATION):
+    _message = 'Cache configuration is invalid. (backend = {backend})'
+
+
+class ERROR_CONNECTOR_CONFIGURATION(ERROR_CONFIGURATION):
+    _message = 'Connector configuration is invalid. (backend = {backend})'
+
+
+class ERROR_GRPC_CONFIGURATION(ERROR_CONFIGURATION):
+    _message = 'gRPC client configuration is invalid. ({endpoint}/{service}/{method})'
+
+
+class ERROR_HANDLER_CONFIGURATION(ERROR_CONFIGURATION):
+    _message = 'Handler configuration is invalid. (handler = {handler})'
+
+
+class ERROR_CONNECTOR_CONFIGURATION(ERROR_CONFIGURATION):
+    _message = 'Connector configuration is invalid. (connector = {connector})'
+
+
+class ERROR_LOG_CONFIG(ERROR_CONFIGURATION):
+    _message = 'Log configuration is invalid. (reason = {reason})'
+
+
+class ERROR_WRONG_CONFIGURATION(ERROR_CONFIGURATION):
+    _message = 'Configuration is invalid. ({key})'
 
 
 class ERROR_DB_QUERY(ERROR_UNKNOWN):
@@ -170,10 +202,6 @@ class ERROR_CACHE_TIMEOUT(ERROR_UNKNOWN):
     _message = 'Cache timeout error. (config = {config})'
 
 
-class ERROR_CACHE_CONFIGURATION(ERROR_UNKNOWN):
-    _message = 'Cache configuration is invalid. (backend = {backend})'
-
-
 class ERROR_CACHE_ENCODE(ERROR_UNKNOWN):
     _message = 'Cache data encoding failed. (reason = {reason})'
 
@@ -186,23 +214,24 @@ class ERROR_CACHEABLE_VALUE_TYPE(ERROR_UNKNOWN):
     _message = 'The value of cache.cacheable must be a dict type.'
 
 
-class ERROR_QUEUE_PUT(ERROR_UNKNOWN):
-    _message = 'Queue data put failed. (reason = {reason})'
-
-
-class ERROR_QUEUE_GET(ERROR_UNKNOWN):
-    _message = 'Queue data get failed. (reason = {reason})'
-
-
 class ERROR_INTERNAL_API(ERROR_UNKNOWN):
     _message = '{message}'
 
 
-class ERROR_CONNECTOR_CONFIGURATION(ERROR_UNKNOWN):
-    _message = 'Connector configuration is invalid. (backend = {backend})'
+class ERROR_UNAVAILAVBLE(ERROR_UNKNOWN):
+    _status_code = 'UNAVAILABLE'
+    _message = 'Server is unavailable. (reason = {reason})'
 
 
-class ERROR_GRPC_CONNECTION(ERROR_BASE):
+class ERROR_QUEUE_PUT(ERROR_UNAVAILAVBLE):
+    _message = 'Queue data put failed. (reason = {reason})'
+
+
+class ERROR_QUEUE_GET(ERROR_UNAVAILAVBLE):
+    _message = 'Queue data get failed. (reason = {reason})'
+
+
+class ERROR_GRPC_CONNECTION(ERROR_UNAVAILAVBLE):
     _status_code = 'UNAVAILABLE'
     _message = 'Server is unavailable. (channel = {channel}, message = {message})'
 
@@ -211,55 +240,30 @@ class ERROR_GRPC_TLS_HANDSHAKE(ERROR_GRPC_CONNECTION):
     _message = 'TLS handshake failed. (reason = {reason})'
 
 
-class ERROR_GRPC_CONFIGURATION(ERROR_BASE):
-    _message = 'gRPC client configuration is invalid. ({endpoint}/{service}/{method})'
-
-
-class ERROR_HANDLER(ERROR_BASE):
+class ERROR_HANDLER(ERROR_UNKNOWN):
     _message = '\'{handler_type} handler\' import failed. (reason = {reason})'
 
 
-class ERROR_HANDLER_CONFIGURATION(ERROR_UNKNOWN):
-    _message = 'Handler configuration is invalid. (handler = {handler})'
+class ERROR_CONNECTOR(ERROR_UNKNOWN):
+    _message = '\'{connector} handler\' import failed. (reason = {reason})'
 
 
-class ERROR_CONNECTOR_CONFIGURATION(ERROR_UNKNOWN):
-    _message = 'Connector configuration is invalid. (connector = {connector})'
-
-
-class ERROR_CONNECTOR_LOAD(ERROR_UNKNOWN):
+class ERROR_CONNECTOR_LOAD(ERROR_CONNECTOR):
     _message = 'Failed to load connector. (connector = {connector}, reason = {reason})'
 
 
-class ERROR_CONNECTOR(ERROR_UNKNOWN):
-    _message = '{connector} Error: {reason}'
+class ERROR_LOCATOR(ERROR_UNKNOWN):
+    _message = '\'{name}\' load failed. (reason = {reason})'
 
 
-class ERROR_AUTHENTICATE_FAILURE(ERROR_BASE):
-    _status_code = 'UNAUTHENTICATED'
-    _message = 'Authenticate failure. (message = {message})'
-
-
-class ERROR_PERMISSION_DENIED(ERROR_BASE):
-    _status_code = 'PERMISSION_DENIED'
-    _message = 'Permission denied.'
-
-
-class ERROR_LOG_CONFIG(ERROR_BASE):
-    _message = 'Log configuration is invalid. (reason = {reason})'
-
-
-class ERROR_WRONG_CONFIGURATION(ERROR_BASE):
-    _message = 'Configuration is invalid. ({key})'
-
-
-class ERROR_TASK_LOCATOR(ERROR_BASE):
+class ERROR_TASK_LOCATOR(ERROR_LOCATOR):
     _message = 'Call locator failure. locator: {locator}, name: {name}'
 
 
-class ERROR_TASK_METHOD(ERROR_BASE):
+class ERROR_TASK_METHOD(ERROR_UNKNOWN):
     _message = 'Call method failure. name: {name}, method: {method}, params: {params}'
 
 
-class ERROR_NOT_IMPLEMENTED(ERROR_BASE):
+class ERROR_NOT_IMPLEMENTED(ERROR_UNKNOWN):
+    _status_code = 'UNIMPLEMENTED'
     _message = 'Not implemented, {name}'
