@@ -59,14 +59,6 @@ class ERROR_BASE(Exception):
         return self._repr()
 
 
-class ERROR_MESSAGE_FORMAT(ERROR_BASE):
-    _message = 'Error message format is invalid. (error_class={error_class}, key={key})'
-
-
-class ERROR_CACHE_KEY_FORMAT(ERROR_BASE):
-    _message = 'Cache key format is invalid. (key={key})'
-
-
 class ERROR_INVALID_ARGUMENT(ERROR_BASE):
     _status_code = 'INVALID_ARGUMENT'
     _message = 'Argument is invalid.'
@@ -267,3 +259,11 @@ class ERROR_TASK_METHOD(ERROR_UNKNOWN):
 class ERROR_NOT_IMPLEMENTED(ERROR_UNKNOWN):
     _status_code = 'UNIMPLEMENTED'
     _message = 'Not implemented, {name}'
+
+
+class ERROR_MESSAGE_FORMAT(ERROR_UNKNOWN):
+    _message = 'Error message format is invalid. (error_class={error_class}, key={key})'
+
+
+class ERROR_CACHE_KEY_FORMAT(ERROR_UNKNOWN):
+    _message = 'Cache key format is invalid. (key={key})'
