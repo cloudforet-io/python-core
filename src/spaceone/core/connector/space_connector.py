@@ -16,12 +16,14 @@ _LOGGER = logging.getLogger(__name__)
 
 class SpaceConnector(BaseConnector):
 
-    def __init__(self, transaction: Transaction = None, config: dict = None, **kwargs):
+    def __init__(self, transaction: Transaction = None, config: dict = None,
+                 service: str = None, endpoint: str = None, return_type: str = dict, **kwargs):
         super().__init__(transaction, config)
 
         self._mock_mode = global_config.get_global('MOCK_MODE', False)
-        self._service = kwargs.get('service')
-        self._return_type = kwargs.get('return_type', 'dict')
+        self._service = service
+        self._endpoint = endpoint
+        self._return_type = return_type
         self._token = kwargs.get('token')
         self._endpoints = self.config.get('endpoints', {})
         self._verify()
@@ -57,21 +59,25 @@ class SpaceConnector(BaseConnector):
 
     def _check_mock_mode(self, method):
         if self._mock_mode:
-            raise ERROR_CONNECTOR(connector='SpaceConnector', reason=f'Dispatch cannot be executed in mock mode. '
-                                                                     f'(service = {self._service}, method = {method})')
+            raise ERROR_CONNECTOR(connector='SpaceConnector',
+                                  reason=f'Dispatch cannot be executed in mock mode. '
+                                         f'(endpoint = {self._get_endpoint()}, method = {method})')
 
     def _verify(self):
-        if self._service is None:
-            raise ERROR_CONNECTOR_LOAD(connector='SpaceConnector', reason='service argument is required.')
+        if self._endpoint:
+            pass
+        elif self._service:
+            if not isinstance(self._endpoints, dict):
+                raise ERROR_CONNECTOR_CONFIGURATION(connector='SpaceConnector')
 
-        if not isinstance(self._endpoints, dict):
-            raise ERROR_CONNECTOR_CONFIGURATION(connector='SpaceConnector')
-
-        if self._service not in self._endpoints:
-            raise ERROR_CONNECTOR_LOAD(connector='SpaceConnector', reason=f'{self._service} endpoint is undefined.')
+            if self._service not in self._endpoints:
+                raise ERROR_CONNECTOR_LOAD(connector='SpaceConnector', reason=f'{self._service} endpoint is undefined.')
+        else:
+            raise ERROR_CONNECTOR_LOAD(connector='SpaceConnector', reason='service or endpoint is required.')
 
     def _init_client(self):
-        e = parse_grpc_endpoint(self._endpoints[self._service])
+        endpoint = self._get_endpoint()
+        e = parse_grpc_endpoint(endpoint)
         self._client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'],
                                      max_message_length=1024*1024*256)
 
@@ -100,7 +106,7 @@ class SpaceConnector(BaseConnector):
             resource, verb = method.split('.')
         except Exception:
             raise ERROR_CONNECTOR(connector='SpaceConnector',
-                                  reason=f'Method is invalid. (service = {self._service}, method = {method})')
+                                  reason=f'Method is invalid. (endpoint = {self._get_endpoint()}, method = {method})')
 
         return resource, verb
 
@@ -109,5 +115,8 @@ class SpaceConnector(BaseConnector):
 
         if supported_verb is None or verb not in supported_verb:
             raise ERROR_CONNECTOR(connector='SpaceConnector',
-                                  reason=f'Method not supported. (service = {self._service}, '
+                                  reason=f'Method not supported. (endpoint = {self._get_endpoint()}, '
                                          f'method = {resource}.{verb})')
+
+    def _get_endpoint(self):
+        return self._endpoint or self._endpoints[self._service]
