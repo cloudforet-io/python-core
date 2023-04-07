@@ -64,6 +64,17 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
         require_user_id = self.transaction.get_meta('authorization.require_user_id', False)
         require_domain_id = self.transaction.get_meta('authorization.require_domain_id', False)
 
+        print(f"----")
+        print(f"grpc_method: {self.grpc_method}")
+        print(f"project_id_key: {project_id_key}")
+        print(f"project_group_id_key: {project_group_id_key}")
+        print(f"user_id_key: {user_id_key}")
+        print(f"require_project_group_id: {require_project_group_id}")
+        print(f"require_project_id: {require_project_id}")
+        print(f"require_user_id: {require_user_id}")
+        print(f"require_domain_id: {require_domain_id}")
+        print("------")
+
         try:
             response = self.grpc_method(
                 {
