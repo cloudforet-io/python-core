@@ -16,8 +16,8 @@ _LOGGER = logging.getLogger(__name__)
 
 class SpaceConnector(BaseConnector):
 
-    def __init__(self, transaction: Transaction = None, config: dict = None,
-                 service: str = None, endpoint: str = None, return_type: str = dict, **kwargs):
+    def __init__(self, transaction: Transaction = None, return_type: str = 'dict', config: dict = None,
+                 service: str = None, endpoint: str = None, **kwargs):
         super().__init__(transaction, config)
 
         self._mock_mode = global_config.get_global('MOCK_MODE', False)
