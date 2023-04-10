@@ -88,22 +88,16 @@ class Locator(object):
                 connector_conf = config.get_connector(name_or_object)
                 backend = connector_conf.get('backend')
 
-                print(f'backend={backend}')
-
                 if backend:
                     connector_module, name = backend.rsplit('.', 1)
                     connector_module = __import__(connector_module, fromlist=[name])
-                    print(f'backend is exist. connector_module={connector_module}')
                 else:
                     connector_module = _get_module(package, 'connector')
-                    print(f'backend is not exist. connector_module={connector_module}')
 
                 return getattr(connector_module, name_or_object)(transaction=self.transaction, config=connector_conf,
                                                                  **kwargs)
             else:
                 connector_conf = config.get_connector(name_or_object.__name__)
-                print(f'connector_conf = {connector_conf}')
-
                 return name_or_object(transaction=self.transaction, config=connector_conf, **kwargs)
 
         except ERROR_BASE as e:
