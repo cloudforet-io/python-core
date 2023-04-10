@@ -93,8 +93,8 @@ class Locator(object):
                 _LOGGER.debug(f'[get_connector] backend : {backend}')
 
                 if backend:
-                    connector_module, name = backend.rsplit('.', 1)
-                    connector_module = __import__(connector_module, fromlist=[name])
+                    connector_module, name_or_object = backend.rsplit('.', 1)
+                    connector_module = __import__(connector_module, fromlist=[name_or_object])
                 else:
                     connector_module = _get_module(package, 'connector')
 
