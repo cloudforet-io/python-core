@@ -83,10 +83,14 @@ class Locator(object):
     def get_connector(self, name_or_object: [str, object], **kwargs):
         package = config.get_package()
 
+        _LOGGER.debug(f'[get_connector] name or object : {name_or_object}')
+
         try:
             if isinstance(name_or_object, str):
                 connector_conf = config.get_connector(name_or_object)
                 backend = connector_conf.get('backend')
+
+                _LOGGER.debug(f'[get_connector] backend : {backend}')
 
                 if backend:
                     connector_module, name = backend.rsplit('.', 1)
@@ -94,8 +98,9 @@ class Locator(object):
                 else:
                     connector_module = _get_module(package, 'connector')
 
-                return getattr(connector_module, name_or_object)(transaction=self.transaction, config=connector_conf,
-                                                                 **kwargs)
+                _connector = getattr(connector_module, name_or_object)(transaction=self.transaction, config=connector_conf, **kwargs)
+                print(f'[get_connector] _connector={_connector}')
+                return _connector
             else:
                 connector_conf = config.get_connector(name_or_object.__name__)
                 return name_or_object(transaction=self.transaction, config=connector_conf, **kwargs)
