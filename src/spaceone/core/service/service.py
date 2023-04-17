@@ -41,6 +41,8 @@ class BaseService(object):
 
         self.handler_exclude_apis = config.get_global('HANDLER_EXCLUDE_APIS', {})
 
+        self.current_span_context = None
+
     def __enter__(self):
         self.is_with_statement = True
         return self
@@ -62,12 +64,14 @@ def transaction(func=None, append_meta=None):
             if traceparent := self.transaction.get_meta('traceparent'):
                 carrier = {'traceparent': traceparent}
                 with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
-                                                  context=TraceContextTextMapPropagator().extract(carrier)):
+                                                  context=TraceContextTextMapPropagator().extract(carrier)) as span:
                     _set_trace_parent_in_meta(self, carrier)
+                    self.current_span_context = span.get_span_context()
                     return _pipeline(func, self, params, append_meta)
             else:
-                with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}'):
+                with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}') as span:
                     _set_trace_parent_in_meta(self)
+                    self.current_span_context = span.get_span_context()
                     return _pipeline(func, self, params, append_meta)
 
         return wrapped_func
@@ -120,7 +124,8 @@ def _pipeline(func, self, params, append_meta):
                 params = handler.request(params)
 
         # 6. Service Body
-        with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}'):
+        with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
+                                          links=[trace.Link(self.current_span_context)]):
             _set_trace_parent_in_meta(self)
             self.transaction.status = 'IN_PROGRESS'
             response_or_iterator = func(self, params)
