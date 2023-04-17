@@ -5,7 +5,7 @@ from concurrent import futures
 import grpc
 from spaceone.core import config
 from spaceone.core.logger import set_logger
-from spaceone.core.opentelemetry import set_tracer
+from spaceone.core.opentelemetry import set_tracer, set_metric
 from grpc_reflection.v1alpha import reflection
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,6 +104,7 @@ def serve():
 
     # Set OTel Tracer and Metric
     set_tracer(conf.get('SERVICE', 'core'))
+    set_metric()
 
     server_interceptor = _ServerInterceptor()
     server = grpc.server(
