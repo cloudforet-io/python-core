@@ -111,7 +111,7 @@ class Transaction(object):
             - list of tuple
             ex) [('token','...'),('domain_id','domain-xyz') ...]
         """
-        keys = ['token', 'domain_id', 'transaction_id']
+        keys = ['token', 'domain_id', 'transaction_id', 'traceparent']
         result = []
         for key in keys:
             result.append((key, self.get_meta(key)))

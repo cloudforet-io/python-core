@@ -88,7 +88,7 @@ class SpaceConnector(BaseConnector):
         if self._token:
             tnx_meta['token'] = self._token
 
-        keys = ['token', 'transaction_id']
+        keys = ['token', 'transaction_id', 'traceparent']
         metadata = []
         for key in keys:
             if key in tnx_meta:

@@ -5,15 +5,16 @@ import types
 import copy
 import traceback
 
+from opentelemetry import trace
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+
 from spaceone.core import config
 from spaceone.core.error import *
 from spaceone.core.locator import Locator
 from spaceone.core.transaction import Transaction
-from spaceone.core.tracer import init_tracer
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 _LOGGER = logging.getLogger(__name__)
-tracer = init_tracer(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class BaseService(object):
@@ -29,7 +30,6 @@ class BaseService(object):
             self.transaction = transaction
         else:
             self.transaction = Transaction(metadata)
-            init_tracer(__name__)
 
         self.locator = Locator(self.transaction)
         self.handler = {
@@ -59,14 +59,16 @@ def transaction(func=None, append_meta=None):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(self, params):
-            with tracer.start_as_current_span(func.__class__.__name__) as span:
-                span.set_attribute('transaction_id', self.transaction.get_meta('transaction_id'))
-                span.set_attribute('service', self.transaction.get_meta('service'))
-                span.set_attribute('resource', self.transaction.get_meta('resource'))
-                span.set_attribute('user-agent', self.transaction.get_meta('user-agent'))
-                span.set_attribute('verb', self.transaction.get_meta('verb'))
-                span.set_attribute('peer', self.transaction.get_meta('peer'))
-                return _pipeline(func, self, params, append_meta)
+            if traceparent := self.transaction.get_meta('traceparent'):
+                carrier = {'traceparent': traceparent}
+                with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
+                                                  context=TraceContextTextMapPropagator().extract(carrier)):
+                    _set_trace_parent_in_meta(self, carrier)
+                    return _pipeline(func, self, params, append_meta)
+            else:
+                with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}'):
+                    _set_trace_parent_in_meta(self)
+                    return _pipeline(func, self, params, append_meta)
 
         return wrapped_func
 
@@ -94,15 +96,17 @@ def _pipeline(func, self, params, append_meta):
                     _LOGGER.error(f'{handler.__class__.__name__} Error (STARTED): {e}')
 
         # 2. Authentication:
-        with tracer.start_as_current_span('Authentication') as span:
-            if _check_handler_method(self, 'authentication'):
-                for handler in self.handler['authentication']['handlers']:
+        if _check_handler_method(self, 'authentication'):
+            for handler in self.handler['authentication']['handlers']:
+                with tracer.start_as_current_span(handler.__class__.__name__):
+                    _set_trace_parent_in_meta(self)
                     handler.verify(params)
 
         # 3. Authorization
-        with tracer.start_as_current_span('Authorization') as span:
-            if _check_handler_method(self, 'authorization'):
-                for handler in self.handler['authorization']['handlers']:
+        if _check_handler_method(self, 'authorization'):
+            for handler in self.handler['authorization']['handlers']:
+                with tracer.start_as_current_span(handler.__class__.__name__):
+                    _set_trace_parent_in_meta(self)
                     handler.verify(params)
 
         # 4. Print Info Log
@@ -111,14 +115,13 @@ def _pipeline(func, self, params, append_meta):
             _LOGGER.info('(REQUEST) =>', extra={'parameter': copy.deepcopy(params)})
 
         # 5. Mutation
-        with tracer.start_as_current_span('Mutation') as span:
-            if _check_handler_method(self, 'mutation'):
-                for handler in self.handler['mutation']['handlers']:
-                    params = handler.request(params)
+        if _check_handler_method(self, 'mutation'):
+            for handler in self.handler['mutation']['handlers']:
+                params = handler.request(params)
 
         # 6. Service Body
-        with tracer.start_as_current_span('service_body') as span:
-            span.set_attribute("method", func.__name__)
+        with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}'):
+            _set_trace_parent_in_meta(self)
             self.transaction.status = 'IN_PROGRESS'
             response_or_iterator = func(self, params)
 
@@ -286,3 +289,10 @@ def _check_handler_method(self, handler_type):
             return True
     else:
         return False
+
+
+def _set_trace_parent_in_meta(self, carrier=None):
+    if carrier is None:
+        carrier = {}
+    TraceContextTextMapPropagator().inject(carrier)
+    self.transaction.set_meta('traceparent', carrier.get('traceparent'))
