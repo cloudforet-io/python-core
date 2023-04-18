@@ -8,6 +8,7 @@ class TransactionFilter(logging.Filter):
         if transaction := getattr(LOCAL_STORAGE, 'transaction', None):
             record.service = transaction.service
             record.tnx_id = transaction.id
+            record.trace_id = transaction.get_meta('trace_id', '')
             record.domain_id = transaction.get_meta('domain_id', '')
             record.user_id = transaction.get_meta('user_id', '')
             record.tnx_status = transaction.status
@@ -20,6 +21,7 @@ class TransactionFilter(logging.Filter):
             record.service = ""
             record.tnx_id = ""
             record.domain_id = ""
+            record.trace_id = ""
             record.user_id = ""
             record.tnx_status = ""
             record.tnx_method = ""

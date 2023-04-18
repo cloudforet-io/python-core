@@ -65,12 +65,12 @@ def transaction(func=None, append_meta=None):
                 carrier = {'traceparent': traceparent}
                 with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
                                                   context=TraceContextTextMapPropagator().extract(carrier)) as span:
-                    _set_trace_parent_in_meta(self, carrier)
                     self.current_span_context = span.get_span_context()
+                    _set_trace_in_meta(self, span, carrier)
                     return _pipeline(func, self, params, append_meta)
             else:
                 with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}') as span:
-                    _set_trace_parent_in_meta(self)
+                    _set_trace_in_meta(self, span)
                     self.current_span_context = span.get_span_context()
                     return _pipeline(func, self, params, append_meta)
 
@@ -102,15 +102,15 @@ def _pipeline(func, self, params, append_meta):
         # 2. Authentication:
         if _check_handler_method(self, 'authentication'):
             for handler in self.handler['authentication']['handlers']:
-                with tracer.start_as_current_span(handler.__class__.__name__):
-                    _set_trace_parent_in_meta(self)
+                with tracer.start_as_current_span(handler.__class__.__name__) as span:
+                    _set_trace_in_meta(self, span)
                     handler.verify(params)
 
         # 3. Authorization
         if _check_handler_method(self, 'authorization'):
             for handler in self.handler['authorization']['handlers']:
-                with tracer.start_as_current_span(handler.__class__.__name__):
-                    _set_trace_parent_in_meta(self)
+                with tracer.start_as_current_span(handler.__class__.__name__) as span:
+                    _set_trace_in_meta(self, span)
                     handler.verify(params)
 
         # 4. Print Info Log
@@ -125,8 +125,8 @@ def _pipeline(func, self, params, append_meta):
 
         # 6. Service Body
         with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
-                                          links=[trace.Link(self.current_span_context)]):
-            _set_trace_parent_in_meta(self)
+                                          links=[trace.Link(self.current_span_context)]) as span:
+            _set_trace_in_meta(self, span)
             self.transaction.status = 'IN_PROGRESS'
             response_or_iterator = func(self, params)
 
@@ -296,8 +296,12 @@ def _check_handler_method(self, handler_type):
         return False
 
 
-def _set_trace_parent_in_meta(self, carrier=None):
+def _set_trace_in_meta(self, span, carrier=None):
     if carrier is None:
         carrier = {}
     TraceContextTextMapPropagator().inject(carrier)
     self.transaction.set_meta('traceparent', carrier.get('traceparent'))
+
+    trace_id = span.get_span_context().trace_id
+    trace_id_str = format(trace_id, 'x')
+    self.transaction.set_meta('trace_id', trace_id_str)
