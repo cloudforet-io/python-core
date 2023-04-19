@@ -20,7 +20,7 @@ class Transaction(object):
 
         self._rollbacks = []
         self._status = 'STARTED'
-        self._set_transaction_id()
+        self._set_trace_id()
         self._event_handlers = []
 
         LOCAL_STORAGE.transaction = self
@@ -28,13 +28,13 @@ class Transaction(object):
     def __repr__(self):
         return f"<Transaction ({self.resource}.{self.verb})>"
 
-    def _set_transaction_id(self):
-        if 'transaction_id' not in self._meta:
-            self._meta['transaction_id'] = utils.generate_id('tnx')
+    def _set_trace_id(self):
+        if 'trace_id' not in self._meta:
+            self._meta['trace_id'] = ''
 
     @property
     def id(self):
-        return self._meta['transaction_id']
+        return self._meta['trace_id']
 
     @property
     def service(self):
@@ -111,7 +111,7 @@ class Transaction(object):
             - list of tuple
             ex) [('token','...'),('domain_id','domain-xyz') ...]
         """
-        keys = ['token', 'domain_id', 'transaction_id', 'traceparent', 'trace_id']
+        keys = ['token', 'domain_id', 'traceparent', 'trace_id']
         result = []
         for key in keys:
             result.append((key, self.get_meta(key)))

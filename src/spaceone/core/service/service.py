@@ -61,25 +61,17 @@ def transaction(func=None, append_meta=None):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(self, params):
-            if traceparent := self.transaction.get_meta('traceparent'):
-                carrier = {'traceparent': traceparent}
-                with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
-                                                  context=TraceContextTextMapPropagator().extract(carrier)) as span:
-                    self.current_span_context = span.get_span_context()
-                    _set_trace_in_meta(self, span, carrier)
-                    return _pipeline(func, self, params, append_meta)
-            else:
-                with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}') as span:
-                    _set_trace_in_meta(self, span)
-                    self.current_span_context = span.get_span_context()
-                    return _pipeline(func, self, params, append_meta)
+            traceparent = self.transaction.get_meta('traceparent')
+            carrier = {'traceparent': traceparent} if traceparent else {}
+            with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
+                                              context=TraceContextTextMapPropagator().extract(carrier)) as span:
+                self.current_span_context = span.get_span_context()
+                _set_trace_in_meta(self, span, carrier)
+                return _pipeline(func, self, params, append_meta)
 
         return wrapped_func
 
-    if func:
-        return wrapper(func)
-
-    return wrapper
+    return wrapper(func) if func else wrapper
 
 
 def _pipeline(func, self, params, append_meta):
@@ -297,11 +289,8 @@ def _check_handler_method(self, handler_type):
 
 
 def _set_trace_in_meta(self, span, carrier=None):
-    if carrier is None:
-        carrier = {}
+    carrier = carrier or {}
     TraceContextTextMapPropagator().inject(carrier)
-    self.transaction.set_meta('traceparent', carrier.get('traceparent'))
 
-    trace_id = span.get_span_context().trace_id
-    trace_id_str = format(trace_id, 'x')
-    self.transaction.set_meta('trace_id', trace_id_str)
+    self.transaction.set_meta('traceparent', carrier.get('traceparent'))
+    self.transaction.set_meta('trace_id', format(span.get_span_context().trace_id, 'x'))
