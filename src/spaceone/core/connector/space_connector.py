@@ -1,6 +1,8 @@
 import types
 import logging
 from google.protobuf.json_format import MessageToDict
+from opentelemetry import trace
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from spaceone.core import config as global_config
 from spaceone.core.transaction import Transaction
@@ -73,7 +75,7 @@ class SpaceConnector(BaseConnector):
     def _init_client(self):
         e = parse_grpc_endpoint(self._endpoints[self._service])
         self._client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'],
-                                     max_message_length=1024*1024*256)
+                                     max_message_length=1024 * 1024 * 256)
 
     @staticmethod
     def _change_message(message):
@@ -84,15 +86,20 @@ class SpaceConnector(BaseConnector):
             yield self._change_message(response)
 
     def _get_connection_metadata(self):
-        tnx_meta = self.transaction.meta
-        if self._token:
-            tnx_meta['token'] = self._token
-
-        keys = ['token', 'traceparent', 'trace_id']
         metadata = []
-        for key in keys:
-            if key in tnx_meta:
-                metadata.append((key, tnx_meta[key]))
+        if self._token:
+            token = self._token
+            metadata.append(('token', token))
+
+        elif token := self.transaction.meta.get('token'):
+            metadata.append(('token', token))
+
+        carrier = {}
+        TraceContextTextMapPropagator().inject(carrier)
+
+        if traceparent := carrier.get('traceparent'):
+            metadata.append(('traceparent', traceparent))
+
         return metadata
 
     def _parse_method(self, method):

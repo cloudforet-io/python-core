@@ -62,4 +62,8 @@ HANDLER_EXCLUDE_APIS = {
 SET_LOGGING = True
 LOG = {}
 
-REST = {}
+# OpenTelemetry Configuration
+SET_OTEL = True
+OTEL = {
+    'endpoint': ''
+}

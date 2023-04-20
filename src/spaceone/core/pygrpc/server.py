@@ -103,8 +103,9 @@ def serve():
         set_logger()
 
     # Set OTel Tracer and Metric
-    set_tracer(conf.get('SERVICE', 'core'))
-    set_metric()
+    if conf.get('SET_OTEL', True):
+        set_tracer()
+        set_metric()
 
     server_interceptor = _ServerInterceptor()
     server = grpc.server(

@@ -29,8 +29,12 @@ class Transaction(object):
         return f"<Transaction ({self.resource}.{self.verb})>"
 
     def _set_trace_id(self):
-        if 'trace_id' not in self._meta:
-            self._meta['trace_id'] = ''
+        traceparent = self._meta.get('traceparent')
+        if traceparent:
+            self._meta['trace_id'] = traceparent.split('-')[1]
+        else:
+            trace_id = utils.generate_trace_id()
+            self._meta['trace_id'] = format(trace_id, 'x')
 
     @property
     def id(self):
@@ -104,14 +108,7 @@ class Transaction(object):
         return self._meta.get(key, default)
 
     def get_connection_meta(self) -> list:
-        """ metadata for MS call
-        token, domain_id ...
-
-        Returns:
-            - list of tuple
-            ex) [('token','...'),('domain_id','domain-xyz') ...]
-        """
-        keys = ['token', 'domain_id', 'traceparent', 'trace_id']
+        keys = ['token', 'domain_id']
         result = []
         for key in keys:
             result.append((key, self.get_meta(key)))
