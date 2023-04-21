@@ -14,12 +14,9 @@ from spaceone.core.error import *
 from spaceone.core.locator import Locator
 from spaceone.core.transaction import Transaction
 
-from spaceone.core.opentelemetry.custom_metrics import count_error
 
 _LOGGER = logging.getLogger(__name__)
-tracer = trace.get_tracer(__name__)
-meter = metrics.get_meter(__name__)
-count_error_metrics = count_error(meter)
+_TRACER = trace.get_tracer(__name__)
 
 
 class BaseService(object):
@@ -66,7 +63,7 @@ def transaction(func=None, append_meta=None):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(self, params):
-            with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
+            with _TRACER.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
                                               context=_create_span_context(self.transaction)) as span:
                 self.current_span_context = span.get_span_context()
                 return _pipeline(func, self, params, append_meta)
@@ -108,13 +105,13 @@ def _pipeline(func, self, params, append_meta):
         # 2. Authentication:
         if _check_handler_method(self, 'authentication'):
             for handler in self.handler['authentication']['handlers']:
-                with tracer.start_as_current_span(handler.__class__.__name__) as span:
+                with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
                     handler.verify(params)
 
         # 3. Authorization
         if _check_handler_method(self, 'authorization'):
             for handler in self.handler['authorization']['handlers']:
-                with tracer.start_as_current_span(handler.__class__.__name__) as span:
+                with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
                     handler.verify(params)
 
         # 4. Print Info Log
@@ -125,11 +122,11 @@ def _pipeline(func, self, params, append_meta):
         # 5. Mutation
         if _check_handler_method(self, 'mutation'):
             for handler in self.handler['mutation']['handlers']:
-                with tracer.start_as_current_span(handler.__class__.__name__) as span:
+                with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
                     params = handler.request(params)
 
         # 6. Service Body
-        with tracer.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
+        with _TRACER.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
                                           links=[trace.Link(self.current_span_context)]) as span:
             self.transaction.status = 'IN_PROGRESS'
             response_or_iterator = func(self, params)
@@ -145,10 +142,6 @@ def _pipeline(func, self, params, append_meta):
     except ERROR_INVALID_ARGUMENT as e:
         if not self.is_with_statement:
             _error_handler(self, e)
-        # count_error_metrics["error_counter"].add(1)
-        # current_span = trace.get_current_span()
-        current_span.set_attributes({'status.code': 3})
-        # current_span.set_attributes({'status.type': e.status_code})
         raise e
 
     except ERROR_BASE as e:
@@ -190,7 +183,7 @@ def _success_handler(self, response):
     if _check_handler_method(self, 'event'):
         for handler in self.handler['event']['handlers']:
             try:
-                with tracer.start_as_current_span(handler.__class__.__name__) as span:
+                with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
                     handler.notify('SUCCESS', response)
             except Exception as e:
                 _LOGGER.error(f'{handler.__class__.__name__} Error (SUCCESS): {e}')
@@ -199,7 +192,7 @@ def _success_handler(self, response):
 def _response_mutation_handler(self, response):
     if _check_handler_method(self, 'mutation'):
         for handler in list(reversed(self.handler['mutation']['handlers'])):
-            with tracer.start_as_current_span(handler.__class__.__name__) as span:
+            with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
                 response = handler.response(response)
 
     return response

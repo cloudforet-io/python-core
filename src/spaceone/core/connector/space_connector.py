@@ -95,8 +95,7 @@ class SpaceConnector(BaseConnector):
     def _get_connection_metadata(self):
         metadata = []
         if self._token:
-            token = self._token
-            metadata.append(('token', token))
+            metadata.append(('token', self._token))
 
         elif token := self.transaction.meta.get('token'):
             metadata.append(('token', token))

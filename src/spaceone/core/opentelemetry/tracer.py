@@ -16,7 +16,6 @@ def set_tracer():
 
 
 def _init_tracer(service, endpoint):
-    print(endpoint)
     resource = Resource(attributes={
         SERVICE_NAME: service
     })

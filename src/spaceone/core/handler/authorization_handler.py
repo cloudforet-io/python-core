@@ -4,6 +4,7 @@ from spaceone.core import pygrpc
 from spaceone.core import utils
 from spaceone.core.transaction import Transaction
 from spaceone.core.handler import BaseAuthorizationHandler
+from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.error import ERROR_HANDLER_CONFIGURATION, ERROR_PERMISSION_DENIED
 
 _LOGGER = logging.getLogger(__name__)
@@ -13,6 +14,7 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
 
     def __init__(self, transaction: Transaction, config):
         super().__init__(transaction, config)
+        self.client = None
         self._initialize()
 
     def _initialize(self):
@@ -20,13 +22,7 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
             _LOGGER.error(f'[_initialize] uri config is undefined.')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-        try:
-            uri_info = utils.parse_grpc_uri(self.config['uri'])
-        except Exception as e:
-            _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
-            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
-
-        self.grpc_method = pygrpc.get_grpc_method(uri_info)
+        self.client: SpaceConnector = self.locator.get_connector('SpaceConnector', endpoint=self.config['uri'])
 
     def verify(self, params=None):
         self._check_permissions()
@@ -65,7 +61,8 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
         require_domain_id = self.transaction.get_meta('authorization.require_domain_id', False)
 
         try:
-            response = self.grpc_method(
+            response = self.client.dispatch(
+                'Authorization.verify',
                 {
                     'service': self.transaction.service,
                     'resource': self.transaction.resource,
@@ -79,16 +76,12 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
                     'require_project_group_id': require_project_group_id,
                     'require_user_id': require_user_id,
                     'require_domain_id': require_domain_id
-                },
-                metadata=self.transaction.get_connection_meta()
+                }
             )
 
-            projects = list(response.projects)
-            project_groups = list(response.project_groups)
-
-            self.transaction.set_meta('authorization.role_type', response.role_type)
-            self.transaction.set_meta('authorization.projects', projects)
-            self.transaction.set_meta('authorization.project_groups', project_groups)
+            self.transaction.set_meta('authorization.role_type', response['projects'])
+            self.transaction.set_meta('authorization.projects', response['role_type'])
+            self.transaction.set_meta('authorization.project_groups', response.get('project_groups', []))
         except Exception as e:
             _LOGGER.error(f'[_verify_auth] Authorization.verify request failed: {e}')
             raise ERROR_PERMISSION_DENIED()
