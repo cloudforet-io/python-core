@@ -74,15 +74,16 @@ def transaction(func=None, append_meta=None):
 
 
 def _create_span_context(transaction: Transaction):
-    traceparent = transaction.get_meta('traceparent')
-    if traceparent:
-        carrier = {'traceparent': traceparent}
+    if transaction:
+        traceparent = transaction.get_meta('traceparent')
+        carrier = {'traceparent': traceparent} if traceparent else None
+        return TraceContextTextMapPropagator().extract(carrier) if carrier else None
     else:
-        span_id = format(utils.generate_span_id(), 'x')
-        carrier = {
-            'traceparent': f'00-{transaction.id}-{span_id}-01'
-        }
-    return TraceContextTextMapPropagator().extract(carrier)
+        return None
+
+def _set_trace_id(self):
+    trace_id = format(self._current_span_context.trace_id, '032x')
+    self.transaction.id = trace_id
 
 
 def _pipeline(func, self, params, append_meta):
@@ -93,45 +94,46 @@ def _pipeline(func, self, params, append_meta):
         if append_meta and isinstance(append_meta, dict):
             for key, value in append_meta.items():
                 self.transaction.set_meta(key, value)
+        with _TRACER.start_as_current_span('PreProcessing') as span:
+            # 1. Start Event: Ignore exceptions
+            if _check_handler_method(self, 'event'):
+                for handler in self.handler['event']['handlers']:
+                    try:
+                        handler.notify(self.transaction, 'STARTED', params)
+                    except Exception as e:
+                        _LOGGER.error(f'{handler.__class__.__name__} Error (STARTED): {e}')
 
-        # 1. Start Event: Ignore exceptions
-        if _check_handler_method(self, 'event'):
-            for handler in self.handler['event']['handlers']:
-                try:
-                    handler.notify(self.transaction, 'STARTED', params)
-                except Exception as e:
-                    _LOGGER.error(f'{handler.__class__.__name__} Error (STARTED): {e}')
+            # 2. Authentication:
+            if _check_handler_method(self, 'authentication'):
+                for handler in self.handler['authentication']['handlers']:
+                    with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
+                        handler.verify(params)
 
-        # 2. Authentication:
-        if _check_handler_method(self, 'authentication'):
-            for handler in self.handler['authentication']['handlers']:
-                with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
-                    handler.verify(params)
+            # 3. Authorization
+            if _check_handler_method(self, 'authorization'):
+                for handler in self.handler['authorization']['handlers']:
+                    with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
+                        handler.verify(params)
 
-        # 3. Authorization
-        if _check_handler_method(self, 'authorization'):
-            for handler in self.handler['authorization']['handlers']:
-                with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
-                    handler.verify(params)
+            # 4. Print Info Log
+            disable_info_log = str(self.transaction.get_meta('disable_info_log', 'false')).lower()
+            if disable_info_log != 'true':
+                _LOGGER.info('(REQUEST) =>', extra={'parameter': copy.deepcopy(params)})
 
-        # 4. Print Info Log
-        disable_info_log = str(self.transaction.get_meta('disable_info_log', 'false')).lower()
-        if disable_info_log != 'true':
-            _LOGGER.info('(REQUEST) =>', extra={'parameter': copy.deepcopy(params)})
-
-        # 5. Mutation
-        if _check_handler_method(self, 'mutation'):
-            for handler in self.handler['mutation']['handlers']:
-                with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
-                    params = handler.request(params)
+            # 5. Mutation
+            if _check_handler_method(self, 'mutation'):
+                for handler in self.handler['mutation']['handlers']:
+                    with _TRACER.start_as_current_span(handler.__class__.__name__) as span:
+                        params = handler.request(params)
 
         # 6. Service Body
-        with _TRACER.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
+        with _TRACER.start_as_current_span(f'ServiceBody',
                                           links=[trace.Link(self.current_span_context)]) as span:
             self.transaction.status = 'IN_PROGRESS'
             response_or_iterator = func(self, params)
 
-            # 7. Response Handlers
+        # 7. Response Handlers
+        with _TRACER.start_as_current_span('PostProcessing') as span:
             if isinstance(response_or_iterator, types.GeneratorType):
                 return _generate_response(self, response_or_iterator)
             else:
