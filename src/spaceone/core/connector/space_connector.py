@@ -36,7 +36,6 @@ class SpaceConnector(BaseConnector):
         return self._client
 
     def dispatch(self, method: str, params: dict = None, **kwargs):
-        _LOGGER.debug(f"[dispatch] method={method}  params={params}")
         return self._call_api(method, params, **kwargs)
 
     def _call_api(self, method: str, params: dict = None, **kwargs):
