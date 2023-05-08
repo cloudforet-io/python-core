@@ -14,19 +14,16 @@
 #   limitations under the License.
 
 
+import os
 from setuptools import setup, find_packages
-
-with open('VERSION', 'r') as f:
-    VERSION = f.read().strip()
-    f.close()
 
 setup(
     name='spaceone-core',
-    version=VERSION,
-    description='SpaceONE core library',
+    version=os.environ.get('PACKAGE_VERSION'),
+    description='Cloudforet Core Library',
     long_description='',
-    url='https://www.spaceone.dev/',
-    author='MEGAZONE SpaceONE Team',
+    url='https://cloudforet.io/',
+    author='MEGAZONE Cloud Corp.',
     author_email='admin@spaceone.dev',
     license='Apache License 2.0',
     packages=find_packages(),
