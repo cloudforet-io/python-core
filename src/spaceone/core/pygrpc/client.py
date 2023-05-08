@@ -62,16 +62,17 @@ class _ClientInterceptor(
             }
 
         elif input_type.startswith(f'.{package}'):
-            self._MESSAGE_TYPE_MAP[method_key] = {
-                'message': getattr(pb2_module, message_name),
-                'message_name': message_name
-            }
-
-            if message_name not in self._FIELD_TYPE_MAP:
-                self._FIELD_TYPE_MAP[message_name] = {
-                    'well_known_type': {},
-                    'message_type': {}
+            if hasattr(pb2_module, message_name):
+                self._MESSAGE_TYPE_MAP[method_key] = {
+                    'message': getattr(pb2_module, message_name),
+                    'message_name': message_name
                 }
+
+                if message_name not in self._FIELD_TYPE_MAP:
+                    self._FIELD_TYPE_MAP[message_name] = {
+                        'well_known_type': {},
+                        'message_type': {}
+                    }
 
     def add_wellknown_type(self, message_type_name, field_name, change_method):
         if message_type_name not in self._FIELD_TYPE_MAP:
