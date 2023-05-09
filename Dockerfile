@@ -9,7 +9,7 @@ RUN apt-get update \
   && apt-get install -y wget build-essential
 
 COPY pkg/pip_requirements.txt pip_requirements.txt
-COPY templates/opt/spaceone ${EXTENSION_DIR}
+COPY templates/opt/cloudforet ${EXTENSION_DIR}
 
 RUN pip install -r pip_requirements.txt
 
