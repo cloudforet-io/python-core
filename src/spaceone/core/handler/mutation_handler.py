@@ -12,7 +12,7 @@ class SpaceONEMutationHandler(BaseMutationHandler):
 
         domain_id = self.transaction.get_meta('domain_id') or params.get('domain_id')
 
-        if role_type != 'SYSTEM':
+        if role_type and role_type != 'SYSTEM':
             if scope == 'DOMAIN':
                 params = self._apply_domain_scope(params, role_type, domain_id)
             elif scope == 'PROJECT':
