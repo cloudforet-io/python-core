@@ -1,10 +1,14 @@
 import traceback
 import logging
-from spaceone.core import utils
-from spaceone.core.error import *
 from threading import local
 
-__all__ = ['LOCAL_STORAGE', 'Transaction']
+from spaceone.core import utils, config
+from spaceone.core.error import *
+from opentelemetry import trace
+from opentelemetry.trace import format_trace_id
+
+__all__ = ['LOCAL_STORAGE', 'get_trace_id', 'get_transaction', 'create_transaction', 'delete_transaction',
+           'Transaction']
 
 _LOGGER = logging.getLogger(__name__)
 LOCAL_STORAGE = local()
@@ -35,6 +39,12 @@ class Transaction(object):
         else:
             trace_id = utils.generate_trace_id()
             self._meta['trace_id'] = format(trace_id, 'x')
+
+    def _set_meta(self, meta: dict = None):
+        if meta:
+            self._meta = meta.copy()
+        else:
+            self._meta = {}
 
     @property
     def id(self):
@@ -120,3 +130,32 @@ class Transaction(object):
                 message = {'message': str(message)}
 
             handler.notify(self, 'IN_PROGRESS', message)
+
+
+def get_trace_id() -> [str, None]:
+    if trace_id := format_trace_id(trace.get_current_span().get_span_context().trace_id):
+        return trace_id
+    else:
+        return None
+
+
+def get_transaction(trace_id: str = None) -> [Transaction, None]:
+    if trace_id:
+        return getattr(LOCAL_STORAGE, trace_id, None)
+    else:
+        return getattr(LOCAL_STORAGE, get_trace_id(), None) if get_trace_id() else None
+
+
+def create_transaction(resource: str = None, verb: str = None, trace_id: str = None,
+                       meta: dict = None) -> Transaction:
+    transaction = Transaction(resource, verb, trace_id, meta)
+    setattr(LOCAL_STORAGE, trace_id, transaction)
+    return transaction
+
+
+def delete_transaction(trace_id: str = None, execute_rollback=False) -> None:
+    transaction = get_transaction(trace_id)
+    if transaction:
+        if execute_rollback:
+            transaction.execute_rollback()
+        delattr(LOCAL_STORAGE, trace_id)
