@@ -89,6 +89,14 @@ def load_json(json_str: str) -> dict:
         raise ValueError(f'JSON Load Error: {json_str}')
 
 
+def load_json_from_file(json_file: str) -> dict:
+    try:
+        with open(json_file, 'r') as f:
+            return load_json(f.read())
+    except Exception:
+        raise Exception(f'JSON Load Error: {json_file}')
+
+
 def dump_yaml(data: dict) -> str:
     try:
         return yaml.dump(data, allow_unicode=True)
@@ -116,7 +124,7 @@ def load_yaml(yaml_str: str) -> dict:
 def load_yaml_from_file(yaml_file: str) -> dict:
     try:
         with open(yaml_file, 'r') as f:
-            return load_yaml(f)
+            return load_yaml(f.read())
     except Exception:
         raise Exception(f'YAML Load Error: {yaml_file}')
 
