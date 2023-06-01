@@ -24,7 +24,7 @@ def _group_count_resolver(condition, key, operator, name, sub_conditions, *args)
 
 
 def _group_push_resolver(condition, key, operator, name, sub_conditions, sub_fields, *args):
-    if len(sub_fields) == 0:
+    if not key and len(sub_fields) == 0:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires fields: {condition}")
 
     if sub_conditions:
@@ -32,17 +32,24 @@ def _group_push_resolver(condition, key, operator, name, sub_conditions, sub_fie
 
     push_query = {}
 
-    for sub_field in sub_fields:
-        f_key = sub_field.get('key', sub_field.get('k'))
-        f_name = sub_field.get('name', sub_field.get('n'))
-
-        push_query[f_name] = f'${f_key}'
-
-    return {
-        name: {
-            '$push': push_query
+    if key:
+        return {
+            name: {
+                '$push': f'${key}'
+            }
         }
-    }
+    else:
+        for sub_field in sub_fields:
+            f_key = sub_field.get('key', sub_field.get('k'))
+            f_name = sub_field.get('name', sub_field.get('n'))
+
+            push_query[f_name] = f'${f_key}'
+
+        return {
+            name: {
+                '$push': push_query
+            }
+        }
 
 
 def _group_average_resolver(condition, key, operator, name, sub_conditions, *args):

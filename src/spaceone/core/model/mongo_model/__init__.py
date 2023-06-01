@@ -658,7 +658,7 @@ class MongoModel(Document, BaseModel):
         name = condition.get('name', condition.get('n'))
         operator = condition.get('operator', condition.get('o'))
         sub_conditions = condition.get('conditions')
-        sub_fields = condition.get('fields', [])
+        sub_fields = condition.get('fields') or []
 
         if operator not in STAT_GROUP_OPERATORS:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's {operator} operator is not supported. "
@@ -1057,7 +1057,7 @@ class MongoModel(Document, BaseModel):
         if operator != 'count' and key is None:
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.key')
 
-        if operator == 'push' and len(fields) == 0:
+        if operator == 'push' and not key and len(fields) == 0:
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.fields')
 
     @classmethod
