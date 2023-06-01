@@ -134,13 +134,25 @@ def _group_default_resolver(condition, key, operator, name, sub_conditions, *arg
 
 def _project_size_resolver(condition, key, operator, name, fields, group_keys, *args):
     if key is None:
-        raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.key' condition requires a key: {condition}")
 
     if key in group_keys:
         key = f'_id.{key}'
 
     return {
         name: {'$size': f'${key}'}
+    }
+
+
+def _project_sum_resolver(condition, key, operator, name, fields, group_keys, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.key' condition requires a key: {condition}")
+
+    if key in group_keys:
+        key = f'_id.{key}'
+
+    return {
+        name: {'$sum': f'${key}'}
     }
 
 
@@ -228,6 +240,7 @@ STAT_GROUP_OPERATORS = {
 
 STAT_PROJECT_OPERATORS = {
     'size': _project_size_resolver,
+    'sum': _project_sum_resolver,
     'array_to_object': _project_array_to_object_resolver,
     'object_to_array': _project_object_to_array_resolver,
     'add': _project_calculate_resolver,

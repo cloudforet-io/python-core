@@ -1134,7 +1134,7 @@ class MongoModel(Document, BaseModel):
             }
         }
 
-        supported_operator = ['add', 'subtract', 'multiply', 'divide', 'size']
+        supported_operator = ['add', 'subtract', 'multiply', 'divide', 'size', 'sum']
 
         for name, condition in select.items():
             if isinstance(condition, str):
