@@ -4,7 +4,7 @@ from spaceone.core import utils
 __all__ = ['STAT_GROUP_OPERATORS', 'STAT_PROJECT_OPERATORS']
 
 
-def _group_count_resolver(condition, key, operator, name, sub_conditions, *args):
+def _group_count_resolver(condition, key, operator, name, data_type, sub_conditions, *args):
     if sub_conditions:
         return {
             name: {
@@ -23,7 +23,7 @@ def _group_count_resolver(condition, key, operator, name, sub_conditions, *args)
         }
 
 
-def _group_push_resolver(condition, key, operator, name, sub_conditions, sub_fields, *args):
+def _group_push_resolver(condition, key, operator, name, data_type, sub_conditions, sub_fields, *args):
     if not key and len(sub_fields) == 0:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires fields: {condition}")
 
@@ -52,7 +52,7 @@ def _group_push_resolver(condition, key, operator, name, sub_conditions, sub_fie
         }
 
 
-def _group_average_resolver(condition, key, operator, name, sub_conditions, *args):
+def _group_average_resolver(condition, key, operator, name, data_type, sub_conditions, *args):
     if key is None:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
 
@@ -68,13 +68,17 @@ def _group_average_resolver(condition, key, operator, name, sub_conditions, *arg
                 }
             }
         }
+    elif data_type == 'array':
+        return {
+            name: {'$avg': {'$avg': f'${key}'}}
+        }
     else:
         return {
             name: {'$avg': f'${key}'}
         }
 
 
-def _group_sum_resolver(condition, key, operator, name, sub_conditions, *args):
+def _group_sum_resolver(condition, key, operator, name, data_type, sub_conditions, *args):
     if key is None:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
 
@@ -90,13 +94,17 @@ def _group_sum_resolver(condition, key, operator, name, sub_conditions, *args):
                 }
             }
         }
+    elif data_type == 'array':
+        return {
+            name: {'$sum': {'$sum': f'${key}'}}
+        }
     else:
         return {
             name: {'$sum': f'${key}'}
         }
 
 
-def _group_add_to_set_resolver(condition, key, operator, name, sub_conditions, *args):
+def _group_add_to_set_resolver(condition, key, operator, name, data_type, sub_conditions, *args):
     if key is None:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
 
@@ -108,7 +116,7 @@ def _group_add_to_set_resolver(condition, key, operator, name, sub_conditions, *
     }
 
 
-def _group_merge_objects_resolver(condition, key, operator, name, sub_conditions, *args):
+def _group_merge_objects_resolver(condition, key, operator, name, data_type, sub_conditions, *args):
     if key is None:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
 
@@ -120,16 +128,21 @@ def _group_merge_objects_resolver(condition, key, operator, name, sub_conditions
     }
 
 
-def _group_default_resolver(condition, key, operator, name, sub_conditions, *args):
+def _group_default_resolver(condition, key, operator, name, data_type, sub_conditions, *args):
     if key is None:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires a key: {condition}")
 
     if sub_conditions:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's conditions not supported: {condition}")
 
-    return {
-        name: {f'${operator}': f'${key}'}
-    }
+    if data_type == 'array':
+        return {
+            name: {f'${operator}': {f'${operator}': f'${key}'}}
+        }
+    else:
+        return {
+            name: {f'${operator}': f'${key}'}
+        }
 
 
 def _project_size_resolver(condition, key, operator, name, fields, group_keys, *args):
