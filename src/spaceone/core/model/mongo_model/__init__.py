@@ -659,6 +659,7 @@ class MongoModel(Document, BaseModel):
         operator = condition.get('operator', condition.get('o'))
         sub_conditions = condition.get('conditions')
         sub_fields = condition.get('fields') or []
+        data_type = condition.get('data_type')
 
         if operator not in STAT_GROUP_OPERATORS:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's {operator} operator is not supported. "
@@ -686,7 +687,7 @@ class MongoModel(Document, BaseModel):
         if sub_conditions:
             sub_conditions = cls._make_sub_conditions(sub_conditions, _before_group_keys)
 
-        return key, name, operator, sub_fields, sub_conditions
+        return key, name, operator, sub_fields, sub_conditions, data_type
 
     @classmethod
     def _get_group_keys(cls, condition, _before_group_keys):
@@ -748,9 +749,10 @@ class MongoModel(Document, BaseModel):
             _group_keys.append(name)
 
         for condition in _fields:
-            key, name, operator, sub_fields, sub_conditions = cls._get_group_fields(condition, _before_group_keys)
+            key, name, operator, sub_fields, sub_conditions, data_type = \
+                cls._get_group_fields(condition, _before_group_keys)
 
-            rule = STAT_GROUP_OPERATORS[operator](condition, key, operator, name, sub_conditions, sub_fields)
+            rule = STAT_GROUP_OPERATORS[operator](condition, key, operator, name, data_type, sub_conditions, sub_fields)
             _group_rule['$group'].update(rule)
 
         return _group_rule, _group_keys
@@ -1027,17 +1029,26 @@ class MongoModel(Document, BaseModel):
             operator = condition['operator']
             key = condition.get('key')
             fields = condition.get('fields')
+            data_type = condition.get('data_type')
 
             group_field = {
                 'name': name,
-                'operator': operator
+                'operator': operator,
+                'data_type': data_type
             }
 
             if operator != 'count':
                 group_field['key'] = key
 
-            if operator == 'push':
-                group_field['fields'] = fields
+            if operator == 'push' and fields:
+                push_fields = []
+                for key, value in fields.items():
+                    push_fields.append({
+                        'key': value,
+                        'name': key
+                    })
+
+                group_field['fields'] = push_fields
 
             group_fields.append(group_field)
 
@@ -1053,8 +1064,7 @@ class MongoModel(Document, BaseModel):
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.operator')
 
         # Check Operator
-
-        if operator != 'count' and key is None:
+        if operator not in ['count', 'push'] and key is None:
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.key')
 
         if operator == 'push' and not key and len(fields) == 0:
