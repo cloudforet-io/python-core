@@ -1036,8 +1036,15 @@ class MongoModel(Document, BaseModel):
             if operator != 'count':
                 group_field['key'] = key
 
-            if operator == 'push':
-                group_field['fields'] = fields
+            if operator == 'push' and fields:
+                push_fields = []
+                for key, value in fields.items():
+                    push_fields.append({
+                        'key': value,
+                        'name': key
+                    })
+
+                group_field['fields'] = push_fields
 
             group_fields.append(group_field)
 
@@ -1053,8 +1060,7 @@ class MongoModel(Document, BaseModel):
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.operator')
 
         # Check Operator
-
-        if operator != 'count' and key is None:
+        if operator not in ['count', 'push'] and key is None:
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.key')
 
         if operator == 'push' and not key and len(fields) == 0:
