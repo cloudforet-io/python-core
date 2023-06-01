@@ -1005,9 +1005,10 @@ class MongoModel(Document, BaseModel):
     def _make_group_keys(cls, group_by, date_field, granularity=None):
         group_keys = []
         for key in group_by:
+            name = key.rsplit('.', 1)[-1:][0]
             group_keys.append({
                 'key': key,
-                'name': key
+                'name': name
             })
 
         if granularity and granularity in ['DAILY', 'MONTHLY']:
