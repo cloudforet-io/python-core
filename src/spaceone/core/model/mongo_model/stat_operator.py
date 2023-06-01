@@ -24,7 +24,7 @@ def _group_count_resolver(condition, key, operator, name, sub_conditions, *args)
 
 
 def _group_push_resolver(condition, key, operator, name, sub_conditions, sub_fields, *args):
-    if len(sub_fields) == 0:
+    if not key and len(sub_fields) == 0:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires fields: {condition}")
 
     if sub_conditions:
@@ -32,17 +32,24 @@ def _group_push_resolver(condition, key, operator, name, sub_conditions, sub_fie
 
     push_query = {}
 
-    for sub_field in sub_fields:
-        f_key = sub_field.get('key', sub_field.get('k'))
-        f_name = sub_field.get('name', sub_field.get('n'))
-
-        push_query[f_name] = f'${f_key}'
-
-    return {
-        name: {
-            '$push': push_query
+    if key:
+        return {
+            name: {
+                '$push': f'${key}'
+            }
         }
-    }
+    else:
+        for sub_field in sub_fields:
+            f_key = sub_field.get('key', sub_field.get('k'))
+            f_name = sub_field.get('name', sub_field.get('n'))
+
+            push_query[f_name] = f'${f_key}'
+
+        return {
+            name: {
+                '$push': push_query
+            }
+        }
 
 
 def _group_average_resolver(condition, key, operator, name, sub_conditions, *args):
@@ -127,13 +134,25 @@ def _group_default_resolver(condition, key, operator, name, sub_conditions, *arg
 
 def _project_size_resolver(condition, key, operator, name, fields, group_keys, *args):
     if key is None:
-        raise ERROR_DB_QUERY(reason=f"'aggregate.project.fields' condition requires a key: {condition}")
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.key' condition requires a key: {condition}")
 
     if key in group_keys:
         key = f'_id.{key}'
 
     return {
         name: {'$size': f'${key}'}
+    }
+
+
+def _project_sum_resolver(condition, key, operator, name, fields, group_keys, *args):
+    if key is None:
+        raise ERROR_DB_QUERY(reason=f"'aggregate.project.key' condition requires a key: {condition}")
+
+    if key in group_keys:
+        key = f'_id.{key}'
+
+    return {
+        name: {'$sum': f'${key}'}
     }
 
 
@@ -221,6 +240,7 @@ STAT_GROUP_OPERATORS = {
 
 STAT_PROJECT_OPERATORS = {
     'size': _project_size_resolver,
+    'sum': _project_sum_resolver,
     'array_to_object': _project_array_to_object_resolver,
     'object_to_array': _project_object_to_array_resolver,
     'add': _project_calculate_resolver,

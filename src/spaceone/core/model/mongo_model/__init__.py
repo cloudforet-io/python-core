@@ -658,7 +658,7 @@ class MongoModel(Document, BaseModel):
         name = condition.get('name', condition.get('n'))
         operator = condition.get('operator', condition.get('o'))
         sub_conditions = condition.get('conditions')
-        sub_fields = condition.get('fields', [])
+        sub_fields = condition.get('fields') or []
 
         if operator not in STAT_GROUP_OPERATORS:
             raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition's {operator} operator is not supported. "
@@ -1057,7 +1057,7 @@ class MongoModel(Document, BaseModel):
         if operator != 'count' and key is None:
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.key')
 
-        if operator == 'push' and len(fields) == 0:
+        if operator == 'push' and not key and len(fields) == 0:
             raise ERROR_REQUIRED_PARAMETER(key='query.fields.fields')
 
     @classmethod
@@ -1134,7 +1134,7 @@ class MongoModel(Document, BaseModel):
             }
         }
 
-        supported_operator = ['add', 'subtract', 'multiply', 'divide']
+        supported_operator = ['add', 'subtract', 'multiply', 'divide', 'size', 'sum']
 
         for name, condition in select.items():
             if isinstance(condition, str):
@@ -1144,20 +1144,27 @@ class MongoModel(Document, BaseModel):
                 })
             elif isinstance(condition, dict):
                 operator = condition.get('operator')
+                key = condition.get('key')
                 fields = condition.get('fields')
 
                 if operator not in supported_operator:
                     raise ERROR_INVALID_PARAMETER(key='query.select.operator',
                                                   reason=f'supported_operator = {supported_operator}')
 
-                if fields is None:
+                if key:
+                    select_query['project']['fields'].append({
+                        'name': name,
+                        'operator': operator,
+                        'key': key
+                    })
+                elif fields:
+                    select_query['project']['fields'].append({
+                        'name': name,
+                        'operator': operator,
+                        'fields': fields
+                    })
+                else:
                     raise ERROR_REQUIRED_PARAMETER(key='query.select.fields')
-
-                select_query['project']['fields'].append({
-                    'name': name,
-                    'operator': operator,
-                    'fields': fields
-                })
 
         return [select_query]
 
