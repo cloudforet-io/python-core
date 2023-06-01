@@ -1134,7 +1134,7 @@ class MongoModel(Document, BaseModel):
             }
         }
 
-        supported_operator = ['add', 'subtract', 'multiply', 'divide']
+        supported_operator = ['add', 'subtract', 'multiply', 'divide', 'size']
 
         for name, condition in select.items():
             if isinstance(condition, str):
@@ -1144,20 +1144,27 @@ class MongoModel(Document, BaseModel):
                 })
             elif isinstance(condition, dict):
                 operator = condition.get('operator')
+                key = condition.get('key')
                 fields = condition.get('fields')
 
                 if operator not in supported_operator:
                     raise ERROR_INVALID_PARAMETER(key='query.select.operator',
                                                   reason=f'supported_operator = {supported_operator}')
 
-                if fields is None:
+                if key:
+                    select_query['project']['fields'].append({
+                        'name': name,
+                        'operator': operator,
+                        'key': key
+                    })
+                elif fields:
+                    select_query['project']['fields'].append({
+                        'name': name,
+                        'operator': operator,
+                        'fields': fields
+                    })
+                else:
                     raise ERROR_REQUIRED_PARAMETER(key='query.select.fields')
-
-                select_query['project']['fields'].append({
-                    'name': name,
-                    'operator': operator,
-                    'fields': fields
-                })
 
         return [select_query]
 
