@@ -3,10 +3,6 @@ name: "[Dispatch] Release"
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'enter branch (only master and release-x.y.z are allowed)'
-        required: true
-        default: 'master'
       version:
         description: 'enter version(x.y.z)'
         required: true
@@ -26,7 +22,6 @@ on:
         default: true
 
 env:
-  BRANCH: ${{ github.event.inputs.branch }}
   VERSION: ${{ github.event.inputs.version }}
   PACKAGE_VERSION: ${{ github.event.inputs.version }}
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -38,7 +33,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ env.BRANCH }}
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: tagging
@@ -63,7 +57,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ env.BRANCH }}
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: Set python
@@ -104,7 +97,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ env.BRANCH }}
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: Set up QEMU
