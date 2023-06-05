@@ -22,7 +22,6 @@ class Transaction(object):
         self._resource = resource
         self._verb = verb
         self._rollbacks = []
-        self._status = 'STARTED'
         self._set_meta(meta)
         self._set_trace_id(trace_id)
         self._event_handlers = []
@@ -57,16 +56,6 @@ class Transaction(object):
     @property
     def verb(self) -> str:
         return self._verb
-
-    @property
-    def status(self) -> str:
-        return self._status
-
-    @status.setter
-    def status(self, value) -> None:
-        if value not in ['IN_PROGRESS', 'SUCCESS', 'FAILURE']:
-            raise ERROR_TRANSACTION_STATUS(status=value)
-        self._status = value
 
     def add_rollback(self, fn, *args, **kwargs) -> None:
         self._rollbacks.insert(0, {

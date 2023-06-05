@@ -49,11 +49,6 @@ class BaseService(CoreObject):
         if exc_type:
             raise exc_val
 
-    def __del__(self):
-        if transaction := get_transaction():
-            if self.transaction.status == 'IN_PROGRESS':
-                self.transaction.status = 'SUCCESS'
-
 
 def transaction(func=None, verb=None, append_meta=None):
     def wrapper(func):
@@ -124,7 +119,6 @@ def _pipeline(func, self, params, append_meta):
         # 6. Service Body
         with _TRACER.start_as_current_span(f'ServiceBody',
                                            links=[trace.Link(self.current_span_context)]) as span:
-            self.transaction.status = 'IN_PROGRESS'
             response_or_iterator = func(self, params)
 
         # 7. Response Handlers

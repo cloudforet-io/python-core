@@ -37,7 +37,7 @@ FORMATTER_DEFAULT_TMPL = {
         'datefmt': '%Y-%m-%dT%H:%M:%S',
     },
     'file': {
-        'format': '{"time": "%(asctime)s.%(msecs)03dZ", "level": "%(levelname)s", "peer": "%(peer)s", "trace_id": "%(trace_id)s", "domain_id": "%(domain_id)s", "user_id": "%(user_id)s", "tnx_state": "%(tnx_status)s", "tnx_method": "%(tnx_method)s", "file_name": "%(filename)s", "line": %(lineno)d, "parameter": %(params_log)s, "message": %(msg_dump)s, "error": { "code": "%(error_code)s", "message": "%(error_message)s", "traceback": %(traceback_log)s }}',
+        'format': '{"time": "%(asctime)s.%(msecs)03dZ", "level": "%(levelname)s", "peer": "%(peer)s", "trace_id": "%(trace_id)s", "domain_id": "%(domain_id)s", "user_id": "%(user_id)s", "tnx_method": "%(tnx_method)s", "file_name": "%(filename)s", "line": %(lineno)d, "parameter": %(params_log)s, "message": %(msg_dump)s, "error": { "code": "%(error_code)s", "message": "%(error_message)s", "traceback": %(traceback_log)s }}',
         'datefmt': '%Y-%m-%dT%H:%M:%S',
     }
 }
