@@ -62,14 +62,8 @@ class BaseAPI(object):
 
     @staticmethod
     def _error_method(error, context):
-        is_logging = False
         if not isinstance(error, ERROR_BASE):
             error = ERROR_UNKNOWN(message=error)
-            is_logging = True
-        elif error.meta.get('type') == 'service':
-            is_logging = True
-
-        if is_logging:
             _LOGGER.error(f'(Error) => {error.message} {error}',
                           extra={'error_code': error.error_code,
                                  'error_message': error.message,

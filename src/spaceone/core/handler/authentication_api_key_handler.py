@@ -1,9 +1,6 @@
-import json
 import logging
-from spaceone.core import pygrpc
-from spaceone.core import utils
+
 from spaceone.core.cache import cacheable
-from spaceone.core.transaction import Transaction
 from spaceone.core.handler import BaseAuthenticationHandler
 from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.error import *
@@ -18,8 +15,8 @@ _EXCLUDE_METHODS = [
 
 class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
 
-    def __init__(self, transaction: Transaction, config):
-        super().__init__(transaction, config)
+    def __init__(self, config):
+        super().__init__(config)
         self._initialize()
 
     def _initialize(self):

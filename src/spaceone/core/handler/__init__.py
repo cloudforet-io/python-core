@@ -1,13 +1,12 @@
 import abc
 from typing import Any
-from spaceone.core.transaction import Transaction
 from spaceone.core.base import CoreObject
 
 
 class BaseHandler(CoreObject):
 
-    def __init__(self, transaction: Transaction, config: dict):
-        super().__init__(transaction=transaction)
+    def __init__(self, config: dict):
+        super().__init__()
 
         self.config = config
 

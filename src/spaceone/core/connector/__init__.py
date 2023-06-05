@@ -1,11 +1,10 @@
 from spaceone.core.base import CoreObject
-from spaceone.core.transaction import Transaction
 
 
 class BaseConnector(CoreObject):
 
-    def __init__(self, transaction: Transaction = None, config: dict = None, **kwargs):
-        super().__init__(transaction=transaction)
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__()
 
         self.config = config or {}
 

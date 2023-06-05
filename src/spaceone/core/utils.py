@@ -36,10 +36,6 @@ def generate_trace_id() -> int:
     return random.getrandbits(128)
 
 
-def generate_span_id() -> int:
-    return random.getrandbits(64)
-
-
 def generate_secret(nbytes: int = 32) -> str:
     return secrets.token_urlsafe(nbytes)
 

@@ -11,35 +11,26 @@ def _get_module(package, target):
 
 
 class Locator(object):
-
-    def __init__(self, transaction=None):
-        self.transaction = transaction
-
-    def get_service(self, name_or_object: [str, object], metadata: dict = None, **kwargs):
+    @staticmethod
+    def get_service(name_or_object: [str, object], metadata: dict = None, **kwargs):
         metadata = metadata or {}
         package = config.get_package()
-        try:
-            if isinstance(name_or_object, str):
-                service_module = _get_module(package, 'service')
-                return getattr(service_module, name_or_object)(metadata=metadata, **kwargs)
-            else:
-                return name_or_object(metadata=metadata, **kwargs)
 
-        except ERROR_BASE as e:
-            e.meta['type'] = 'service'
-            raise e
+        if isinstance(name_or_object, str):
+            service_module = _get_module(package, 'service')
+            return getattr(service_module, name_or_object)(metadata=metadata, **kwargs)
+        else:
+            return name_or_object(metadata=metadata, **kwargs)
 
-        except Exception as e:
-            raise ERROR_LOCATOR(name=name_or_object, reason=e, _meta={'type': 'service'})
-
-    def get_manager(self, name_or_object: [str, object], **kwargs):
+    @staticmethod
+    def get_manager(name_or_object: [str, object], **kwargs):
         package = config.get_package()
         try:
             if isinstance(name_or_object, str):
                 manager_module = _get_module(package, 'manager')
-                return getattr(manager_module, name_or_object)(transaction=self.transaction, **kwargs)
+                return getattr(manager_module, name_or_object)(**kwargs)
             else:
-                return name_or_object(transaction=self.transaction, **kwargs)
+                return name_or_object(**kwargs)
 
         except ERROR_BASE as e:
             raise e
@@ -47,7 +38,8 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name_or_object, reason=e, _meta={'type': 'manager'})
 
-    def get_info(self, name_or_object: [str, object], *args, **kwargs):
+    @staticmethod
+    def get_info(name_or_object: [str, object], *args, **kwargs):
         package = config.get_package()
         try:
             if isinstance(name_or_object, str):
@@ -62,7 +54,8 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=name_or_object, reason=e, _meta={'type': 'info'})
 
-    def get_model(self, name_or_object: [str, object]):
+    @staticmethod
+    def get_model(name_or_object: [str, object]):
         package = config.get_package()
         try:
             if isinstance(name_or_object, str):
@@ -80,7 +73,8 @@ class Locator(object):
         except Exception as e:
             raise ERROR_LOCATOR(name=f'{name_or_object} Model', reason=e, _meta={'type': 'model'})
 
-    def get_connector(self, name_or_object: [str, object], **kwargs):
+    @staticmethod
+    def get_connector(name_or_object: [str, object], **kwargs):
         package = config.get_package()
 
         try:
@@ -94,11 +88,11 @@ class Locator(object):
                 else:
                     connector_module = _get_module(package, 'connector')
 
-                _connector = getattr(connector_module, name_or_object)(transaction=self.transaction, config=connector_conf, **kwargs)
+                _connector = getattr(connector_module, name_or_object)(config=connector_conf, **kwargs)
                 return _connector
             else:
                 connector_conf = config.get_connector(name_or_object.__name__)
-                return name_or_object(transaction=self.transaction, config=connector_conf, **kwargs)
+                return name_or_object(config=connector_conf, **kwargs)
 
         except ERROR_BASE as e:
             raise e

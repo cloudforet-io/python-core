@@ -1,3 +1,5 @@
+import sys
+import contextlib
 import functools
 import inspect
 import logging
@@ -6,34 +8,30 @@ import copy
 import traceback
 
 from opentelemetry import trace, metrics
-from opentelemetry.trace import NonRecordingSpan
+from opentelemetry.trace import NonRecordingSpan, format_trace_id
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from spaceone.core import config, utils
+from spaceone.core.base import CoreObject
 from spaceone.core.error import *
 from spaceone.core.locator import Locator
-from spaceone.core.transaction import Transaction
+from spaceone.core.transaction import Transaction, get_transaction, create_transaction, delete_transaction
 
+from opentelemetry import trace
 
 _LOGGER = logging.getLogger(__name__)
 _TRACER = trace.get_tracer(__name__)
 
 
-class BaseService(object):
+class BaseService(CoreObject):
 
-    def __init__(self, metadata: dict = None, transaction: Transaction = None, **kwargs):
+    def __init__(self, metadata: dict = None, **kwargs):
+        super().__init__(**kwargs)
         self.func_name = None
-        self.is_with_statement = False
+        # self.is_with_statement = False
+        self.current_span_context = None
+        self._metadata = metadata or {}
 
-        if metadata is None:
-            metadata = {}
-
-        if transaction:
-            self.transaction = transaction
-        else:
-            self.transaction = Transaction(metadata)
-
-        self.locator = Locator(self.transaction)
         self.handler = {
             'authentication': {'handlers': [], 'methods': []},
             'authorization': {'handlers': [], 'methods': []},
@@ -42,30 +40,32 @@ class BaseService(object):
         }
 
         self.handler_exclude_apis = config.get_global('HANDLER_EXCLUDE_APIS', {})
-
-        self.current_span_context = None
+        self.enable_stack_info = config.get_global('ENABLE_STACK_INFO', False)
 
     def __enter__(self):
-        self.is_with_statement = True
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            error = _error_handler(self, exc_val)
-            raise error
+            raise exc_val
 
     def __del__(self):
-        if self.transaction.status == 'IN_PROGRESS':
-            self.transaction.status = 'SUCCESS'
+        if transaction := get_transaction():
+            if self.transaction.status == 'IN_PROGRESS':
+                self.transaction.status = 'SUCCESS'
 
 
-def transaction(func=None, append_meta=None):
+def transaction(func=None, verb=None, append_meta=None):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(self, params):
-            with _TRACER.start_as_current_span(f'{self.transaction.resource}.{self.transaction.verb}',
-                                              context=_create_span_context(self.transaction)) as span:
+            _resource = self._metadata.get('resource') or self.resource or self.__class__.__name__
+            _verb = verb or func.__name__
+            with _TRACER.start_as_current_span(f'{_resource}.{_verb}',
+                                               context=_get_span_context(self._metadata)) as span:
                 self.current_span_context = span.get_span_context()
+                trace_id = format_trace_id(self.current_span_context.trace_id)
+                create_transaction(_resource, _verb, trace_id, self._metadata)
                 return _pipeline(func, self, params, append_meta)
 
         return wrapped_func
@@ -73,17 +73,12 @@ def transaction(func=None, append_meta=None):
     return wrapper(func) if func else wrapper
 
 
-def _create_span_context(transaction: Transaction):
-    if transaction:
-        traceparent = transaction.get_meta('traceparent')
-        carrier = {'traceparent': traceparent} if traceparent else None
-        return TraceContextTextMapPropagator().extract(carrier) if carrier else None
+def _get_span_context(metadata):
+    if traceparent := metadata.get('traceparent'):
+        carrier = {'traceparent': traceparent}
+        return TraceContextTextMapPropagator().extract(carrier)
     else:
         return None
-
-def _set_trace_id(self):
-    trace_id = format(self._current_span_context.trace_id, '032x')
-    self.transaction.id = trace_id
 
 
 def _pipeline(func, self, params, append_meta):
@@ -128,7 +123,7 @@ def _pipeline(func, self, params, append_meta):
 
         # 6. Service Body
         with _TRACER.start_as_current_span(f'ServiceBody',
-                                          links=[trace.Link(self.current_span_context)]) as span:
+                                           links=[trace.Link(self.current_span_context)]) as span:
             self.transaction.status = 'IN_PROGRESS'
             response_or_iterator = func(self, params)
 
@@ -142,27 +137,25 @@ def _pipeline(func, self, params, append_meta):
                 return response_or_iterator
 
     except ERROR_INVALID_ARGUMENT as e:
-        if not self.is_with_statement:
-            _error_handler(self, e)
+        _error_handler(self, e)
         raise e
 
     except ERROR_BASE as e:
-        if not self.is_with_statement:
-            _error_handler(self, e)
+        _error_handler(self, e)
         raise e
 
     except Exception as e:
         error = ERROR_UNKNOWN(message=e)
-        if not self.is_with_statement:
-            _error_handler(self, error)
+        _error_handler(self, error)
         raise error
+
+    finally:
+        delete_transaction()
 
 
 def _error_handler(self, error):
     if not isinstance(error, ERROR_BASE):
         error = ERROR_UNKNOWN(message=error)
-
-    self.transaction.status = 'FAILURE'
 
     # Failure Event
     if _check_handler_method(self, 'event'):
@@ -172,13 +165,10 @@ def _error_handler(self, error):
             except Exception as e:
                 _LOGGER.error(f'{handler.__class__.__name__} Error (FAILURE): {e}')
 
-    _LOGGER.error(f'(Error) => {error.message} {error}',
-                  extra={'error_code': error.error_code,
-                         'error_message': error.message,
-                         'traceback': traceback.format_exc()})
-    self.transaction.execute_rollback()
+    _LOGGER.error(f'(Error) => {error.message} {error}', exc_info=True, stack_info=self.enable_stack_info)
 
-    return error
+    if transaction := get_transaction(is_create=False):
+        transaction.execute_rollback()
 
 
 def _success_handler(self, response):
@@ -252,7 +242,7 @@ def _load_handler(self, handler_type):
             del handler_conf['backend']
 
             self.handler[handler_type]['handlers'].append(
-                getattr(handler_module, class_name)(self.transaction, handler_conf))
+                getattr(handler_module, class_name)(handler_conf))
 
     except ERROR_BASE as error:
         raise error

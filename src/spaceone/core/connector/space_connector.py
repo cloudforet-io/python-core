@@ -1,11 +1,9 @@
 import types
 import logging
 from google.protobuf.json_format import MessageToDict
-from opentelemetry import trace
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from spaceone.core import config as global_config
-from spaceone.core.transaction import Transaction
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
 from spaceone.core.utils import parse_grpc_endpoint
@@ -18,9 +16,9 @@ _LOGGER = logging.getLogger(__name__)
 
 class SpaceConnector(BaseConnector):
 
-    def __init__(self, transaction: Transaction = None, return_type: str = 'dict', config: dict = None,
+    def __init__(self, return_type: str = 'dict', config: dict = None,
                  service: str = None, endpoint: str = None, **kwargs):
-        super().__init__(transaction, config)
+        super().__init__(config)
 
         self._mock_mode = global_config.get_global('MOCK_MODE', False)
         self._service = service

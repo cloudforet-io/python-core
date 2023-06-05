@@ -1,8 +1,6 @@
 import logging
 import fnmatch
-from spaceone.core import pygrpc
-from spaceone.core import utils
-from spaceone.core.transaction import Transaction
+
 from spaceone.core.handler import BaseAuthorizationHandler
 from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.error import ERROR_HANDLER_CONFIGURATION, ERROR_PERMISSION_DENIED
@@ -12,8 +10,8 @@ _LOGGER = logging.getLogger(__name__)
 
 class AuthorizationGRPCHandler(BaseAuthorizationHandler):
 
-    def __init__(self, transaction: Transaction, config):
-        super().__init__(transaction, config)
+    def __init__(self, config):
+        super().__init__(config)
         self.client = None
         self._initialize()
 
