@@ -24,7 +24,7 @@ class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
             _LOGGER.error(f'[_initialize] uri config is undefined.')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-        self.client: SpaceConnector = self.locator.get_connector('SpaceConnector', endpoint=self.config['uri'])
+        self.client: SpaceConnector = self.locator.get_connector(SpaceConnector, endpoint=self.config['uri'])
 
     def verify(self, params=None):
         request_method = f'{self.transaction.service}.{self.transaction.resource}.{self.transaction.verb}'
