@@ -77,7 +77,7 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
                 }
             )
 
-            self.transaction.set_meta('authorization.role_type', response['projects'])
+            self.transaction.set_meta('authorization.role_type', response.get('projects', []))
             self.transaction.set_meta('authorization.projects', response['role_type'])
             self.transaction.set_meta('authorization.project_groups', response.get('project_groups', []))
         except Exception as e:
