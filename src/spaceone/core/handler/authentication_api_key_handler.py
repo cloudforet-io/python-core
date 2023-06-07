@@ -1,10 +1,8 @@
-import json
 import logging
-from spaceone.core import pygrpc
-from spaceone.core import utils
+
 from spaceone.core.cache import cacheable
-from spaceone.core.transaction import Transaction
 from spaceone.core.handler import BaseAuthenticationHandler
+from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.error import *
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,8 +15,8 @@ _EXCLUDE_METHODS = [
 
 class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
 
-    def __init__(self, transaction: Transaction, config):
-        super().__init__(transaction, config)
+    def __init__(self, config):
+        super().__init__(config)
         self._initialize()
 
     def _initialize(self):
@@ -26,13 +24,7 @@ class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
             _LOGGER.error(f'[_initialize] uri config is undefined.')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-        try:
-            uri_info = utils.parse_grpc_uri(self.config['uri'])
-        except Exception as e:
-            _LOGGER.error(f'[_initialize] AuthenticationAPIKeyCHandler Init Error: {e}')
-            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
-
-        self.grpc_method = pygrpc.get_grpc_method(uri_info)
+        self.client: SpaceConnector = self.locator.get_connector('SpaceConnector', endpoint=self.config['uri'])
 
     def verify(self, params=None):
         request_method = f'{self.transaction.service}.{self.transaction.resource}.{self.transaction.verb}'
@@ -53,15 +45,15 @@ class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
         _LOGGER.debug(f'[_check_api_key] check api key state ({api_key_id})')
 
         try:
-            response = self.grpc_method({
+            response = self.client.dispatch(
+                'APIKey.get',
+                {
                     'api_key_id': api_key_id,
                     'domain_id': domain_id
-                },
-                metadata=self.transaction.get_connection_meta()
+                }
             )
 
-            # Check api key state (1: ENABLED)
-            if response.state != 1:
+            if response['state'] != 'ENABLED':
                 raise ERROR_AUTHENTICATE_FAILURE(message='The state of the API key has been disabled.')
 
             return True

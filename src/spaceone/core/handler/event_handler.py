@@ -1,7 +1,7 @@
 import logging
+
 from spaceone.core import pygrpc
 from spaceone.core import utils
-from spaceone.core.transaction import Transaction
 from spaceone.core.handler import BaseEventHandler
 from spaceone.core.error import ERROR_HANDLER_CONFIGURATION
 
@@ -10,8 +10,8 @@ _LOGGER = logging.getLogger(__name__)
 
 class EventGRPCHandler(BaseEventHandler):
 
-    def __init__(self, transaction: Transaction, config):
-        super().__init__(transaction, config)
+    def __init__(self, config):
+        super().__init__(config)
         self._initialize()
 
     def _initialize(self):

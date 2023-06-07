@@ -1,10 +1,10 @@
 import json
 import logging
-from spaceone.core import pygrpc
-from spaceone.core import utils
+
 from spaceone.core.cache import cacheable
+from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
-from spaceone.core.transaction import Transaction
+from spaceone.core.transaction import get_transaction
 from spaceone.core.handler import BaseAuthenticationHandler
 from spaceone.core.error import ERROR_AUTHENTICATE_FAILURE, ERROR_HANDLER_CONFIGURATION
 
@@ -13,8 +13,9 @@ _LOGGER = logging.getLogger(__name__)
 
 class AuthenticationGRPCHandler(BaseAuthenticationHandler):
 
-    def __init__(self, transaction: Transaction, config):
-        super().__init__(transaction, config)
+    def __init__(self, config):
+        super().__init__(config)
+        self.client = None
         self._initialize()
 
     def _initialize(self):
@@ -22,13 +23,7 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
             _LOGGER.error(f'[_initialize] uri config is undefined.')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-        try:
-            uri_info = utils.parse_grpc_uri(self.config['uri'])
-        except Exception as e:
-            _LOGGER.error(f'[_initialize] AuthenticationGRPCHandler Init Error: {e}')
-            raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
-
-        self.grpc_method = pygrpc.get_grpc_method(uri_info)
+        self.client: SpaceConnector = self.locator.get_connector('SpaceConnector', endpoint=self.config['uri'])
 
     def verify(self, params=None):
         token = self._get_token()
@@ -40,13 +35,9 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
     @cacheable(key='public-key:{domain_id}', backend='local')
     def _get_public_key(self, domain_id):
         _LOGGER.debug(f'[_get_public_key] get jwk from identity service ({domain_id})')
+        response = self.client.dispatch('Domain.get_public_key', {'domain_id': domain_id})
 
-        response = self.grpc_method({
-                'domain_id': domain_id
-            },
-            metadata=self.transaction.get_connection_meta()
-        )
-        return response.public_key
+        return response['public_key']
 
     def _authenticate(self, token, domain_id):
         public_key = self._get_public_key(domain_id)
@@ -56,8 +47,10 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
 
         return payload
 
-    def _get_token(self):
-        token = self.transaction.meta.get('token')
+    @staticmethod
+    def _get_token():
+        transaction = get_transaction()
+        token = transaction.meta.get('token')
         if not isinstance(token, str) \
                 or token is None \
                 or len(token) == 0:
@@ -93,4 +86,3 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
         self.transaction.set_meta('authorization.permissions', permissions)
         self.transaction.set_meta('token_type', token_type)
         self.transaction.set_meta('api_key_id', api_key_id)
-

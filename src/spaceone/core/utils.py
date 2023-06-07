@@ -32,6 +32,10 @@ def generate_id(prefix: str = 'id', nbytes: int = 6) -> str:
     return f'{prefix}-{random_id}'
 
 
+def generate_trace_id() -> int:
+    return random.getrandbits(128)
+
+
 def generate_secret(nbytes: int = 32) -> str:
     return secrets.token_urlsafe(nbytes)
 

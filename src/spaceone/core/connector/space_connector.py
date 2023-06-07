@@ -1,9 +1,9 @@
 import types
 import logging
 from google.protobuf.json_format import MessageToDict
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from spaceone.core import config as global_config
-from spaceone.core.transaction import Transaction
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
 from spaceone.core.utils import parse_grpc_endpoint
@@ -16,9 +16,9 @@ _LOGGER = logging.getLogger(__name__)
 
 class SpaceConnector(BaseConnector):
 
-    def __init__(self, transaction: Transaction = None, return_type: str = 'dict', config: dict = None,
+    def __init__(self, return_type: str = 'dict', config: dict = None,
                  service: str = None, endpoint: str = None, **kwargs):
-        super().__init__(transaction, config)
+        super().__init__(config)
 
         self._mock_mode = global_config.get_global('MOCK_MODE', False)
         self._service = service
@@ -79,7 +79,7 @@ class SpaceConnector(BaseConnector):
         endpoint = self._get_endpoint()
         e = parse_grpc_endpoint(endpoint)
         self._client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'],
-                                     max_message_length=1024*1024*256)
+                                     max_message_length=1024 * 1024 * 256)
 
     @staticmethod
     def _change_message(message):
@@ -90,15 +90,19 @@ class SpaceConnector(BaseConnector):
             yield self._change_message(response)
 
     def _get_connection_metadata(self):
-        tnx_meta = self.transaction.meta
-        if self._token:
-            tnx_meta['token'] = self._token
-
-        keys = ['token', 'transaction_id']
         metadata = []
-        for key in keys:
-            if key in tnx_meta:
-                metadata.append((key, tnx_meta[key]))
+        if self._token:
+            metadata.append(('token', self._token))
+
+        elif token := self.transaction.meta.get('token'):
+            metadata.append(('token', token))
+
+        carrier = {}
+        TraceContextTextMapPropagator().inject(carrier)
+
+        if traceparent := carrier.get('traceparent'):
+            metadata.append(('traceparent', traceparent))
+
         return metadata
 
     def _parse_method(self, method):
