@@ -20,7 +20,7 @@ class AuthorizationGRPCHandler(BaseAuthorizationHandler):
             _LOGGER.error(f'[_initialize] uri config is undefined.')
             raise ERROR_HANDLER_CONFIGURATION(handler='AuthenticationGRPCHandler')
 
-        self.client: SpaceConnector = self.locator.get_connector('SpaceConnector', endpoint=self.config['uri'])
+        self.client: SpaceConnector = self.locator.get_connector(SpaceConnector, endpoint=self.config['uri'])
 
     def verify(self, params=None):
         self._check_permissions()
