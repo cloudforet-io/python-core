@@ -58,6 +58,14 @@ HANDLER_EXCLUDE_APIS = {
     'event': []
 }
 
+# Connector Configuration
+CONNECTORS = {
+    'SpaceConnector': {
+        'backend': 'spaceone.core.connector.space_connector.SpaceConnector',
+        'endpoints': {}
+    }
+}
+
 # Logging Configuration
 SET_LOGGING = True
 ENABLE_STACK_INFO = False
