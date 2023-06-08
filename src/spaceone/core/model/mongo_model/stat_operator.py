@@ -232,6 +232,20 @@ def _project_calculate_sub_query(condition, operator, fields, group_keys):
     }
 
 
+def _project_date_to_string_resolver(condition, key, operator, name, fields, group_keys, *args):
+    if key in group_keys:
+        key = f'_id.{key}'
+
+    return {
+        name: {
+            '$dateToString': {
+                'format':  '%Y-%m-%dT%H:%M:%SZ',
+                'date': f'${key}'
+            }
+        }
+    }
+
+
 def _project_calculate_resolver(condition, key, operator, name, fields, group_keys, *args):
     return {
         name: _project_calculate_sub_query(condition, operator, fields, group_keys)
@@ -256,6 +270,7 @@ STAT_PROJECT_OPERATORS = {
     'sum': _project_sum_resolver,
     'array_to_object': _project_array_to_object_resolver,
     'object_to_array': _project_object_to_array_resolver,
+    'date_to_string': _project_date_to_string_resolver,
     'add': _project_calculate_resolver,
     'subtract': _project_calculate_resolver,
     'multiply': _project_calculate_resolver,
