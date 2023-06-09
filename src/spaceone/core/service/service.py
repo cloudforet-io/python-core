@@ -54,7 +54,7 @@ def transaction(func=None, verb=None, append_meta=None):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(self, params):
-            _resource = self._metadata.get('resource') or self.resource or self.__class__.__name__
+            _resource = self._metadata.get('resource') or self.__class__.__name__
             _verb = verb or func.__name__
             with _TRACER.start_as_current_span(f'{_resource}.{_verb}',
                                                context=_get_span_context(self._metadata)) as span:
