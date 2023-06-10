@@ -1,15 +1,16 @@
+import time
 import consul
-
 import logging
 
 from spaceone.core import config
 from spaceone.core.error import ERROR_CONFIGURATION
 
-__all__ = ['get_token']
+__all__ = ['get_token', '_validate_token', 'Consul']
 
 _LOGGER = logging.getLogger(__name__)
 
 MAX_COUNT = 10
+INTERVAL = 10
 
 class Consul:
     def __init__(self, config):
