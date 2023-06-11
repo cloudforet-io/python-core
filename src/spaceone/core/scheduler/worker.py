@@ -7,7 +7,6 @@ from multiprocessing import Process
 
 from spaceone.core import queue, config
 from spaceone.core.locator import Locator
-from spaceone.core.transaction import Transaction
 from spaceone.core.logger import set_logger
 from spaceone.core.error import ERROR_TASK_LOCATOR, ERROR_TASK_METHOD
 
@@ -28,8 +27,7 @@ class SingleTask:
         self.metadata = single_task['metadata']
         self.method = single_task['method']
         self.params = single_task['params']
-        transaction = Transaction(meta=self.metadata)
-        self._locator = Locator(transaction)
+        self._locator = Locator()
 
     def execute(self):
         """ Run method
