@@ -66,5 +66,5 @@ LOG = {}
 # OpenTelemetry Configuration
 SET_OTEL = False
 OTEL = {
-    'endpoint': ''
+    'endpoint': None
 }

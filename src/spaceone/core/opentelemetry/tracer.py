@@ -15,9 +15,10 @@ _LOGGER = logging.getLogger(__name__)
 def set_tracer():
     service = config.get_service()
     endpoint = config.get_global('OTEL', {}).get('endpoint')
-    if endpoint is None:
+    if endpoint:
+        _init_tracer(service, endpoint)
+    else:
         _LOGGER.info(f'[set_tracer] OTEL endpoint is not configured. (service={service})')
-    _init_tracer(service, endpoint)
 
 
 def _init_tracer(service, endpoint):
