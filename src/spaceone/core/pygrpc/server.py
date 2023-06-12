@@ -99,13 +99,10 @@ def serve():
     conf = config.get_global()
 
     # Enable logging configuration
-    if conf.get('SET_LOGGING', True):
-        set_logger()
+    set_logger()
 
     # Set OTel Tracer and Metric
-    if conf.get('SET_OTEL', True):
-        set_tracer()
-        set_metric()
+    set_tracer()
 
     server_interceptor = _ServerInterceptor()
     server = grpc.server(
