@@ -10,9 +10,11 @@ __all__ = ['set_metric']
 
 
 def set_metric():
-    service = config.get_service()
-    endpoint = config.get_global('OTEL.endpoint')
-    _init_metric(service, endpoint)
+    # Not Implemented
+    # service = config.get_service()
+    # endpoint = config.get_global('OTEL.endpoint')
+    # _init_metric(service, endpoint)
+    pass
 
 
 def _init_metric(service, endpoint):
