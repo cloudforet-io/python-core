@@ -99,6 +99,7 @@ class Transaction(object):
 
 def get_transaction(trace_id: str = None, is_create: bool = True) -> [Transaction, None]:
     current_span_context = trace.get_current_span().get_span_context()
+
     if current_span_context.trace_flags == TraceFlags.SAMPLED:
         trace_id_from_current_span = format_trace_id(current_span_context.trace_id)
         return getattr(LOCAL_STORAGE, trace_id_from_current_span, None)

@@ -59,12 +59,10 @@ HANDLER_EXCLUDE_APIS = {
 }
 
 # Logging Configuration
-SET_LOGGING = True
 ENABLE_STACK_INFO = False
 LOG = {}
 
 # OpenTelemetry Configuration
-SET_OTEL = False
 OTEL = {
-    'endpoint': ''
+    'endpoint': None
 }

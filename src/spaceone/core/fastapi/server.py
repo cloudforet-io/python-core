@@ -140,14 +140,11 @@ def fast_api_app():
 def serve():
     conf = config.get_global()
 
-    # Enable logging configuration
-    if conf.get('SET_LOGGING', True):
-        set_logger()
+    # Enable logging configuration\
+    set_logger()
 
-    # Set OTel Tracer and Metric
-    if conf.get('SET_OTEL', True):
-        set_tracer()
-        set_metric()
+    # Set OTel Tracer and Metric|
+    set_tracer()
 
     uvicorn_options = conf.get('UVICORN_OPTIONS', {})
 

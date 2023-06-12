@@ -80,8 +80,7 @@ class IntervalScheduler(BaseScheduler):
         config.set_global_force(**self.global_config)
 
         # Enable logging configuration
-        if self.global_config.get('SET_LOGGING', True):
-            set_logger()
+        set_logger()
 
         schedule.every(self.config).seconds.do(self.push_task)
         while True:
@@ -115,8 +114,7 @@ class HourlyScheduler(BaseScheduler):
         config.set_global_force(**self.global_config)
 
         # Enable logging configuration
-        if self.global_config.get('SET_LOGGING', True):
-            set_logger()
+        set_logger()
 
         # Call push_task in every hour
         schedule.every(self.config).hours.at(self.minute).do(self.push_task)
@@ -144,9 +142,8 @@ class CronScheduler(BaseScheduler):
     def run(self):
         config.set_global_force(**self.global_config)
 
-        # Enable logging configuration
-        if self.global_config.get('SET_LOGGING', True):
-            set_logger()
+        # Enable logging configuration\
+        set_logger()
 
         if self.config is False:
             # May be error format

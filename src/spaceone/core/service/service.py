@@ -60,7 +60,7 @@ def transaction(func=None, verb=None, append_meta=None):
                                                context=_get_span_context(self._metadata)) as span:
                 self.current_span_context = span.get_span_context()
                 trace_id = format_trace_id(self.current_span_context.trace_id)
-                create_transaction(_resource, _verb, trace_id, self._metadata)
+                transaction = create_transaction(_resource, _verb, trace_id, self._metadata)
                 return _pipeline(func, self, params, append_meta)
 
         return wrapped_func

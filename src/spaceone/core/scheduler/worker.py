@@ -94,8 +94,7 @@ class BaseWorker(Process):
         config.set_global_force(**self.global_config)
 
         # Enable logging configuration
-        if self.global_config.get('SET_LOGGING', True):
-            set_logger()
+        set_logger()
 
         while True:
             # Read from Queue
