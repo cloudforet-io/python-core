@@ -64,7 +64,7 @@ ENABLE_STACK_INFO = False
 LOG = {}
 
 # OpenTelemetry Configuration
-SET_OTEL = True
+SET_OTEL = False
 OTEL = {
     'endpoint': ''
 }
