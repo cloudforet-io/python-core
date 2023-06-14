@@ -23,7 +23,7 @@ def _group_count_resolver(condition, key, operator, name, data_type, sub_conditi
         }
 
 
-def _group_push_resolver(condition, key, operator, name, data_type, sub_conditions, sub_fields, *args):
+def _group_push_resolver(condition, key, operator, name, data_type, sub_conditions, sub_fields, datetime_fields, *args):
     if not key and len(sub_fields) == 0:
         raise ERROR_DB_QUERY(reason=f"'aggregate.group.fields' condition requires fields: {condition}")
 
@@ -43,7 +43,16 @@ def _group_push_resolver(condition, key, operator, name, data_type, sub_conditio
             f_key = sub_field.get('key', sub_field.get('k'))
             f_name = sub_field.get('name', sub_field.get('n'))
 
-            push_query[f_name] = f'${f_key}'
+            if f_key in datetime_fields:
+                push_query[f_name] = {
+                    '$dateToString': {
+                        'format': '%Y-%m-%dT%H:%M:%SZ',
+                        'date': f'${f_key}'
+                    }
+                }
+            else:
+                push_query[f_name] = f'${f_key}'
+
 
         return {
             name: {
@@ -193,7 +202,7 @@ def _project_object_to_array_resolver(condition, key, operator, name, fields, gr
     }
 
 
-def _project_calculate_sub_query(condition, operator, fields, group_keys):
+def _project_calculate_sub_query(condition, operator, fields, group_keys, *args):
     supported_operator = ['add', 'subtract', 'multiply', 'divide']
 
     if operator is None:
@@ -232,20 +241,6 @@ def _project_calculate_sub_query(condition, operator, fields, group_keys):
     }
 
 
-def _project_date_to_string_resolver(condition, key, operator, name, fields, group_keys, *args):
-    if key in group_keys:
-        key = f'_id.{key}'
-
-    return {
-        name: {
-            '$dateToString': {
-                'format':  '%Y-%m-%dT%H:%M:%SZ',
-                'date': f'${key}'
-            }
-        }
-    }
-
-
 def _project_calculate_resolver(condition, key, operator, name, fields, group_keys, *args):
     return {
         name: _project_calculate_sub_query(condition, operator, fields, group_keys)
@@ -270,7 +265,6 @@ STAT_PROJECT_OPERATORS = {
     'sum': _project_sum_resolver,
     'array_to_object': _project_array_to_object_resolver,
     'object_to_array': _project_object_to_array_resolver,
-    'date_to_string': _project_date_to_string_resolver,
     'add': _project_calculate_resolver,
     'subtract': _project_calculate_resolver,
     'multiply': _project_calculate_resolver,

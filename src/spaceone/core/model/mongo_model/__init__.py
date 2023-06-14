@@ -5,6 +5,7 @@ import certifi
 from datetime import datetime
 from functools import reduce
 from mongoengine import EmbeddedDocumentField, EmbeddedDocument, Document, QuerySet, register_connection
+from mongoengine.fields import DateField, DateTimeField, ComplexDateTimeField
 from pymongo import ReadPreference
 from mongoengine.errors import *
 from spaceone.core import config
@@ -106,6 +107,19 @@ class MongoModel(Document, BaseModel):
                 cls._create_index()
 
                 _MONGO_INIT_MODELS.append(cls)
+
+        cls.load_default_meta()
+
+    @classmethod
+    def load_default_meta(cls):
+        cls._meta['datetime_fields'] = []
+        for name, field in cls._fields.items():
+            if isinstance(field, DateField):
+                cls._meta['datetime_fields'].append(name)
+            elif isinstance(field, DateTimeField):
+                cls._meta['datetime_fields'].append(name)
+            elif isinstance(field, ComplexDateTimeField):
+                cls._meta['datetime_fields'].append(name)
 
     @classmethod
     def connect(cls):
@@ -752,7 +766,8 @@ class MongoModel(Document, BaseModel):
             key, name, operator, sub_fields, sub_conditions, data_type = \
                 cls._get_group_fields(condition, _before_group_keys)
 
-            rule = STAT_GROUP_OPERATORS[operator](condition, key, operator, name, data_type, sub_conditions, sub_fields)
+            rule = STAT_GROUP_OPERATORS[operator](condition, key, operator, name, data_type, sub_conditions, sub_fields,
+                                                  cls._meta['datetime_fields'])
             _group_rule['$group'].update(rule)
 
         return _group_rule, _group_keys
@@ -1149,7 +1164,7 @@ class MongoModel(Document, BaseModel):
             }
         }
 
-        supported_operator = ['add', 'subtract', 'multiply', 'divide', 'size', 'sum', 'date_to_string']
+        supported_operator = ['add', 'subtract', 'multiply', 'divide', 'size', 'sum']
 
         for name, condition in select.items():
             if isinstance(condition, str):
