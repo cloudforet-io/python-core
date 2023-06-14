@@ -120,15 +120,16 @@ def _pipeline(func, self, params, append_meta):
         with _TRACER.start_as_current_span(f'ServiceBody',
                                            links=[trace.Link(self.current_span_context)]) as span:
             response_or_iterator = func(self, params)
+            return response_or_iterator
 
-        # 7. Response Handlers
-        with _TRACER.start_as_current_span('PostProcessing') as span:
-            if isinstance(response_or_iterator, types.GeneratorType):
-                return _generate_response(self, response_or_iterator)
-            else:
-                response_or_iterator = _response_mutation_handler(self, response_or_iterator)
-                _success_handler(self, response_or_iterator)
-                return response_or_iterator
+        # # 7. Response Handlers
+        # with _TRACER.start_as_current_span('PostProcessing') as span:
+        #     if isinstance(response_or_iterator, types.GeneratorType):
+        #         return _generate_response(self, response_or_iterator)
+        #     else:
+        #         response_or_iterator = _response_mutation_handler(self, response_or_iterator)
+        #         _success_handler(self, response_or_iterator)
+        #         return response_or_iterator
 
     except ERROR_INVALID_ARGUMENT as e:
         _error_handler(self, e)
