@@ -6,12 +6,8 @@ class CoreObject(object):
 
     def __init__(self, *args, **kwargs):
         self.locator = Locator()
-        self.transaction_id = None
+        get_transaction()
 
     @property
     def transaction(self) -> Transaction:
-        transaction = get_transaction()
-        if transaction:
-            self.transaction_id = transaction.id
-
-        return transaction
+        return get_transaction()
