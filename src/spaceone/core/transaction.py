@@ -1,9 +1,9 @@
+import threading
 import traceback
 import logging
 from threading import local
 
 from spaceone.core import utils, config
-from spaceone.core.error import *
 from opentelemetry import trace
 from opentelemetry.trace import format_trace_id
 from opentelemetry.trace.span import TraceFlags
@@ -18,6 +18,8 @@ LOCAL_STORAGE = local()
 class Transaction(object):
 
     def __init__(self, resource: str = None, verb: str = None, trace_id: str = None, meta=None):
+        self._id = None
+        self._thread_id = str(threading.current_thread().ident)
         self._service = config.get_service()
         self._resource = resource
         self._verb = verb
@@ -44,6 +46,10 @@ class Transaction(object):
     @property
     def id(self) -> str:
         return self._id
+
+    @property
+    def thread_id(self) -> str:
+        return self._thread_id
 
     @property
     def service(self) -> str:
@@ -97,24 +103,30 @@ class Transaction(object):
             handler.notify(self, 'IN_PROGRESS', message)
 
 
-def get_transaction(trace_id: str = None, is_create: bool = True) -> [Transaction, None]:
+def get_transaction(is_create: bool = True) -> [Transaction, None]:
     current_span_context = trace.get_current_span().get_span_context()
+    thread_id = str(threading.current_thread().ident)
 
     if current_span_context.trace_flags == TraceFlags.SAMPLED:
         trace_id_from_current_span = format_trace_id(current_span_context.trace_id)
         return getattr(LOCAL_STORAGE, trace_id_from_current_span, None)
-    elif trace_id:
-        return getattr(LOCAL_STORAGE, trace_id, None)
+    elif hasattr(LOCAL_STORAGE, thread_id):
+        return getattr(LOCAL_STORAGE, thread_id, None)
     elif is_create:
-        return create_transaction()
+        return create_transaction(thread_id=thread_id)
     else:
         return None
 
 
 def create_transaction(resource: str = None, verb: str = None, trace_id: str = None,
-                       meta: dict = None) -> Transaction:
+                       meta: dict = None, thread_id: str = None) -> Transaction:
     transaction = Transaction(resource, verb, trace_id, meta)
-    setattr(LOCAL_STORAGE, transaction.id, transaction)
+
+    if thread_id:
+        setattr(LOCAL_STORAGE, thread_id, transaction)
+    else:
+        setattr(LOCAL_STORAGE, transaction.id, transaction)
+
     return transaction
 
 
@@ -122,3 +134,5 @@ def delete_transaction() -> None:
     if transaction := get_transaction(is_create=False):
         if hasattr(LOCAL_STORAGE, transaction.id):
             delattr(LOCAL_STORAGE, transaction.id)
+        elif hasattr(LOCAL_STORAGE, transaction.thread_id):
+            delattr(LOCAL_STORAGE, transaction.thread_id)
