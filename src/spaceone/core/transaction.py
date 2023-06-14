@@ -134,5 +134,7 @@ def delete_transaction() -> None:
     if transaction := get_transaction(is_create=False):
         if hasattr(LOCAL_STORAGE, transaction.id):
             delattr(LOCAL_STORAGE, transaction.id)
-        elif hasattr(LOCAL_STORAGE, transaction.thread_id):
-            delattr(LOCAL_STORAGE, transaction.thread_id)
+
+    thread_id = str(threading.current_thread().ident)
+    if hasattr(LOCAL_STORAGE, thread_id):
+        delattr(LOCAL_STORAGE, thread_id)
