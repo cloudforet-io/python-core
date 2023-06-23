@@ -15,8 +15,7 @@ from spaceone.core import config, utils
 from spaceone.core.base import CoreObject
 from spaceone.core.error import *
 from spaceone.core.locator import Locator
-from spaceone.core.transaction import Transaction, get_transaction, create_transaction, delete_transaction, \
-    LOCAL_STORAGE
+from spaceone.core.transaction import Transaction, get_transaction, create_transaction, delete_transaction
 
 from opentelemetry import trace
 
@@ -123,9 +122,9 @@ def _pipeline(func, self, params, append_meta):
             response_or_iterator = func(self, params)
 
             # debug code for memory leak
-            local_storage = LOCAL_STORAGE.__dict__
-            _LOGGER.info(
-                f'[BaseService] {get_transaction()} / number of items in local storage: {len(local_storage)} / items => {local_storage}')
+            # local_storage = LOCAL_STORAGE.__dict__
+            # _LOGGER.info(
+            #     f'[BaseService] {get_transaction()} / number of items in local storage: {len(local_storage)} / items => {local_storage}')
 
             return response_or_iterator
 
