@@ -158,6 +158,8 @@ def _error_handler(self, error):
     if not isinstance(error, ERROR_BASE):
         error = ERROR_UNKNOWN(message=error)
 
+    error.meta['skip_error_log'] = True
+
     # Failure Event
     if _check_handler_method(self, 'event'):
         for handler in self.handler['event']['handlers']:

@@ -45,10 +45,8 @@ def exception_handler(func):
 
 
 def _print_error_log(error):
-    _LOGGER.error(f'(Error) => {error.message} {error}',
-                  extra={'error_code': error.error_code,
-                         'error_message': error.message,
-                         'traceback': traceback.format_exc()})
+    if not error.meta.get('skip_error_log'):
+        _LOGGER.error(f'(Error) => {error.message} {error}', exc_info=True)
 
 
 def _raise_exception(error):
@@ -61,7 +59,6 @@ def _check_http_status_code(grpc_status_code: str) -> int:
 
 
 class BaseAPI(object):
-
     locator = Locator()
     service = None
 
