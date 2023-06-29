@@ -64,10 +64,9 @@ class BaseAPI(object):
     def _error_method(error, context):
         if not isinstance(error, ERROR_BASE):
             error = ERROR_UNKNOWN(message=error)
-            _LOGGER.error(f'(Error) => {error.message} {error}',
-                          extra={'error_code': error.error_code,
-                                 'error_message': error.message,
-                                 'traceback': traceback.format_exc()})
+
+        if not error.meta.get('skip_error_log'):
+            _LOGGER.error(f'(Error) => {error.message} {error}', exc_info=True)
 
         details = f'{error.error_code}: {error.message}'
         context.abort(grpc.StatusCode[error.status_code], details)
