@@ -66,3 +66,20 @@ LOG = {}
 OTEL = {
     'endpoint': None
 }
+
+# Database Configuration
+DATABASE_AUTO_CREATE_INDEX = True
+DATABASE_NAME_PREFIX = ''
+DATABASES = {
+    'default': {}
+}
+
+# Cache Configuration
+CACHES = {
+    'default': {},
+    'local': {
+        'backend': 'spaceone.core.cache.local_cache.LocalCache',
+        'max_size': 128,
+        'ttl': 300
+    }
+}

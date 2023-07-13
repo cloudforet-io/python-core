@@ -140,6 +140,10 @@ class MongoModel(Document, BaseModel):
                 else:
                     del db_conf['read_preference']
 
+            db_name: str = db_conf.get('db', '')
+            db_name_prefix = global_conf.get('DATABASE_NAME_PREFIX', '')
+            db_conf['db'] = f'{db_name_prefix}{db_name}'
+
             host: str = str(db_conf.get('host', '')).strip()
             if host.startswith('mongodb+srv://'):
                 db_conf['tlsCAFile'] = certifi.where()
