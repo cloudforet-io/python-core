@@ -1,6 +1,6 @@
 import logging
 from opentelemetry import trace
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -24,7 +24,7 @@ def set_tracer():
     if endpoint:
         processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint))
     else:
-        processor = BatchSpanProcessor(ConsoleSpanExporter(out=None))
+        processor = BatchSpanProcessor(SpanExporter())
 
     provider.add_span_processor(processor)
     trace.set_tracer_provider(provider)
