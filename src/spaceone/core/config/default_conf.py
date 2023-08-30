@@ -36,10 +36,6 @@ REST_EXTENSION_ROUTERS = [
     {
         'router_path': 'spaceone.core.fastapi.extension.health:router',
         'router_options': {}
-    },
-    {
-        'router_path': 'spaceone.core.fastapi.extension.reflection:router',
-        'router_options': {}
     }
 ]
 
