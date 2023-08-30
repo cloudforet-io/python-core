@@ -1,8 +1,12 @@
 import logging
 import uvicorn
+import json
+import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse
 
 from spaceone.core import config
 from spaceone.core.logger import set_logger
@@ -130,10 +134,107 @@ def _init_fast_api():
     )
 
 
+def _get_all_services_from_openapi_json_files(openapi_json_path):
+    services = []
+    openapi_json_files = os.listdir(openapi_json_path)
+    for openapi_json_file in openapi_json_files:
+        services.append('_'.join(openapi_json_file.split('_')[:-1]).lower())
+    return services
+
+
+def _sort_services(services):
+    return sorted(services, key=lambda x: ('identity' not in x, 'inventory' not in x, 'cost-analysis' not in x,
+                                           'monitoring' not in x, 'notification' not in x, 'repository' not in x, x))
+
+
+def _create_openapi_json(app, service_name):
+    swagger_path = config.get_global('EXTENSION_SWAGGER_PATH')
+    swagger_path = os.path.join(swagger_path, f"{service_name.replace('-', '_')}_openapi.json")
+    try:
+        with open(swagger_path, 'r') as f:
+            custom_openapi_schema = json.loads(f.read())
+            custom_openapi_schema['openapi'] = app.openapi().get('openapi')
+            description = custom_openapi_schema['info']['summary']
+            app.openapi()['info']['description'] += f"| **{service_name.replace('-', ' ').title()}** | {description} | [/{service_name}/docs](/{service_name}/docs) |\n"
+
+        with open(swagger_path, 'w') as f:
+            json.dump(custom_openapi_schema, f, indent=2)
+    except Exception as e:
+        _LOGGER.error(f'[_create_openapi_json] {swagger_path} : {e}', exc_info=True)
+
+
+def _override_openapi(app):
+    extension_swagger_path = config.get_global('EXTENSION_SWAGGER_PATH')
+    if not os.path.exists(extension_swagger_path):
+        _LOGGER.info(f'[_override_openapi] Extension Swagger Path is not exists. (path = {extension_swagger_path})')
+        return app
+
+    services = _get_all_services_from_openapi_json_files(extension_swagger_path)
+    services = _sort_services(services)
+    _openapi_info = app.openapi().get('info')
+    _openapi_version = app.openapi().get('openapi')
+
+    app.openapi()['info']['description'] += "\n<br><br>\n"
+    app.openapi()['info']['description'] += "\n## List of Services\n"
+    app.openapi()['info']['description'] += "\n[Home](/docs)\n"
+    app.openapi()['info']['description'] += "| **Service** | **Description** | **URL** |\n"
+    app.openapi()['info']['description'] += "|:---|:--- |:---|\n"
+
+    for service in services:
+        service = service.replace('_', '-')
+        _create_openapi_json(app, service_name=service)
+        build_docs(app, prefix=f"/{service}", service_name=service)
+
+    app.openapi()['info'][
+        'description'] += "| **Console API** | Service that offers features exclusive to the Console API. | [/docs](/docs#console-api%20%3E%20api) |\n"
+
+    return app
+
+
+def build_docs(
+    app: FastAPI,
+    prefix: str,
+    service_name: str
+) -> None:
+    async def get_openapi():
+        swagger_path = config.get_global('EXTENSION_SWAGGER_PATH')
+        swagger_path = os.path.join(swagger_path, f"{service_name.replace('-','_')}_openapi.json")
+        with open(swagger_path, 'r') as f:
+            custom_openapi_schema = json.loads(f.read())
+        return custom_openapi_schema
+
+    get_openapi.__name__ = get_openapi.__name__ + prefix
+    app.add_api_route(prefix + "/openapi.json", get_openapi, include_in_schema=False)
+
+    async def swagger_ui_html() -> HTMLResponse:
+        return get_swagger_ui_html(
+            openapi_url=prefix + "/openapi.json",
+            title=f'{service_name.title().replace("-"," ")} API' + ' - Swagger UI',
+            oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+            init_oauth=app.swagger_ui_init_oauth,
+        )
+
+    swagger_ui_html.__name__ = swagger_ui_html.__name__ + prefix
+    app.add_api_route(prefix + "/docs", swagger_ui_html, include_in_schema=False)
+
+
+def _get_all_services_list(app):
+    services = []
+    for route in app.routes:
+        path = route.path.split('/')
+        if len(path) == 4:
+            services.append(path[1].replace('-', '_'))
+
+    services = list(set(services))
+    sorted_services = sorted(services, key=lambda x: ('identity' not in x, 'inventory' not in x, 'cost_analysis' not in x, x))
+    return sorted_services
+
+
 def fast_api_app():
     app = _init_fast_api()
     app = _add_middlewares(app)
     app = _include_routers(app)
+    app = _override_openapi(app)
     return app
 
 
