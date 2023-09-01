@@ -8,7 +8,6 @@ from spaceone.core import config
 from spaceone.core.logger import set_logger
 from spaceone.core.opentelemetry import set_tracer, set_metric
 from spaceone.core.extension.server_info import ServerInfoManager
-from spaceone.core.fastapi.openapi import add_external_swagger
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -124,10 +123,10 @@ def _init_fast_api():
     server_info = ServerInfoManager()
 
     return FastAPI(
-        title=global_conf.get('TITLE', 'Document'),
+        title=global_conf.get('REST_TITLE', 'Document'),
         version=server_info.get_version(),
-        contact=global_conf.get('CONTACT', {}),
-        description=global_conf.get('DESCRIPTION', ''),
+        contact=global_conf.get('REST_CONTACT', {}),
+        description=global_conf.get('REST_DESCRIPTION', ''),
     )
 
 
@@ -135,7 +134,6 @@ def fast_api_app():
     app = _init_fast_api()
     app = _add_middlewares(app)
     app = _include_routers(app)
-    app = add_external_swagger(app)
     return app
 
 

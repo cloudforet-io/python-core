@@ -51,7 +51,7 @@ def _init_services(server):
     server, service_names = _add_services(server, service_names, proto_conf)
 
     # Set Extension Services
-    proto_conf = config.get_extension_apis()
+    proto_conf = config.get_global('GRPC_EXTENSION_APIS', {})
     server, service_names = _add_services(server, service_names, proto_conf)
 
     return server, service_names

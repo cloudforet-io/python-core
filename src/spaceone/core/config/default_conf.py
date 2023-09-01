@@ -1,9 +1,3 @@
-# Service Description
-TITLE = ''
-DESCRIPTION = ''
-CONTACT = {
-}
-
 # Service Configuration
 PACKAGE = None
 SERVICE = None
@@ -18,26 +12,39 @@ MAX_MESSAGE_LENGTH = 1024 * 1024 * 1024
 # Unit Test Configuration
 MOCK_MODE = False
 
+# gRPC Configuration
 # gRPC Extension APIs
-EXTENSION_APIS = {
+GRPC_EXTENSION_APIS = {
     'spaceone.core.extension.grpc_health': ['GRPCHealth'],
     'spaceone.core.extension.server_info': ['ServerInfo']
 }
 
-# Uvicorn Options for Rest Server
-UVICORN_OPTIONS = {
-    'factory': True
+# REST Configuration
+# REST Application Options
+REST_TITLE = ''
+REST_DESCRIPTION = ''
+REST_CONTACT = {
 }
 
-# Rest Middlewares
+# REST Middlewares
 REST_MIDDLEWARES = []
 
+# REST Extension Routers
 REST_EXTENSION_ROUTERS = [
     {
         'router_path': 'spaceone.core.fastapi.extension.health:router',
         'router_options': {}
     }
 ]
+
+# REST Uvicorn Options
+UVICORN_OPTIONS = {
+    'factory': True
+}
+
+# # REST External Swagger
+# EXTERNAL_SWAGGER = False
+# EXTERNAL_SWAGGER_PATH = []
 
 # Handler Configuration
 HANDLERS = {
