@@ -1032,7 +1032,7 @@ class MongoModel(Document, BaseModel):
                 'name': name
             })
 
-        if granularity and granularity in ['DAILY', 'MONTHLY']:
+        if granularity and granularity in ['DAILY', 'MONTHLY', 'YEARLY']:
             group_keys.append({
                 'key': date_field,
                 'name': 'date'
