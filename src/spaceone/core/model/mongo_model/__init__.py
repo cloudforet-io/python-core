@@ -1258,8 +1258,8 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def analyze(cls, *args, granularity=None, fields=None, select=None, group_by=None, field_group=None, filter=None,
-                filter_or=None, page=None, sort=None, start=None, end=None, date_field='date',
-                target='SECONDARY_PREFERRED', **kwargs):
+                filter_or=None, page=None, sort=None, start=None, end=None, date_field='date', start_field=None,
+                end_field=None, target='SECONDARY_PREFERRED', **kwargs):
 
         if fields is None:
             raise ERROR_REQUIRED_PARAMETER(key='fields')
@@ -1275,10 +1275,12 @@ class MongoModel(Document, BaseModel):
         page_limit = page.get('limit')
 
         if start:
-            filter += cls._make_date_filter(date_field, start, 'gte')
+            start_field = start_field or date_field
+            filter += cls._make_date_filter(start_field, start, 'gte')
 
         if end:
-            filter += cls._make_date_filter(date_field, end, 'lte')
+            end_field = end_field or date_field
+            filter += cls._make_date_filter(end_field, end, 'lte')
 
         group_keys = cls._make_group_keys(group_by, date_field, granularity)
         group_fields = cls._make_group_fields(fields)
