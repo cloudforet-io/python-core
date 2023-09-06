@@ -42,9 +42,6 @@ UVICORN_OPTIONS = {
     'factory': True
 }
 
-# # REST External Swagger
-# EXTERNAL_SWAGGER = False
-# EXTERNAL_SWAGGER_PATH = []
 
 # Handler Configuration
 HANDLERS = {
