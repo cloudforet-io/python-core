@@ -2,7 +2,8 @@ import bson
 import re
 import logging
 import certifi
-from datetime import datetime
+from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
 from functools import reduce
 from mongoengine import EmbeddedDocumentField, EmbeddedDocument, Document, QuerySet, register_connection
 from mongoengine.fields import DateField, DateTimeField, ComplexDateTimeField
@@ -1257,9 +1258,58 @@ class MongoModel(Document, BaseModel):
         }]
 
     @classmethod
-    def analyze(cls, *args, granularity=None, fields=None, select=None, group_by=None, field_group=None, filter=None,
-                filter_or=None, page=None, sort=None, start=None, end=None, date_field='date', start_field=None,
-                end_field=None, target='SECONDARY_PREFERRED', **kwargs):
+    def _parse_start_and_end_time(cls, key, value) -> date:
+        if isinstance(value, date):
+            return value
+        elif isinstance(value, datetime):
+            return value.date()
+        elif isinstance(value, str):
+
+            if len(value) == 4:
+                date_format = '%Y'
+                date_type = 'YYYY'
+            elif len(value) == 7:
+                date_format = '%Y-%m'
+                date_type = 'YYYY-MM'
+            else:
+                date_format = '%Y-%m-%d'
+                date_type = 'YYYY-MM-DD'
+
+            try:
+                dt = datetime.strptime(value, date_format).date()
+
+                if date_type == 'YYYY':
+                    if key == 'start':
+                        return datetime(dt.year, 1, 1)
+                    else:
+                        return datetime(dt.year, 1, 1) + relativedelta(years=1)
+                elif date_type == 'YYYY-MM':
+                    if key == 'start':
+                        return datetime(dt.year, dt.month, 1)
+                    else:
+                        return datetime(dt.year, dt.month, 1) + relativedelta(months=1)
+                else:
+                    if key == 'start':
+                        return datetime(dt.year, dt.month, dt.day)
+                    else:
+                        return datetime(dt.year, dt.month, dt.day) + relativedelta(days=1)
+
+            except Exception as e:
+                raise ERROR_INVALID_PARAMETER_TYPE(key=key, type=date_type)
+        else:
+            raise ERROR_INVALID_PARAMETER(key=key, reason=f'{key} option should be datetime or str')
+
+    @classmethod
+    def _convert_date_value(cls, date_value, date_field_format):
+        if isinstance(date_field_format, str):
+            return date_value.strftime(date_field_format)
+        else:
+            return date_value
+
+    @classmethod
+    def analyze(cls, *args, granularity=None, fields=None, select=None, group_by=None, field_group=None,
+                filter=None, filter_or=None, page=None, sort=None, start=None, end=None,
+                date_field='date', date_field_format='%Y-%m-%d', target='SECONDARY_PREFERRED', **kwargs):
 
         if fields is None:
             raise ERROR_REQUIRED_PARAMETER(key='fields')
@@ -1275,12 +1325,14 @@ class MongoModel(Document, BaseModel):
         page_limit = page.get('limit')
 
         if start:
-            start_field = start_field or date_field
-            filter += cls._make_date_filter(start_field, start, 'gte')
+            start_time: date = cls._parse_start_and_end_time('start', start)
+            start_value = cls._convert_date_value(start_time, date_field_format)
+            filter += cls._make_date_filter(date_field, start_value, 'gte')
 
         if end:
-            end_field = end_field or date_field
-            filter += cls._make_date_filter(end_field, end, 'lte')
+            end_time: date = cls._parse_start_and_end_time('end', end)
+            end_value = cls._convert_date_value(end_time, date_field_format)
+            filter += cls._make_date_filter(date_field, end_value, 'lt')
 
         group_keys = cls._make_group_keys(group_by, date_field, granularity)
         group_fields = cls._make_group_fields(fields)
