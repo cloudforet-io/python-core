@@ -1,14 +1,18 @@
+import os
 import re
 import time
 import random
 import string
 import secrets
+import sys
 import datetime
-from urllib.parse import urlparse
 import yaml
 import json
 import hashlib
 import urllib
+import pkg_resources
+
+from urllib.parse import urlparse
 from dateutil.parser import isoparse
 from typing import Tuple
 from pathlib import Path
@@ -492,6 +496,27 @@ def change_dict_with_dot_notation(dict_value: dict, key='', dots=None) -> dict:
     else:
         dots[key] = dict_value
     return dots
+
+
+def set_python_path(package, module_path):
+    current_path = os.getcwd()
+
+    if current_path not in sys.path:
+        sys.path.insert(0, current_path)
+
+    if isinstance(module_path, tuple):
+        for path in module_path:
+            if path not in sys.path:
+                sys.path.insert(0, path)
+
+    if '.' in package:
+        pkg_resources.declare_namespace(package)
+
+    try:
+        __import__(package)
+    except Exception:
+        raise Exception(f'The package({package}) can not imported. '
+                        'Please check the module path.')
 
 
 if __name__ == '__main__':
