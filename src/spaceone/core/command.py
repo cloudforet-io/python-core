@@ -1,11 +1,9 @@
 import os
 import shutil
-import sys
 import unittest
 from typing import List
 
 import click
-import pkg_resources
 
 from spaceone.core import config, pygrpc, fastapi, utils
 from spaceone.core import scheduler as scheduler_v1
@@ -48,6 +46,7 @@ def grpc(package, port=None, config_file=None, module_path=None):
 @click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
 def rest(package, host=None, port=None, config_file=None, module_path=None):
     """Run a FastAPI REST server"""
+    _set_environment(package, host, port, config_file, module_path)
     _set_server_config(package, module_path, port, config_file=config_file)
     fastapi.serve()
 
@@ -107,35 +106,9 @@ def test(config_file=None, dir=None, failfast=False, scenario: str = None, param
     RichTestRunner(verbosity=verbose, failfast=failfast).run(full_suite)
 
 
-def _set_file_config(conf_file):
-    if conf_file:
-        config.set_file_conf(conf_file)
-
-
-def _set_python_path(package, module_path):
-    current_path = os.getcwd()
-
-    if current_path not in sys.path:
-        sys.path.insert(0, current_path)
-
-    if isinstance(module_path, tuple):
-        for path in module_path:
-            if path not in sys.path:
-                sys.path.insert(0, path)
-
-    if '.' in package:
-        pkg_resources.declare_namespace(package)
-
-    try:
-        __import__(package)
-    except Exception:
-        raise Exception(f'The package({package}) can not imported. '
-                        'Please check the module path.')
-
-
 def _set_server_config(package, module_path=None, port=None, config_file=None):
     # 1. Set a python path
-    _set_python_path(package, module_path)
+    utils.set_python_path(package, module_path)
 
     # 2. Initialize config from command argument
     config.init_conf(
@@ -147,7 +120,8 @@ def _set_server_config(package, module_path=None, port=None, config_file=None):
     config.set_service_config()
 
     # 4. Merge file conf
-    _set_file_config(config_file)
+    if config_file:
+        config.set_file_conf(config_file)
 
 
 def init_project_file(path, text):
@@ -189,6 +163,14 @@ def _print_config(output):
         print(utils.dump_json(data, indent=4))
     else:
         print(utils.dump_yaml(data))
+
+
+def _set_environment(package, host, port, config_file, module_path):
+    os.environ['SPACEONE_PACKAGE'] = package
+    os.environ['SPACEONE_HOST'] = host
+    os.environ['SPACEONE_MODULE_PATH'] = ', '.join(module_path)
+    os.environ['SPACEONE_PORT'] = str(port)
+    os.environ['SPACEONE_CONFIG_FILE'] = config_file
 
 
 if __name__ == '__main__':
