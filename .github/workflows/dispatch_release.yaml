@@ -22,6 +22,7 @@ on:
         default: true
 
 env:
+  ARCH: ${{ github.event.inputs.container_arch }}
   VERSION: ${{ github.event.inputs.version }}
   PACKAGE_VERSION: ${{ github.event.inputs.version }}
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
