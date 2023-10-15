@@ -1309,7 +1309,8 @@ class MongoModel(Document, BaseModel):
     @classmethod
     def analyze(cls, *args, granularity=None, fields=None, select=None, group_by=None, field_group=None,
                 filter=None, filter_or=None, page=None, sort=None, start=None, end=None,
-                date_field='date', date_field_format='%Y-%m-%d', target='SECONDARY_PREFERRED', **kwargs):
+                date_field='date', date_field_format='%Y-%m-%d', target='SECONDARY_PREFERRED',
+                allow_disk_use=False, **kwargs):
 
         if fields is None:
             raise ERROR_REQUIRED_PARAMETER(key='fields')
@@ -1348,7 +1349,8 @@ class MongoModel(Document, BaseModel):
                     }
                 }
             ],
-            'target': target
+            'target': target,
+            'allow_disk_use': allow_disk_use
         }
 
         if select:
