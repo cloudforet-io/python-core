@@ -1,7 +1,7 @@
 import logging
-import os
 
 import uvicorn
+from anyio import to_thread
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -122,6 +122,8 @@ def _add_middlewares(app):
 def _init_fast_api():
     global_conf = config.get_global()
     server_info = ServerInfoManager()
+    # set thread pool size
+    to_thread.current_default_thread_limiter().total_tokens = global_conf.get('REST_MAX_THREAD_POOL', 40)
 
     return FastAPI(
         title=global_conf.get('REST_TITLE', 'Document'),
@@ -131,39 +133,7 @@ def _init_fast_api():
     )
 
 
-def set_server_config_from_env():
-    package = os.environ.get('SPACEONE_PACKAGE')
-    host = os.environ['SPACEONE_HOST']
-    module_path = tuple(os.environ.get('SPACEONE_MODULE_PATH').split(', '))
-    port = os.environ.get('SPACEON_PORT')
-    config_file = os.environ.get('SPACEONE_CONFIG_FILE')
-
-    # 1. Set a python path
-    utils.set_python_path(package, module_path)
-
-    # 2. Initialize config from command argument
-    config.init_conf(
-        package=package,
-        port=port
-    )
-
-    # 3. Get service config from global_conf.py
-    config.set_service_config()
-
-    # 4. Merge file conf
-    if config_file:
-        config.set_file_conf(config_file)
-
-
 def fast_api_app():
-    set_server_config_from_env()
-
-    # Enable logging configuration\
-    set_logger()
-
-    # Set OTel Tracer and Metric|
-    set_tracer()
-
     app = _init_fast_api()
     app = _add_middlewares(app)
     app = _include_routers(app)
@@ -172,6 +142,12 @@ def fast_api_app():
 
 def serve():
     conf = config.get_global()
+
+    # Enable logging configuration\
+    set_logger()
+
+    # Set OTel Tracer and Metric|
+    set_tracer()
 
     uvicorn_options = conf.get('UVICORN_OPTIONS', {})
 
