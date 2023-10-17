@@ -46,7 +46,6 @@ def grpc(package, port=None, config_file=None, module_path=None):
 @click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
 def rest(package, host=None, port=None, config_file=None, module_path=None):
     """Run a FastAPI REST server"""
-    _set_environment(package, host, port, config_file, module_path)
     _set_server_config(package, module_path, port, config_file=config_file)
     fastapi.serve()
 
@@ -163,14 +162,6 @@ def _print_config(output):
         print(utils.dump_json(data, indent=4))
     else:
         print(utils.dump_yaml(data))
-
-
-def _set_environment(package, host, port, config_file, module_path):
-    os.environ['SPACEONE_PACKAGE'] = package
-    os.environ['SPACEONE_HOST'] = host
-    os.environ['SPACEONE_MODULE_PATH'] = ', '.join(module_path)
-    os.environ['SPACEONE_PORT'] = str(port)
-    os.environ['SPACEONE_CONFIG_FILE'] = config_file
 
 
 if __name__ == '__main__':
