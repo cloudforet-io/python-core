@@ -1,9 +1,11 @@
 import os
 import shutil
+import sys
 import unittest
 from typing import List
 
 import click
+import pkg_resources
 
 from spaceone.core import config, pygrpc, fastapi, utils
 from spaceone.core import scheduler as scheduler_v1
@@ -105,9 +107,30 @@ def test(config_file=None, dir=None, failfast=False, scenario: str = None, param
     RichTestRunner(verbosity=verbose, failfast=failfast).run(full_suite)
 
 
+def _set_python_path(package, module_path):
+    current_path = os.getcwd()
+
+    if current_path not in sys.path:
+        sys.path.insert(0, current_path)
+
+    if isinstance(module_path, tuple):
+        for path in module_path:
+            if path not in sys.path:
+                sys.path.insert(0, path)
+
+    if '.' in package:
+        pkg_resources.declare_namespace(package)
+
+    try:
+        __import__(package)
+    except Exception:
+        raise Exception(f'The package({package}) can not imported. '
+                        'Please check the module path.')
+
+
 def _set_server_config(package, module_path=None, port=None, config_file=None):
     # 1. Set a python path
-    utils.set_python_path(package, module_path)
+    _set_python_path(package, module_path)
 
     # 2. Initialize config from command argument
     config.init_conf(
