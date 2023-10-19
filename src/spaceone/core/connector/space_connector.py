@@ -39,13 +39,15 @@ class SpaceConnector(BaseConnector):
         return self._call_api(method, params, **kwargs)
 
     def _call_api(self, method: str, params: dict = None, **kwargs):
+        token = kwargs.get('token')
+
         self._check_mock_mode(method)
 
         resource, verb = self._parse_method(method)
         self._check_method(resource, verb)
 
         params = params or {}
-        kwargs['metadata'] = self._get_connection_metadata()
+        kwargs['metadata'] = self._get_connection_metadata(token)
 
         response_or_iterator = getattr(getattr(self._client, resource), verb)(params, **kwargs)
 
@@ -89,11 +91,13 @@ class SpaceConnector(BaseConnector):
         for response in response_iterator:
             yield self._change_message(response)
 
-    def _get_connection_metadata(self):
+    def _get_connection_metadata(self, token=None):
         metadata = []
-        if self._token:
-            metadata.append(('token', self._token))
 
+        if token:
+            metadata.append(('token', token))
+        elif self._token:
+            metadata.append(('token', self._token))
         elif token := self.transaction.meta.get('token'):
             metadata.append(('token', token))
 
