@@ -107,11 +107,6 @@ def test(config_file=None, dir=None, failfast=False, scenario: str = None, param
     RichTestRunner(verbosity=verbose, failfast=failfast).run(full_suite)
 
 
-def _set_file_config(conf_file):
-    if conf_file:
-        config.set_file_conf(conf_file)
-
-
 def _set_python_path(package, module_path):
     current_path = os.getcwd()
 
@@ -147,7 +142,8 @@ def _set_server_config(package, module_path=None, port=None, config_file=None):
     config.set_service_config()
 
     # 4. Merge file conf
-    _set_file_config(config_file)
+    if config_file:
+        config.set_file_conf(config_file)
 
 
 def init_project_file(path, text):

@@ -37,10 +37,6 @@ def get_service():
     return _GLOBAL['SERVICE']
 
 
-def get_extension_apis():
-    return _GLOBAL.get('EXTENSION_APIS', {})
-
-
 def get_handler(name):
     return _GLOBAL.get('HANDLERS', {}).get(name, {})
 

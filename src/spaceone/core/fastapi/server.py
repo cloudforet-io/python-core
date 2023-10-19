@@ -1,10 +1,10 @@
 import logging
-import uvicorn
 
-from fastapi import FastAPI, Request
+import uvicorn
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from spaceone.core import config
+from spaceone.core import config, utils
 from spaceone.core.logger import set_logger
 from spaceone.core.opentelemetry import set_tracer, set_metric
 from spaceone.core.extension.server_info import ServerInfoManager
@@ -123,10 +123,10 @@ def _init_fast_api():
     server_info = ServerInfoManager()
 
     return FastAPI(
-        title=global_conf.get('TITLE', 'Document'),
+        title=global_conf.get('REST_TITLE', 'Document'),
         version=server_info.get_version(),
-        contact=global_conf.get('CONTACT', {}),
-        description=global_conf.get('DESCRIPTION', ''),
+        contact=global_conf.get('REST_CONTACT', {}),
+        description=global_conf.get('REST_DESCRIPTION', ''),
     )
 
 
