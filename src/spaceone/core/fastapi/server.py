@@ -1,7 +1,6 @@
 import logging
 
 import uvicorn
-from anyio import to_thread
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -122,8 +121,6 @@ def _add_middlewares(app):
 def _init_fast_api():
     global_conf = config.get_global()
     server_info = ServerInfoManager()
-    # set thread pool size
-    to_thread.current_default_thread_limiter().total_tokens = global_conf.get('REST_MAX_THREAD_POOL', 40)
 
     return FastAPI(
         title=global_conf.get('REST_TITLE', 'Document'),

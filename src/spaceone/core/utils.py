@@ -498,26 +498,5 @@ def change_dict_with_dot_notation(dict_value: dict, key='', dots=None) -> dict:
     return dots
 
 
-def set_python_path(package, module_path):
-    current_path = os.getcwd()
-
-    if current_path not in sys.path:
-        sys.path.insert(0, current_path)
-
-    if isinstance(module_path, tuple):
-        for path in module_path:
-            if path not in sys.path:
-                sys.path.insert(0, path)
-
-    if '.' in package:
-        pkg_resources.declare_namespace(package)
-
-    try:
-        __import__(package)
-    except Exception:
-        raise Exception(f'The package({package}) can not imported. '
-                        'Please check the module path.')
-
-
 if __name__ == '__main__':
     pass
