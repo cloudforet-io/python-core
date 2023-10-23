@@ -9,7 +9,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 __all__ = ['change_value_type', 'change_struct_type', 'change_list_value_type', 'change_timestamp_type',
            'change_empty_type', 'change_query', 'change_stat_query', 'change_analyze_query',
-           'change_time_series_analyze_query', 'get_well_known_types']
+           'change_time_series_analyze_query', 'change_export_option', 'get_well_known_types']
 
 _INT_OR_FLOAT = six.integer_types + (float,)
 LOGGER = logging.getLogger(__name__)
