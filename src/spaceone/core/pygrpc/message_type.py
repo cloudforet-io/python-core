@@ -8,7 +8,7 @@ from google.protobuf.empty_pb2 import Empty
 from google.protobuf.timestamp_pb2 import Timestamp
 
 __all__ = ['change_value_type', 'change_struct_type', 'change_list_value_type', 'change_timestamp_type',
-           'change_handler_authorization_response', 'change_query', 'change_stat_query', 'change_analyze_query',
+           'change_empty_type', 'change_query', 'change_stat_query', 'change_analyze_query',
            'change_time_series_analyze_query', 'get_well_known_types']
 
 _INT_OR_FLOAT = six.integer_types + (float,)
@@ -130,16 +130,47 @@ def change_time_series_analyze_query(value):
     return query_pb2.TimeSeriesAnalyzeQuery(**change_value)
 
 
+def change_export_search_query(value):
+    change_value = value.copy()
+    change_value['filter'] = map(_change_condition_type, value.get('filter', []))
+    change_value['filter_or'] = map(_change_condition_type, value.get('filter_or', []))
+    change_value['fields'] = change_list_value_type(value.get('fields', []))
+
+    return query_pb2.ExportSearchQuery(**change_value)
+
+
+def change_export_analyze_query(value):
+    change_value = value.copy()
+    change_value['filter'] = map(_change_condition_type, value.get('filter', []))
+    change_value['filter_or'] = map(_change_condition_type, value.get('filter_or', []))
+
+    if 'fields' in value:
+        change_value['fields'] = change_struct_type(value['fields'])
+
+    if 'select' in value:
+        change_value['select'] = change_struct_type(value['select'])
+
+    return query_pb2.ExportAnalyzeQuery(**change_value)
+
+
+def change_export_option(value):
+    change_value = value.copy()
+
+    if 'search_query' in value:
+        change_value['search_query'] = change_export_search_query(value['search_query'])
+
+    if 'analyze_query' in value:
+        change_value['analyze_query'] = change_export_analyze_query(value['analyze_query'])
+
+    return query_pb2.ExportOption(**change_value)
+
+
 def change_handler_authentication_request(value):
     return handler_pb2.AuthenticationRequest(**value)
 
 
 def change_handler_authorization_request(value):
     return handler_pb2.AuthorizationRequest(**value)
-
-
-def change_handler_authorization_response(value):
-    return handler_pb2.AuthorizationResponse(**value)
 
 
 def get_well_known_types():
@@ -153,6 +184,7 @@ def get_well_known_types():
         '.spaceone.api.core.v1.StatisticsQuery': change_stat_query,
         '.spaceone.api.core.v1.AnalyzeQuery': change_analyze_query,
         '.spaceone.api.core.v1.TimeSeriesAnalyzeQuery': change_time_series_analyze_query,
+        '.spaceone.api.core.v1.ExportOption': change_export_option,
         '.spaceone.api.core.v1.AuthorizationRequest': change_handler_authorization_request,
         '.spaceone.api.core.v1.AuthenticationRequest': change_handler_authentication_request,
     }
