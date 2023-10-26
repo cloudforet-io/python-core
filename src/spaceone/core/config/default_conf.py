@@ -14,9 +14,9 @@ MOCK_MODE = False
 
 # gRPC Configuration
 # gRPC Extension APIs
-GRPC_EXTENSION_APIS = {
-    'spaceone.core.extension.grpc_health': ['GRPCHealth'],
-    'spaceone.core.extension.server_info': ['ServerInfo']
+GRPC_EXTENSION_SERVICERS = {
+    'spaceone.core.pygrpc.extension.grpc_health': ['GRPCHealth'],
+    'spaceone.core.pygrpc.extension.server_info': ['ServerInfo']
 }
 
 # REST Configuration
@@ -67,17 +67,33 @@ OTEL = {
 }
 
 # Database Configuration
+DATABASE_MODEL_PATH = 'model'
 DATABASE_AUTO_CREATE_INDEX = True
 DATABASE_NAME_PREFIX = ''
 DATABASES = {
-    'default': {}
+    'default': {
+        'engine': 'MongoModel',
+        # MongoDB Example
+        # 'host': '<host>',
+        # 'port': 27017,
+        # 'db': '<db>',
+        # 'username': '<user>',
+        # 'password': '<password>'
+    }
 }
 
 # Cache Configuration
 CACHES = {
-    'default': {},
+    'default': {
+        'engine': 'RedisCache',
+        # Redis Example
+        # 'engine': 'RedisCache',
+        # 'host': '<host>',
+        # 'port': 6379,
+        # 'db': 0
+    },
     'local': {
-        'backend': 'spaceone.core.cache.local_cache.LocalCache',
+        'engine': 'LocalCache',
         'max_size': 128,
         'ttl': 300
     }

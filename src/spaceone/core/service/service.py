@@ -239,7 +239,13 @@ def _load_handler(self, handler_type):
     try:
         handlers = config.get_handler(handler_type)
         for handler in handlers:
-            module_name, class_name = handler['backend'].rsplit('.', 1)
+            backend = handler['backend']
+
+            if len(backend.split(':')) == 2:
+                module_name, class_name = handler['backend'].rsplit(':', 1)
+            else:
+                module_name, class_name = handler['backend'].rsplit('.', 1)
+
             handler_module = __import__(module_name, fromlist=[class_name])
             handler_conf = handler.copy()
             del handler_conf['backend']
