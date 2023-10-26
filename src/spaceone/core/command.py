@@ -32,7 +32,9 @@ def cli():
 @cli.command()
 @click.argument('project_name')
 @click.option('-d', '--directory', type=click.Path(), help='Project directory')
-@click.option('-s', '--source', help='Plugin source template', type=click.Choice(['auth', 'asset', 'metric', 'log', 'webhook', 'cost', 'notification']))
+@click.option('-s', '--source', type=str, help=f'example code of the plugin ['
+                                               f'{"|".join(_SOURCE_ALIAS.keys())}] or '
+                                               f'module path(e.g. spaceone.core.skeleton)]')
 def create_project(project_name, directory=None, source=None):
     """Create a new project"""
 
@@ -43,11 +45,11 @@ def create_project(project_name, directory=None, source=None):
 @click.argument('package')
 @click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 50051),
               help='Port of gRPC server', show_default=True)
-@click.option('-a', '--app-path', default='interface.grpc:app', help='Path of gRPC application',
+@click.option('-a', '--app-path', type=str, default='interface.grpc:app', help='Path of gRPC application',
               show_default=True)
-@click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
-              help='Config file path')
-@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
+@click.option('-c', '--config-file', type=click.Path(exists=True),
+              default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Path of module')
 def grpc(package, port=None, app_path=None, config_file=None, module_path=None):
     """Run a gRPC server"""
 
@@ -73,10 +75,12 @@ def grpc(package, port=None, app_path=None, config_file=None, module_path=None):
               help='Host of REST server', show_default=True)
 @click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 8000),
               help='Port of REST server', show_default=True)
-@click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
-              help='Config file path')
-@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
-def rest(package, host=None, port=None, config_file=None, module_path=None):
+@click.option('-a', '--app-path', type=str, default='interface.rest:app', help='Path of gRPC application',
+              show_default=True)
+@click.option('-c', '--config-file', type=click.Path(exists=True),
+              default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Path of module')
+def rest(package, host=None, port=None, app_path=None, config_file=None, module_path=None):
     """Run a FastAPI REST server"""
     # Initialize config
     _set_server_config(package, module_path, port, config_file=config_file)
@@ -96,9 +100,9 @@ def rest(package, host=None, port=None, config_file=None, module_path=None):
 
 @cli.command()
 @click.argument('package')
-@click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
-              help='config file path')
-@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
+@click.option('-c', '--config-file', type=click.Path(exists=True),
+              default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Path of module')
 def scheduler(package, config_file=None, module_path=None):
     """Run a scheduler server"""
     # Initialize config
@@ -119,9 +123,9 @@ def scheduler(package, config_file=None, module_path=None):
 
 @cli.command()
 @click.argument('package')
-@click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
-              help='Config file path')
-@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
+@click.option('-c', '--config-file', type=click.Path(exists=True),
+              default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Path of module')
 @click.option('-o', '--output', default='yaml', help='Output format',
               type=click.Choice(['json', 'yaml']), show_default=True)
 def show_config(package, config_file=None, module_path=None, output=None):
@@ -134,13 +138,13 @@ def show_config(package, config_file=None, module_path=None, output=None):
 
 
 @cli.command()
-@click.option('-c', '--config-file', type=str, help='Config file path')
-@click.option('-d', '--dir', type=str, help="Directory containing test files",
+@click.option('-c', '--config-file', type=str, help='Path of config file')
+@click.option('-d', '--dir', type=str, help='Directory containing test files',
               default=lambda: os.environ.get('SPACEONE_WORKING_DIR', os.getcwd()))
-@click.option('-f', '--failfast', help="Fast failure flag", is_flag=True)
-@click.option('-s', '--scenario', type=str, help="Scenario file path")
-@click.option('-p', '--parameters', type=str, help="Custom parameters to override a scenario file. "
-                                                   "ex) -p domain.domain.name=new_name -p options.update_mode=false",
+@click.option('-f', '--failfast', help='Fast failure flag', is_flag=True)
+@click.option('-s', '--scenario', type=str, help='Path of scenario file')
+@click.option('-p', '--parameters', type=str, help='Custom parameters to override a scenario file. '
+                                                   '(e.g. -p domain.domain.name=new_name -p options.update_mode=false)',
               multiple=True)
 @click.option('-v', '--verbose', count=True, help='Verbosity level', default=1)
 def test(config_file=None, dir=None, failfast=False, scenario: str = None, parameters: List[str] = None, verbose=1):

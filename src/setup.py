@@ -29,8 +29,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         # grpc packages
-        # 'grpcio',
         'protobuf==3.*',
+        # 'grpcio',
         'grpcio-reflection',
         'google-api-core',
         'grpcio-health-checking',
@@ -47,15 +47,12 @@ setup(
         'PyYAML',
         'jsonschema',
 
-        # test framework packages
-        'unittest-xml-reporting',
-        'factory-boy',
-
         # scheduler packages
         'schedule',
         'scheduler-cron',
 
         # cache packages
+        'redis',
         'cachetools',
 
         # crypto(jwt) packages
@@ -68,11 +65,20 @@ setup(
         'python-consul',
         'dnspython',
 
+        # HTTP packages
+        'requests',
+
         # CLI packages
         'click',
 
         # model packages
         'pydantic',
+        'mongoengine',
+
+        # test framework packages
+        'unittest-xml-reporting',
+        'factory-boy',
+        'mongomock',
 
         # tracing packages
         'opentelemetry-api',
