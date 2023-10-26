@@ -57,7 +57,10 @@ def set_service_config():
     global_module = __import__(f'{package}.conf.global_conf', fromlist=['global_conf'])
     for key, value in vars(global_module).items():
         if not key.startswith('__'):
-            _GLOBAL[key] = value
+            if key in _GLOBAL:
+                _GLOBAL[key] = utils.deep_merge(value, _GLOBAL[key])
+            else:
+                _GLOBAL[key] = value
 
 
 def get_global(key=None, default=None):
