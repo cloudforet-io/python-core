@@ -7,9 +7,11 @@ from typing import List
 import click
 import pkg_resources
 
-from spaceone.core import config, pygrpc, fastapi, utils
+from spaceone.core import config, pygrpc, fastapi, utils, model
 from spaceone.core import scheduler as scheduler_v1
 from spaceone.core.unittest.runner import RichTestRunner
+from spaceone.core.logger import set_logger
+from spaceone.core.opentelemetry import set_tracer, set_metric
 
 
 @click.group()
@@ -21,6 +23,8 @@ def cli():
 @click.argument('project_name')
 @click.option('-d', '--directory', type=click.Path(), help='Project directory')
 def create_project(project_name=None, directory=None):
+    """Create a new project"""
+
     _create_project(project_name, directory)
 
 
@@ -28,13 +32,28 @@ def create_project(project_name=None, directory=None):
 @click.argument('package')
 @click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 50051),
               help='Port of gRPC server', show_default=True)
+@click.option('-a', '--app-path', default='interface.grpc:app', help='Path of gRPC application',
+              show_default=True)
 @click.option('-c', '--config-file', type=click.Path(exists=True), default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'),
               help='Config file path')
 @click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
-def grpc(package, port=None, config_file=None, module_path=None):
+def grpc(package, port=None, app_path=None, config_file=None, module_path=None):
     """Run a gRPC server"""
+
+    # Initialize config
     _set_server_config(package, module_path, port, config_file=config_file)
-    pygrpc.serve()
+
+    # Enable logging configuration
+    set_logger()
+
+    # Set OTel Tracer and Metric
+    set_tracer()
+
+    # Connect all databases
+    model.init_all()
+
+    # Run gRPC server
+    pygrpc.serve(app_path)
 
 
 @cli.command()
@@ -48,7 +67,19 @@ def grpc(package, port=None, config_file=None, module_path=None):
 @click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
 def rest(package, host=None, port=None, config_file=None, module_path=None):
     """Run a FastAPI REST server"""
+    # Initialize config
     _set_server_config(package, module_path, port, config_file=config_file)
+
+    # Enable logging configuration
+    set_logger()
+
+    # Set OTel Tracer and Metric
+    set_tracer()
+
+    # Connect all databases
+    model.init_all()
+
+    # Run REST server
     fastapi.serve()
 
 
@@ -59,7 +90,19 @@ def rest(package, host=None, port=None, config_file=None, module_path=None):
 @click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Module path')
 def scheduler(package, config_file=None, module_path=None):
     """Run a scheduler server"""
-    _set_server_config(package, module_path, config_file=config_file)
+    # Initialize config
+    _set_server_config(package, module_path, port, config_file=config_file)
+
+    # Enable logging configuration
+    set_logger()
+
+    # Set OTel Tracer and Metric
+    set_tracer()
+
+    # Connect all databases
+    model.init_all()
+
+    # Run scheduler server
     scheduler_v1.serve()
 
 
@@ -72,7 +115,10 @@ def scheduler(package, config_file=None, module_path=None):
               type=click.Choice(['json', 'yaml']), show_default=True)
 def show_config(package, config_file=None, module_path=None, output=None):
     """Show global configurations"""
+    # Initialize config
     _set_server_config(package, module_path, config_file=config_file)
+
+    # Print merged config
     _print_config(output)
 
 
@@ -146,12 +192,7 @@ def _set_server_config(package, module_path=None, port=None, config_file=None):
         config.set_file_conf(config_file)
 
 
-def init_project_file(path, text):
-    with open(path, 'w') as f:
-        f.write(text)
-
-
-def _create_project(project_name, directory=None):
+def _create_project(project_name, source_module=None):
     # Initialize path
     project_name = project_name
     project_directory = directory or os.getcwd()
@@ -160,20 +201,6 @@ def _create_project(project_name, directory=None):
     # Copy skeleton source code
     skeleton_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skeleton')
     shutil.copytree(skeleton_path, project_path, ignore=shutil.ignore_patterns('__pycache__'))
-
-    # Change source code for new project environment
-    init_project_file(os.path.join(project_path, 'service', '__init__.py'),
-                      f'from {project_name}.service.helloworld_service import *\n')
-    init_project_file(os.path.join(project_path, 'manager', '__init__.py'),
-                      f'from {project_name}.manager.helloworld_manager import *\n')
-    init_project_file(os.path.join(project_path, 'info', '__init__.py'),
-                      f'from {project_name}.info.helloworld_info import *\n')
-    proto_conf = (
-        "PROTO = {\n"
-        f"    '{project_name}.api.helloworld': ['HelloWorld']\n"
-        "}\n"
-    )
-    init_project_file(os.path.join(project_path, 'conf', 'proto_conf.py'), proto_conf)
 
 
 def _print_config(output):
