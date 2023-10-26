@@ -7,7 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from spaceone.core import config, utils
 from spaceone.core.logger import set_logger
 from spaceone.core.opentelemetry import set_tracer, set_metric
-from spaceone.core.extension.server_info import ServerInfoManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -120,11 +119,11 @@ def _add_middlewares(app):
 
 def _init_fast_api():
     global_conf = config.get_global()
-    server_info = ServerInfoManager()
 
     return FastAPI(
         title=global_conf.get('REST_TITLE', 'Document'),
-        version=server_info.get_version(),
+        version='x.y.z',
+        # version=server_info.get_version(),
         contact=global_conf.get('REST_CONTACT', {}),
         description=global_conf.get('REST_DESCRIPTION', ''),
     )
@@ -139,13 +138,6 @@ def fast_api_app():
 
 def serve():
     conf = config.get_global()
-
-    # Enable logging configuration\
-    set_logger()
-
-    # Set OTel Tracer and Metric|
-    set_tracer()
-
     uvicorn_options = conf.get('UVICORN_OPTIONS', {})
 
     _LOGGER.info(f'Start REST Server ({config.get_service()}): '
