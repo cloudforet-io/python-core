@@ -2,7 +2,6 @@ import logging
 from spaceone.core import config
 from spaceone.core.error import ERROR_BASE
 from spaceone.core.logger import set_logger
-from spaceone.core.opentelemetry import set_tracer, set_metric
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,15 +106,6 @@ def serve():
     # Create Scheduler threads
     # start Scheduler
     conf = config.get_global()
-
-    # Enable logging configuration
-    if conf.get('SET_LOGGING', True):
-        set_logger()
-
-    # Set OTel Tracer and Metric
-    if conf.get('SET_OTEL', True):
-        set_tracer()
-        set_metric()
 
     server = Server(config.get_service(), conf)
     server.start()

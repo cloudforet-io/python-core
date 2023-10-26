@@ -5,8 +5,8 @@ from spaceone.core.base import CoreObject
 
 class BaseHandler(CoreObject):
 
-    def __init__(self, config: dict):
-        super().__init__()
+    def __init__(self, config: dict, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.config = config
 

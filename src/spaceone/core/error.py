@@ -150,12 +150,16 @@ class ERROR_CONFIGURATION(ERROR_UNKNOWN):
     _message = 'Configuration is invalid. (key = {key})'
 
 
-class ERROR_DB_CONFIGURATION(ERROR_CONFIGURATION):
-    _message = 'Database configuration is invalid. (backend = {backend})'
+class ERROR_DB_ENGINE_UNDEFINE(ERROR_CONFIGURATION):
+    _message = 'Database engine is undefined. (alias = {alias})'
 
 
 class ERROR_CACHE_CONFIGURATION(ERROR_CONFIGURATION):
-    _message = 'Cache configuration is invalid. (backend = {backend})'
+    _message = 'Cache is not configured. (alias = {alias})'
+
+
+class ERROR_CACHE_ENGINE_UNDEFINE(ERROR_CONFIGURATION):
+    _message = 'Cache engine is undefined. (alias = {alias})'
 
 
 class ERROR_CONNECTOR_CONFIGURATION(ERROR_CONFIGURATION):

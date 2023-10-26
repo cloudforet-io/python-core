@@ -60,11 +60,8 @@ class Locator(object):
         try:
             if isinstance(name_or_object, str):
                 model_module = _get_module(package, 'model')
-                model = getattr(model_module, name_or_object)
-                model.init()
-                return model
+                return getattr(model_module, name_or_object)
             else:
-                name_or_object.init()
                 return name_or_object
 
         except ERROR_BASE as e:
@@ -79,23 +76,29 @@ class Locator(object):
 
         try:
             if isinstance(name_or_object, str):
-                connector_conf = config.get_connector(name_or_object)
-                backend = connector_conf.get('backend')
-
-                if backend:
-                    connector_module, name_or_object = backend.rsplit('.', 1)
-                    connector_module = __import__(connector_module, fromlist=[name_or_object])
-                else:
-                    connector_module = _get_module(package, 'connector')
-
-                _connector = getattr(connector_module, name_or_object)(config=connector_conf, **kwargs)
-                return _connector
+                connector_module = _get_module(package, 'connector')
+                return getattr(connector_module, name_or_object)(**kwargs)
             else:
-                connector_conf = config.get_connector(name_or_object.__name__)
-                return name_or_object(config=connector_conf, **kwargs)
+                return name_or_object(**kwargs)
 
         except ERROR_BASE as e:
             raise e
 
         except Exception as e:
             raise ERROR_LOCATOR(name=name_or_object, reason=e, _meta={'type': 'connector'})
+
+    @staticmethod
+    def get_manager(name_or_object: [str, object], **kwargs):
+        package = config.get_package()
+        try:
+            if isinstance(name_or_object, str):
+                manager_module = _get_module(package, 'manager')
+                return getattr(manager_module, name_or_object)(**kwargs)
+            else:
+                return name_or_object(**kwargs)
+
+        except ERROR_BASE as e:
+            raise e
+
+        except Exception as e:
+            raise ERROR_LOCATOR(name=name_or_object, reason=e, _meta={'type': 'manager'})

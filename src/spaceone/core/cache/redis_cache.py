@@ -1,16 +1,14 @@
-# -*- coding: utf-8 -*-
-
 import json
 import redis
 from redis import SSLConnection
 
 from spaceone.core.error import *
-from spaceone.core.cache import BaseCache
+from spaceone.core.cache.base_cache import BaseCache
 
 
 class RedisCache(BaseCache):
 
-    def __init__(self, backend, cache_conf):
+    def __init__(self, alias, cache_conf):
         try:
             if cache_conf.get('ssl', False):
                 del cache_conf['ssl']
@@ -22,7 +20,7 @@ class RedisCache(BaseCache):
         except redis.exceptions.TimeoutError:
             raise ERROR_CACHE_TIMEOUT(config=cache_conf)
         except Exception:
-            raise ERROR_CACHE_CONFIGURATION(backend=backend)
+            raise ERROR_CACHE_CONFIGURATION(alias=alias)
 
     def _get_connection(self, pool):
         return redis.Redis(connection_pool=pool)

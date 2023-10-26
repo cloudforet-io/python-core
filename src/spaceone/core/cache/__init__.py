@@ -2,6 +2,8 @@ import logging
 import inspect
 from spaceone.core import config
 from spaceone.core.error import *
+from spaceone.core.cache.local_cache import LocalCache
+from spaceone.core.cache.redis_cache import RedisCache
 
 __init__ = ['is_set', 'get', 'set', 'increment', 'decrement', 'keys', 'ttl', 'delete', 'delete_pattern',
             'flush', 'cacheable']
@@ -10,28 +12,28 @@ _CACHE_CONNECTIONS = {}
 _LOGGER = logging.getLogger(__name__)
 
 
-def _create_connection(backend):
+def _create_connection(alias):
     global_conf = config.get_global()
-    if backend not in global_conf.get('CACHES', {}):
-        raise ERROR_CACHE_CONFIGURATION(backend=backend)
+    if alias not in global_conf.get('CACHES', {}):
+        raise ERROR_CACHE_CONFIGURATION(alias=alias)
 
-    cache_conf = global_conf['CACHES'][backend].copy()
-    backend = cache_conf.pop('backend', None)
+    cache_conf = global_conf['CACHES'][alias].copy()
 
-    if backend is None:
-        raise ERROR_CACHE_CONFIGURATION(backend=backend)
+    engine = cache_conf.get('engine')
+    if engine == 'LocalCache':
+        return LocalCache(alias, cache_conf)
+    elif engine == 'RedisCache':
+        return RedisCache(alias, cache_conf)
+    else:
+        raise ERROR_CACHE_ENGINE_UNDEFINE(alias=alias)
 
-    module_name, class_name = backend.rsplit('.', 1)
-    cache_module = __import__(module_name, fromlist=[class_name])
-    return getattr(cache_module, class_name)(backend, cache_conf)
 
+def connect(func):
+    def wrapper(*args, alias='default', **kwargs):
+        if alias not in _CACHE_CONNECTIONS:
+            _CACHE_CONNECTIONS[alias] = _create_connection(alias)
 
-def connection(func):
-    def wrapper(*args, backend='default', **kwargs):
-        if backend not in _CACHE_CONNECTIONS:
-            _CACHE_CONNECTIONS[backend] = _create_connection(backend)
-
-        return func(_CACHE_CONNECTIONS[backend], *args, **kwargs)
+        return func(_CACHE_CONNECTIONS[alias], *args, **kwargs)
 
     return wrapper
 
@@ -76,21 +78,21 @@ def _make_cache_key(key_format, args_dict):
         raise ERROR_CACHE_KEY_FORMAT(key=key_format)
 
 
-def cacheable(key=None, value=None, expire=None, action='cache', backend='default'):
+def cacheable(key=None, value=None, expire=None, action='cache', alias='default'):
     def wrapper(func):
         def wrapped_func(*args, **kwargs):
-            if is_set(backend):
+            if is_set(alias):
                 args_dict = _change_args_to_dict(func, args)
                 args_dict.update(kwargs)
                 cache_key = _make_cache_key(key, args_dict)
                 if action in ['cache']:
-                    data = get(cache_key, backend=backend)
+                    data = get(cache_key, alias=alias)
                     if data is not None:
                         return data
 
             result = func(*args, **kwargs)
 
-            if is_set(backend):
+            if is_set(alias):
                 if action in ['put', 'cache']:
                     cache_value = result
                     if value:
@@ -103,10 +105,10 @@ def cacheable(key=None, value=None, expire=None, action='cache', backend='defaul
                             else:
                                 raise ERROR_CACHEABLE_VALUE_TYPE()
 
-                    set(cache_key, cache_value, expire=expire, backend=backend)
+                    set(cache_key, cache_value, expire=expire, alias=alias)
 
                 if action in ['delete']:
-                    delete(cache_key, backend=backend)
+                    delete(cache_key, alias=alias)
 
             return result
 
@@ -115,152 +117,54 @@ def cacheable(key=None, value=None, expire=None, action='cache', backend='defaul
     return wrapper
 
 
-def is_set(backend='default'):
+def is_set(alias='default'):
     global_conf = config.get_global()
-    if global_conf.get('CACHES', {}).get(backend, {}) != {}:
+    if global_conf.get('CACHES', {}).get(alias, {}) != {}:
         return True
     else:
         return False
 
 
-@connection
+@connect
 def get(cache_cls, key):
     return cache_cls.get(key)
 
 
-@connection
+@connect
 def set(cache_cls, key, value, expire=None):
     return cache_cls.set(key, value, expire=expire)
 
 
-@connection
+@connect
 def increment(cache_cls, key, amount=1):
     return cache_cls.increment(key, amount)
 
 
-@connection
+@connect
 def decrement(cache_cls, key, amount=1):
     return cache_cls.decrement(key, amount)
 
 
-@connection
+@connect
 def keys(cache_cls, pattern):
     return cache_cls.keys(pattern)
 
 
-@connection
+@connect
 def ttl(cache_cls, key):
     return cache_cls.ttl(key)
 
 
-@connection
+@connect
 def delete(cache_cls, *keys):
     return cache_cls.delete(*keys)
 
 
-@connection
+@connect
 def delete_pattern(cache_cls, pattern):
     return cache_cls.delete_pattern(pattern)
 
 
-@connection
+@connect
 def flush(cache_cls, is_async=False):
     return cache_cls.flush(is_async)
-
-
-class BaseCache(object):
-
-    def get(self, key, **kwargs):
-        """
-        Args:
-            key (str)
-            **kwargs (dict)
-        Returns:
-            cache_value (any)
-        """
-        raise NotImplementedError('cache.get not implemented!')
-
-    def set(self, key, value, **kwargs):
-        """
-        Args:
-            key (str)
-            value (str)
-            **kwargs (dict)
-                - expire (int: seconds)
-
-        Returns:
-            True | False
-        """
-        raise NotImplementedError('cache.set not implemented!')
-
-    def increment(self, key, amount):
-        """
-        Args:
-            key (str)
-            amount (int)
-
-        Returns:
-            True | False
-        """
-        raise NotImplementedError('cache.incr not implemented!')
-
-    def decrement(self, key, amount):
-        """
-        Args:
-            key (str)
-            amount (int)
-
-        Returns:
-            True | False
-        """
-        raise NotImplementedError('cache.decr not implemented!')
-
-    def keys(self, pattern='*'):
-        """
-        Args:
-            pattern (str)
-
-        Returns:
-            keys (list)
-        """
-        raise NotImplementedError('cache.keys not implemented!')
-
-    def ttl(self, key):
-        """
-        Args:
-            key (str)
-
-        Returns:
-            expire_time (int: seconds)
-        """
-        raise NotImplementedError('cache.ttl not implemented!')
-
-    def delete(self, *keys):
-        """
-        Args:
-            keys (list)
-
-        Returns:
-            None
-        """
-        raise NotImplementedError('cache.delete not implemented!')
-
-    def delete_pattern(self, pattern):
-        """
-        Args:
-            pattern (str)
-
-        Returns:
-            None
-        """
-        raise NotImplementedError('cache.delete_pattern not implemented!')
-
-    def flush(self, is_async=False):
-        """
-        Args:
-            is_async (bool)
-
-        Returns:
-            None
-        """
-        raise NotImplementedError('cache.flush not implemented!')

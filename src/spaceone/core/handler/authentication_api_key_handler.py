@@ -40,7 +40,7 @@ class AuthenticationAPIKeyHandler(BaseAuthenticationHandler):
                 else:
                     raise ERROR_AUTHENTICATE_FAILURE(message='This API Key is no longer supported.')
 
-    @cacheable(key='api-key:{domain_id}:{api_key_id}', backend='local')
+    @cacheable(key='api-key:{domain_id}:{api_key_id}', alias='local')
     def _check_api_key(self, api_key_id, domain_id):
         _LOGGER.debug(f'[_check_api_key] check api key state ({api_key_id})')
 

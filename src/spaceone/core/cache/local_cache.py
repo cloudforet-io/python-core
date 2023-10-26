@@ -1,18 +1,18 @@
 from cachetools import TTLCache
 
 from spaceone.core.error import *
-from spaceone.core.cache import BaseCache
+from spaceone.core.cache.base_cache import BaseCache
 
 
 class LocalCache(BaseCache):
 
-    def __init__(self, backend, cache_conf):
+    def __init__(self, alias, cache_conf):
         try:
             max_size = cache_conf.get('max_size', 128)
             ttl = cache_conf.get('ttl', 86400)
             self.cache = TTLCache(maxsize=max_size, ttl=ttl)
         except Exception:
-            raise ERROR_CACHE_CONFIGURATION(backend=backend)
+            raise ERROR_CACHE_CONFIGURATION(alias=alias)
 
     def get(self, key, **kwargs):
         return self.cache.get(key)
