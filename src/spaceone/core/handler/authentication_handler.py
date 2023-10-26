@@ -32,7 +32,7 @@ class AuthenticationGRPCHandler(BaseAuthenticationHandler):
         token_info = self._authenticate(token, domain_id)
         self._update_meta(token_info)
 
-    @cacheable(key='public-key:{domain_id}', backend='local')
+    @cacheable(key='public-key:{domain_id}', alias='local')
     def _get_public_key(self, domain_id):
         _LOGGER.debug(f'[_get_public_key] get jwk from identity service ({domain_id})')
         response = self.client.dispatch('Domain.get_public_key', {'domain_id': domain_id})
