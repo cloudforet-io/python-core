@@ -25,8 +25,8 @@ _TRACER = trace.get_tracer(__name__)
 
 class BaseService(CoreObject):
 
-    def __init__(self, metadata: dict = None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, metadata: dict = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.func_name = None
         # self.is_with_statement = False
         self.current_span_context = None
