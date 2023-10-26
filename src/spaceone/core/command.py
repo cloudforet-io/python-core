@@ -13,6 +13,16 @@ from spaceone.core.unittest.runner import RichTestRunner
 from spaceone.core.logger import set_logger
 from spaceone.core.opentelemetry import set_tracer, set_metric
 
+_SOURCE_ALIAS = {
+    'auth': 'spaceone.identity.plugin.auth.skeleton',
+    'asset': 'spaceone.inventory.plugin.collector.skeleton',
+    'metric': 'spaceone.monitoring.plugin.metric.skeleton',
+    'log': 'spaceone.monitoring.plugin.log.skeleton',
+    'webhook': 'spaceone.monitoring.plugin.webhook.skeleton',
+    'cost': 'spaceone.cost_analysis.plugin.data_source.skeleton',
+    'notification': 'spaceone.notification.plugin.protocol.skeleton',
+}
+
 
 @click.group()
 def cli():
@@ -22,10 +32,11 @@ def cli():
 @cli.command()
 @click.argument('project_name')
 @click.option('-d', '--directory', type=click.Path(), help='Project directory')
-def create_project(project_name=None, directory=None):
+@click.option('-s', '--source', help='Plugin source template', type=click.Choice(['auth', 'asset', 'metric', 'log', 'webhook', 'cost', 'notification']))
+def create_project(project_name, directory=None, source=None):
     """Create a new project"""
 
-    _create_project(project_name, directory)
+    _create_project(project_name, directory, source)
 
 
 @cli.command()
@@ -192,14 +203,26 @@ def _set_server_config(package, module_path=None, port=None, config_file=None):
         config.set_file_conf(config_file)
 
 
-def _create_project(project_name, source_module=None):
+def _create_project(project_name, directory=None, source=None):
     # Initialize path
     project_name = project_name
     project_directory = directory or os.getcwd()
     project_path = os.path.join(project_directory, project_name)
 
     # Copy skeleton source code
-    skeleton_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skeleton')
+    if source:
+        skeleton = _SOURCE_ALIAS.get(source, source)
+    else:
+        skeleton = 'spaceone.core.skeleton'
+
+    # Check skeleton module name
+    module_name = skeleton.split('.')[-1]
+    if module_name != 'skeleton':
+        raise Exception('Skeleton module path must be ended with "skeleton".')
+
+    # Copy skeleton source code
+    skeleton_module = __import__(skeleton, fromlist=['*'])
+    skeleton_path = os.path.dirname(skeleton_module.__file__)
     shutil.copytree(skeleton_path, project_path, ignore=shutil.ignore_patterns('__pycache__'))
 
 
