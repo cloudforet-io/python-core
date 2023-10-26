@@ -9,10 +9,9 @@ uvicorn
 asyncio
 PyYAML
 jsonschema
-unittest-xml-reporting
-factory-boy
 schedule
 scheduler-cron
+redis
 cachetools
 pycryptodome
 jwcrypto
@@ -20,8 +19,13 @@ python-jose
 python-dateutil
 python-consul
 dnspython
+requests
 click
 pydantic
+mongoengine
+unittest-xml-reporting
+factory-boy
+mongomock
 opentelemetry-api
 opentelemetry-sdk
 opentelemetry-exporter-otlp-proto-grpc
