@@ -2,6 +2,7 @@ import bson
 import re
 import logging
 import certifi
+import copy
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from functools import reduce
@@ -12,13 +13,13 @@ from mongoengine.errors import *
 from spaceone.core import config
 from spaceone.core import utils
 from spaceone.core.error import *
-from spaceone.core.model import BaseModel
+from spaceone.core.model.base_model import BaseModel
 from spaceone.core.model.mongo_model.filter_operator import FILTER_OPERATORS
 from spaceone.core.model.mongo_model.stat_operator import STAT_GROUP_OPERATORS, STAT_PROJECT_OPERATORS
 
 _REFERENCE_ERROR_FORMAT = r'Could not delete document \((\w+)\.\w+ refers to it\)'
-_MONGO_CONNECTIONS = []
 _MONGO_INIT_MODELS = []
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -99,20 +100,56 @@ class MongoModel(Document, BaseModel):
     @classmethod
     def init(cls):
         global_conf = config.get_global()
+        databases = global_conf.get('DATABASES', {})
+        db_name_prefix = global_conf.get('DATABASE_NAME_PREFIX', '')
 
         if not global_conf.get('MOCK_MODE', False):
-            cls.connect()
+            cls._connect(databases, db_name_prefix)
+            for model in cls.get_inherited_models():
+                if (model != cls
+                        and issubclass(model, MongoModel)
+                        and model not in _MONGO_INIT_MODELS):
+                    model.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
+                    model._create_index()
+                    model._load_default_meta()
 
-            if cls not in _MONGO_INIT_MODELS:
-                cls.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-                cls._create_index()
-
-                _MONGO_INIT_MODELS.append(cls)
-
-        cls.load_default_meta()
+                    _MONGO_INIT_MODELS.append(model)
 
     @classmethod
-    def load_default_meta(cls):
+    def _connect(cls, databases: dict, db_name_prefix: str):
+        for alias, db_conf in databases.items():
+            db_conf = copy.deepcopy(db_conf)
+            engine = db_conf.get('engine')
+            host = db_conf.get('host')
+            db = db_conf.get('db')
+            username = db_conf.get('username')
+
+            if engine is None:
+                raise ERROR_DB_ENGINE_UNDEFINE(alias=alias)
+            del db_conf['engine']
+
+            if engine == 'MongoModel':
+                if host and db and username:
+                    if 'read_preference' in db_conf:
+                        read_preference = getattr(ReadPreference, db_conf['read_preference'], None)
+                        if read_preference:
+                            db_conf['read_preference'] = read_preference
+                        else:
+                            del db_conf['read_preference']
+
+                    db_name: str = db_conf.get('db', '')
+                    db_conf['db'] = f'{db_name_prefix}{db_name}'
+
+                    host: str = str(db_conf.get('host', '')).strip()
+                    if host.startswith('mongodb+srv://'):
+                        db_conf['tlsCAFile'] = certifi.where()
+
+                    register_connection(alias, **db_conf)
+                    _LOGGER.debug(f'Create MongoDB Connection: {alias}')
+                else:
+                    _LOGGER.warning(f'MongoDB is not configured. (alias = {alias})')
+    @classmethod
+    def _load_default_meta(cls):
         cls._meta['datetime_fields'] = []
         for name, field in cls._fields.items():
             if isinstance(field, DateField):
@@ -121,37 +158,6 @@ class MongoModel(Document, BaseModel):
                 cls._meta['datetime_fields'].append(name)
             elif isinstance(field, ComplexDateTimeField):
                 cls._meta['datetime_fields'].append(name)
-
-    @classmethod
-    def connect(cls):
-        db_alias = cls._meta.get('db_alias', 'default')
-        if db_alias not in _MONGO_CONNECTIONS:
-            global_conf = config.get_global()
-            databases = global_conf.get('DATABASES', {})
-
-            if db_alias not in databases:
-                raise ERROR_DB_CONFIGURATION(backend=db_alias)
-
-            db_conf = databases[db_alias].copy()
-
-            if 'read_preference' in db_conf:
-                read_preference = getattr(ReadPreference, db_conf['read_preference'], None)
-                if read_preference:
-                    db_conf['read_preference'] = read_preference
-                else:
-                    del db_conf['read_preference']
-
-            db_name: str = db_conf.get('db', '')
-            db_name_prefix = global_conf.get('DATABASE_NAME_PREFIX', '')
-            db_conf['db'] = f'{db_name_prefix}{db_name}'
-
-            host: str = str(db_conf.get('host', '')).strip()
-            if host.startswith('mongodb+srv://'):
-                db_conf['tlsCAFile'] = certifi.where()
-
-            register_connection(db_alias, **db_conf)
-
-            _MONGO_CONNECTIONS.append(db_alias)
 
     @classmethod
     def _create_index(cls):
