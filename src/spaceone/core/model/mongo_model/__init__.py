@@ -104,50 +104,56 @@ class MongoModel(Document, BaseModel):
         db_name_prefix = global_conf.get('DATABASE_NAME_PREFIX', '')
 
         if not global_conf.get('MOCK_MODE', False):
-            cls._connect(databases, db_name_prefix)
-            for model in cls.get_inherited_models():
-                if (model != cls
-                        and issubclass(model, MongoModel)
-                        and model not in _MONGO_INIT_MODELS):
-                    model.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-                    model._create_index()
-                    model._load_default_meta()
+            for alias, db_conf in databases.items():
+                is_connect = cls._connect(alias, db_conf, db_name_prefix)
+                if is_connect:
+                    for model in cls.get_inherited_models():
+                        if (model != cls
+                                and issubclass(model, MongoModel)
+                                and model not in _MONGO_INIT_MODELS):
+                            model.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
+                            model._create_index()
+                            model._load_default_meta()
 
-                    _MONGO_INIT_MODELS.append(model)
+                            _MONGO_INIT_MODELS.append(model)
 
     @classmethod
-    def _connect(cls, databases: dict, db_name_prefix: str):
-        for alias, db_conf in databases.items():
-            db_conf = copy.deepcopy(db_conf)
-            engine = db_conf.get('engine')
-            host = db_conf.get('host')
-            db = db_conf.get('db')
-            username = db_conf.get('username')
+    def _connect(cls, alias: str, db_conf: dict, db_name_prefix: str):
+        is_connect = False
+        db_conf = copy.deepcopy(db_conf)
+        engine = db_conf.get('engine')
+        host = db_conf.get('host')
+        db = db_conf.get('db')
+        username = db_conf.get('username')
 
-            if engine is None:
-                raise ERROR_DB_ENGINE_UNDEFINE(alias=alias)
-            del db_conf['engine']
+        if engine is None:
+            raise ERROR_DB_ENGINE_UNDEFINE(alias=alias)
+        del db_conf['engine']
 
-            if engine == 'MongoModel':
-                if host and db and username:
-                    if 'read_preference' in db_conf:
-                        read_preference = getattr(ReadPreference, db_conf['read_preference'], None)
-                        if read_preference:
-                            db_conf['read_preference'] = read_preference
-                        else:
-                            del db_conf['read_preference']
+        if engine == 'MongoModel':
+            if host and db and username:
+                if 'read_preference' in db_conf:
+                    read_preference = getattr(ReadPreference, db_conf['read_preference'], None)
+                    if read_preference:
+                        db_conf['read_preference'] = read_preference
+                    else:
+                        del db_conf['read_preference']
 
-                    db_name: str = db_conf.get('db', '')
-                    db_conf['db'] = f'{db_name_prefix}{db_name}'
+                db_name: str = db_conf.get('db', '')
+                db_conf['db'] = f'{db_name_prefix}{db_name}'
 
-                    host: str = str(db_conf.get('host', '')).strip()
-                    if host.startswith('mongodb+srv://'):
-                        db_conf['tlsCAFile'] = certifi.where()
+                host: str = str(db_conf.get('host', '')).strip()
+                if host.startswith('mongodb+srv://'):
+                    db_conf['tlsCAFile'] = certifi.where()
 
-                    register_connection(alias, **db_conf)
-                    _LOGGER.debug(f'Create MongoDB Connection: {alias}')
-                else:
-                    _LOGGER.warning(f'MongoDB is not configured. (alias = {alias})')
+                register_connection(alias, **db_conf)
+                is_connect = True
+                _LOGGER.debug(f'Create MongoDB Connection: {alias}')
+            else:
+                _LOGGER.warning(f'MongoDB is not configured. (alias = {alias})')
+
+        return is_connect
+
     @classmethod
     def _load_default_meta(cls):
         cls._meta['datetime_fields'] = []

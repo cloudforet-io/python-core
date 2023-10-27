@@ -32,10 +32,10 @@ def cli():
 @cli.command()
 @click.argument('project_name')
 @click.option('-d', '--directory', type=click.Path(), help='Project directory')
-@click.option('-s', '--source', type=str, help=f'example code of the plugin ['
+@click.option('-s', '--source', type=str, help=f'skeleton code of the plugin: ['
                                                f'{"|".join(_SOURCE_ALIAS.keys())}] or '
                                                f'module path(e.g. spaceone.core.skeleton)]')
-def create_project(project_name, directory=None, source=None):
+def create_project(project_name, directory=None, sㅇ뉴ource=None):
     """Create a new project"""
 
     _create_project(project_name, directory, source)

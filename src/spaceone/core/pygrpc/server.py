@@ -1,13 +1,10 @@
 import logging
-import time
-from concurrent import futures
-from typing import List, Union
-
 import grpc
-from spaceone.core import config
-from spaceone.core.opentelemetry import set_tracer, set_metric
-from spaceone.core.pygrpc.api import BaseAPI
+from concurrent import futures
+from typing import List, Union, Type
 from grpc_reflection.v1alpha import reflection
+from spaceone.core import config
+from spaceone.core.pygrpc.api import BaseAPI
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,17 +43,13 @@ class GRPCServer(object):
         self._service = conf['SERVICE']
         self._port = conf['PORT']
         self._max_workers = conf['MAX_WORKERS']
-        self._max_message_length = conf.get('MAX_MESSAGE_LENGTH')
-        self._ext_proto_conf = config.get_global('GRPC_EXTENSION_SERVICERS', {})
         self._service_names = []
 
         server_interceptor = _ServerInterceptor()
         self._server = grpc.server(
             futures.ThreadPoolExecutor(max_workers=conf['MAX_WORKERS']),
             interceptors=(server_interceptor,),
-            # options=_get_grpc_options(conf)
         )
-        self._add_extension_services()
 
     @property
     def server(self) -> grpc.server:
@@ -66,8 +59,8 @@ class GRPCServer(object):
     def service_names(self) -> List[str]:
         return self._service_names
 
-    def add_service(self, Servicer: Union[BaseAPI, object]):
-        servicer = Servicer()
+    def add_service(self, servicer_cls: Union[Type[BaseAPI], Type[object]]):
+        servicer = servicer_cls()
         getattr(servicer.pb2_grpc_module, f'add_{servicer.name}Servicer_to_server')(servicer, self.server)
         self.service_names.append(servicer.service_name)
 
@@ -82,37 +75,6 @@ class GRPCServer(object):
         self.server.start()
         self.server.wait_for_termination()
 
-    def _add_extension_services(self):
-        for module_path, servicer_names in self._ext_proto_conf.items():
-            for servicer_name in servicer_names:
-                if api_module := self._import_module(module_path, servicer_name):
-                    if hasattr(api_module, servicer_name):
-                        servicer_cls = getattr(api_module, servicer_name)
-
-                        self.add_service(servicer_cls)
-                    else:
-                        _LOGGER.warning(f'[_add_services] Failed to add service. '
-                                        f'(module_path={module_path}, servicer_name={servicer_name})')
-
-    @staticmethod
-    def _import_module(module_path, servicer_name):
-        module = None
-        try:
-            module = __import__(module_path, fromlist=[servicer_name])
-        except Exception as e:
-            _LOGGER.warning(f'[_import_module] Cannot import grpc servicer module. (reason = {e})', exc_info=True)
-
-        return module
-
-    def _get_grpc_options(self):
-        options = []
-        if self._max_message_length:
-            options += [
-                ('grpc.max_send_message_length', self._max_message_length),
-                ('grpc.max_receive_message_length', self._max_message_length),
-            ]
-
-        return options
 
 def _get_app(app_path: str) -> GRPCServer:
     package_path = config.get_package()
@@ -126,6 +88,33 @@ def _get_app(app_path: str) -> GRPCServer:
         _LOGGER.warning(f'[_get_app] Cannot import app. (reason = {e})', exc_info=True)
 
 
+def _import_module(module_path, servicer_name):
+    module = None
+    try:
+        module = __import__(module_path, fromlist=[servicer_name])
+    except Exception as e:
+        _LOGGER.warning(f'[_import_module] Cannot import grpc servicer module. (reason = {e})', exc_info=True)
+
+    return module
+
+
+def _add_extension_services(app):
+    ext_proto_conf = config.get_global('GRPC_EXTENSION_SERVICERS', {})
+    for module_path, servicer_names in ext_proto_conf.items():
+        for servicer_name in servicer_names:
+            if api_module := _import_module(module_path, servicer_name):
+                if hasattr(api_module, servicer_name):
+                    servicer_cls = getattr(api_module, servicer_name)
+
+                    app.add_service(servicer_cls)
+                else:
+                    _LOGGER.warning(f'[_add_services] Failed to add service. '
+                                    f'(module_path={module_path}, servicer_name={servicer_name})')
+
+    return app
+
+
 def serve(app_path: str):
     app = _get_app(app_path)
+    app = _add_extension_services(app)
     app.run()
