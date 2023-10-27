@@ -35,7 +35,7 @@ def cli():
 @click.option('-s', '--source', type=str, help=f'skeleton code of the plugin: ['
                                                f'{"|".join(_SOURCE_ALIAS.keys())}] or '
                                                f'module path(e.g. spaceone.core.skeleton)]')
-def create_project(project_name, directory=None, sㅇ뉴ource=None):
+def create_project(project_name, directory=None, source=None):
     """Create a new project"""
 
     _create_project(project_name, directory, source)
@@ -106,7 +106,7 @@ def rest(package, host=None, port=None, app_path=None, config_file=None, module_
 def scheduler(package, config_file=None, module_path=None):
     """Run a scheduler server"""
     # Initialize config
-    _set_server_config(package, module_path, port, config_file=config_file)
+    _set_server_config(package, module_path, config_file=config_file)
 
     # Enable logging configuration
     set_logger()
