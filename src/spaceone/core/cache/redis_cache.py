@@ -1,9 +1,12 @@
+import logging
 import json
 import redis
 from redis import SSLConnection
 
 from spaceone.core.error import *
 from spaceone.core.cache.base_cache import BaseCache
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class RedisCache(BaseCache):
@@ -19,7 +22,8 @@ class RedisCache(BaseCache):
             self.conn.ping()
         except redis.exceptions.TimeoutError:
             raise ERROR_CACHE_TIMEOUT(config=cache_conf)
-        except Exception:
+        except Exception as e:
+            _LOGGER.error(f'[RedisCache.__init__] failed to create connection: {e}')
             raise ERROR_CACHE_CONFIGURATION(alias=alias)
 
     def _get_connection(self, pool):

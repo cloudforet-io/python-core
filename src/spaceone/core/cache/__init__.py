@@ -1,5 +1,6 @@
 import logging
 import inspect
+import copy
 from spaceone.core import config
 from spaceone.core.error import *
 from spaceone.core.cache.local_cache import LocalCache
@@ -17,9 +18,16 @@ def _create_connection(alias):
     if alias not in global_conf.get('CACHES', {}):
         raise ERROR_CACHE_CONFIGURATION(alias=alias)
 
-    cache_conf = global_conf['CACHES'][alias].copy()
+    cache_conf = copy.deepcopy(global_conf['CACHES'][alias])
 
     engine = cache_conf.get('engine')
+
+    if engine:
+        del cache_conf['engine']
+
+    if 'backend' in cache_conf:
+        del cache_conf['backend']
+
     if engine == 'LocalCache':
         return LocalCache(alias, cache_conf)
     elif engine == 'RedisCache':
