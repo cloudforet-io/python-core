@@ -57,10 +57,6 @@ class BaseAPI(object):
                 setattr(self, f_name, self._grpc_method(f_object, config.get_service()))
 
     @staticmethod
-    def get_minimal(params):
-        return params.get('query', {}).get('minimal', False)
-
-    @staticmethod
     def _error_method(error, context):
         if not isinstance(error, ERROR_BASE):
             error = ERROR_UNKNOWN(message=error)
@@ -125,3 +121,7 @@ class BaseAPI(object):
             return self._generate_message(request_or_iterator), self._get_metadata(context)
         else:
             return self._convert_message(request_or_iterator), self._get_metadata(context)
+
+    @staticmethod
+    def get_minimal(params):
+        return params.get('query', {}).get('minimal', False)

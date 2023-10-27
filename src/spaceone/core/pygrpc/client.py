@@ -2,9 +2,10 @@ import re
 import logging
 import types
 import grpc
+from google.protobuf.json_format import ParseDict
 from google.protobuf.message_factory import MessageFactory
 from google.protobuf.descriptor_pool import DescriptorPool
-from google.protobuf.descriptor import ServiceDescriptor
+from google.protobuf.descriptor import ServiceDescriptor, MethodDescriptor
 from grpc_reflection.v1alpha.proto_reflection_descriptor_database import ProtoReflectionDescriptorDatabase
 from spaceone.core.error import *
 
@@ -37,7 +38,7 @@ class _ClientInterceptor(
 
     def _make_message(self, request, method_key):
         if isinstance(request, dict):
-            return self._request_map[method_key](**request)
+            return ParseDict(request, self._request_map[method_key]())
 
         else:
             return request
@@ -142,7 +143,48 @@ class _ClientInterceptor(
         return self._intercept_call(continuation, client_call_details, request_iterator, True, True)
 
 
-class _GRPCClient:
+class _GRPCStub(object):
+
+    def __init__(self, desc_pool: DescriptorPool, service_desc: ServiceDescriptor, channel: grpc.Channel):
+        self._desc_pool = desc_pool
+        for method_desc in service_desc.methods:
+            self._bind_grpc_method(service_desc, method_desc, channel)
+
+    def _bind_grpc_method(self, service_desc: ServiceDescriptor, method_desc: MethodDescriptor, channel: grpc.Channel):
+        method_name = method_desc.name
+        method_key = f'/{service_desc.full_name}/{method_name}'
+        request_desc = self._desc_pool.FindMessageTypeByName(method_desc.input_type.full_name)
+        request_message_desc = MessageFactory(self._desc_pool).GetPrototype(request_desc)
+        response_desc = self._desc_pool.FindMessageTypeByName(method_desc.output_type.full_name)
+        response_message_desc = MessageFactory(self._desc_pool).GetPrototype(response_desc)
+
+        if method_desc.client_streaming and method_desc.server_streaming:
+            setattr(self, method_name, channel.stream_stream(
+                method_key,
+                request_serializer=request_message_desc.SerializeToString,
+                response_deserializer=response_message_desc.FromString
+            ))
+        elif method_desc.client_streaming and not method_desc.server_streaming:
+            setattr(self, method_name, channel.stream_unary(
+                method_key,
+                request_serializer=request_message_desc.SerializeToString,
+                response_deserializer=response_message_desc.FromString
+            ))
+        elif not method_desc.client_streaming and method_desc.server_streaming:
+            setattr(self, method_name, channel.unary_stream(
+                method_key,
+                request_serializer=request_message_desc.SerializeToString,
+                response_deserializer=response_message_desc.FromString
+            ))
+        else:
+            setattr(self, method_name, channel.unary_unary(
+                method_key,
+                request_serializer=request_message_desc.SerializeToString,
+                response_deserializer=response_message_desc.FromString
+            ))
+
+
+class _GRPCClient(object):
 
     def __init__(self, channel, options, channel_key):
         self._request_map = {}
@@ -164,33 +206,21 @@ class _GRPCClient:
         for service in self._reflection_db.get_services():
             service_desc: ServiceDescriptor = self._desc_pool.FindServiceByName(service)
             service_name = service_desc.name
-            for method in service_desc.methods:
-                method_key = f'/{service}/{method.name}'
-                request_desc = self._desc_pool.FindMessageTypeByName(method.input_type.full_name)
+            for method_desc in service_desc.methods:
+                method_key = f'/{service}/{method_desc.name}'
+                request_desc = self._desc_pool.FindMessageTypeByName(method_desc.input_type.full_name)
                 self._request_map[method_key] = MessageFactory(self._desc_pool).GetPrototype(request_desc)
 
                 if service_desc.name not in self._api_resources:
                     self._api_resources[service_name] = []
 
-                self._api_resources[service_desc.name].append(method.name)
+                self._api_resources[service_desc.name].append(method_desc.name)
 
     def _bind_grpc_stub(self, intercept_channel: grpc.Channel):
         for service in self._reflection_db.get_services():
             service_desc: ServiceDescriptor = self._desc_pool.FindServiceByName(service)
-            package = service_desc.file.package
-            module_name = self._parse_proto_name(service_desc.file.name, package)
-            self._create_grpc_stub(package, module_name, service_desc.name, intercept_channel)
 
-    def _create_grpc_stub(self, package: str, module_name: str, service_name: str, intercept_channel: grpc.Channel):
-        module_path = f'{package}.{module_name}_pb2_grpc'
-        grpc_pb2_module = __import__(module_path, fromlist=[f'{module_name}_pb2_grpc'])
-
-        setattr(self, service_name,
-                getattr(grpc_pb2_module, f'{service_name}Stub')(intercept_channel))
-
-    @staticmethod
-    def _parse_proto_name(proto_name, package):
-        return re.findall(r'%s/(.*?).proto' % package, proto_name)[0]
+            setattr(self, service_desc.name, _GRPCStub(self._desc_pool, service_desc, intercept_channel))
 
 
 def _create_secure_channel(endpoint, options):
