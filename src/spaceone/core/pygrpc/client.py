@@ -2,6 +2,7 @@ import re
 import logging
 import types
 import grpc
+from google.protobuf.json_format import ParseDict
 from google.protobuf.message_factory import MessageFactory
 from google.protobuf.descriptor_pool import DescriptorPool
 from google.protobuf.descriptor import ServiceDescriptor
@@ -37,7 +38,7 @@ class _ClientInterceptor(
 
     def _make_message(self, request, method_key):
         if isinstance(request, dict):
-            return self._request_map[method_key](**request)
+            return ParseDict(request, self._request_map[method_key]())
 
         else:
             return request
