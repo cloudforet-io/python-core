@@ -76,7 +76,15 @@ class Locator(object):
 
         try:
             if isinstance(name_or_object, str):
-                connector_module = _get_module(package, 'connector')
+                connector_conf = config.get_connector(name_or_object)
+                backend = connector_conf.get('backend')
+
+                if backend:
+                    connector_module_path, name_or_object = backend.rsplit('.', 1)
+                    connector_module = __import__(connector_module_path, fromlist=[name_or_object])
+                else:
+                    connector_module = _get_module(package, 'connector')
+
                 return getattr(connector_module, name_or_object)(**kwargs)
             else:
                 return name_or_object(**kwargs)
