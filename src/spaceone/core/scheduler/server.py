@@ -1,7 +1,6 @@
 import logging
 from spaceone.core import config
 from spaceone.core.error import ERROR_BASE
-from spaceone.core.logger import set_logger
 
 _LOGGER = logging.getLogger(__name__)
 

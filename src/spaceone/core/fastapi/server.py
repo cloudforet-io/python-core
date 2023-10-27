@@ -4,9 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from spaceone.core import config, utils
-from spaceone.core.logger import set_logger
-from spaceone.core.opentelemetry import set_tracer, set_metric
+from spaceone.core import config
 
 _LOGGER = logging.getLogger(__name__)
 
