@@ -121,3 +121,7 @@ class BaseAPI(object):
             return self._generate_message(request_or_iterator), self._get_metadata(context)
         else:
             return self._convert_message(request_or_iterator), self._get_metadata(context)
+
+    @staticmethod
+    def get_minimal(params):
+        return params.get('query', {}).get('minimal', False)
