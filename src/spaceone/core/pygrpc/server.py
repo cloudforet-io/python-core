@@ -84,7 +84,7 @@ def _get_app(app_path: str) -> GRPCServer:
     try:
         app_module = __import__(module_path, fromlist=[app_name])
 
-        if hasattr(app_module, 'app'):
+        if not hasattr(app_module, 'app'):
             raise ImportError(f'App is not defined. (app_path = {package_path}.{app_path})')
 
         return getattr(app_module, 'app')
