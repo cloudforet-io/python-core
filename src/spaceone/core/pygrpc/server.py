@@ -83,9 +83,13 @@ def _get_app(app_path: str) -> GRPCServer:
 
     try:
         app_module = __import__(module_path, fromlist=[app_name])
+
+        if not hasattr(app_module, 'app'):
+            raise ImportError(f'App is not defined. (app_path = {package_path}.{app_path})')
+
         return getattr(app_module, 'app')
     except Exception as e:
-        _LOGGER.warning(f'[_get_app] Cannot import app. (reason = {e})', exc_info=True)
+        raise ImportError(f'Cannot import app: {e}')
 
 
 def _import_module(module_path, servicer_name):
