@@ -1,10 +1,15 @@
 import grpc
-import traceback
-from collections.abc import Iterable
 import inspect
-import types
 import logging
-from google.protobuf.json_format import MessageToDict
+import types
+from typing import Union
+from collections.abc import Iterable
+
+from google.protobuf.message_factory import MessageFactory
+from google.protobuf.json_format import MessageToDict, ParseDict
+from google.protobuf.descriptor_pool import DescriptorPool
+from google.protobuf.empty_pb2 import Empty
+
 from spaceone.core import config
 from spaceone.core.error import *
 from spaceone.core.locator import Locator
@@ -15,7 +20,13 @@ _LOGGER = logging.getLogger(__name__)
 class BaseAPI(object):
     locator = Locator()
 
+    pb2 = None
+    pb2_grpc = None
+
     def __init__(self):
+        self._desc_pool = self.pb2.DESCRIPTOR.pool
+        self._grpc_messages = {}
+        self._load_grpc_messages()
         self._check_variables()
         self._set_grpc_method()
 
@@ -30,6 +41,14 @@ class BaseAPI(object):
     @property
     def service_name(self):
         return self.pb2.DESCRIPTOR.services_by_name[self.__class__.__name__].full_name
+
+    def _load_grpc_messages(self):
+        service_desc: ServiceDescriptor = self._desc_pool.FindServiceByName(self.service_name)
+        for method_desc in service_desc.methods:
+            self._grpc_messages[method_desc.name] = {
+                'request': method_desc.input_type.name,
+                'response': method_desc.output_type.name
+            }
 
     def _check_variables(self):
         if not hasattr(self, 'pb2'):
@@ -122,6 +141,18 @@ class BaseAPI(object):
         else:
             return self._convert_message(request_or_iterator), self._get_metadata(context)
 
+    def empty(self):
+        return Empty()
+
+    def dict_to_message(self, response: dict):
+        # Get grpc method name from call stack
+        method_name = inspect.stack()[1][3]
+
+        response_message_name = self._grpc_messages[method_name]['response']
+        response_message = getattr(self.pb2, response_message_name)()
+
+        return ParseDict(response, response_message)
+
     @staticmethod
-    def get_minimal(params):
+    def get_minimal(params: dict):
         return params.get('query', {}).get('minimal', False)
