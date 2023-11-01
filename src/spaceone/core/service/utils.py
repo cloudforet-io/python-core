@@ -2,10 +2,46 @@ import re
 import functools
 from dateutil.parser import parse
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
+from typing import get_type_hints
+from pydantic import ValidationError
 
 from spaceone.core import utils
 from spaceone.core.error import *
+
+
+def _raise_pydantic_error(e: ValidationError):
+    for error in e.errors():
+        if error['type'] == 'value_error.missing':
+            raise ERROR_REQUIRED_PARAMETER(key=', '.join(error['loc']))
+        else:
+            raise ERROR_INVALID_PARAMETER(key=', '.join(error['loc']), reason=error['msg'])
+
+
+def convert_model(func):
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped_func(self, params):
+            type_hints = get_type_hints(func)
+
+            if params_hint := type_hints.get('params'):
+                if isinstance(params, dict):
+                    try:
+                        params = params_hint(**params)
+                    except ValidationError as e:
+                        _raise_pydantic_error(e)
+
+            response = func(self, params)
+
+            if return_hint := type_hints.get('return'):
+                if isinstance(response, return_hint):
+                    2/0
+                    response = response.dict()
+
+            return response
+
+        return wrapped_func
+
+    return wrapper(func)
 
 
 def change_only_key(change_rule, key_path='only'):
