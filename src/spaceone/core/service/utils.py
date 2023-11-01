@@ -17,9 +17,9 @@ def _raise_pydantic_error(e: ValidationError):
         else:
             raise ERROR_INVALID_PARAMETER(key=', '.join(error['loc']), reason=error['msg'])
 
-def _generate_response(response_iterator, return_hint):
+def _generate_response(response_iterator: types.GeneratorType):
     for response in response_iterator:
-        if return_hint and isinstance(response, BaseModel):
+        if isinstance(response, BaseModel):
             response = response.dict()
 
         yield response
@@ -31,7 +31,6 @@ def convert_model(func):
         def wrapped_func(self, params):
             type_hints = get_type_hints(func)
             params_hint = type_hints.get('params')
-            return_hint = type_hints.get('return')
 
             if params_hint and isinstance(params, dict):
                 try:
@@ -42,9 +41,9 @@ def convert_model(func):
             response_or_iterator = func(self, params)
 
             if isinstance(response_or_iterator, types.GeneratorType):
-                return _generate_response(response_or_iterator, return_hint)
+                return _generate_response(response_or_iterator)
             else:
-                if return_hint and isinstance(response_or_iterator, BaseModel):
+                if isinstance(response_or_iterator, BaseModel):
                     response_or_iterator = response_or_iterator.dict()
 
             return response_or_iterator
