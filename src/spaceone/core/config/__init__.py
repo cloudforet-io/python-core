@@ -58,7 +58,10 @@ def set_service_config():
     for key, value in vars(global_module).items():
         if not key.startswith('__'):
             if key in _GLOBAL:
-                _GLOBAL[key] = utils.deep_merge(value, _GLOBAL[key])
+                if isinstance(value, dict):
+                    _GLOBAL[key] = utils.deep_merge(value, _GLOBAL[key])
+                else:
+                    _GLOBAL[key] = value
             else:
                 _GLOBAL[key] = value
 
