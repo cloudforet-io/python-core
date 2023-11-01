@@ -34,7 +34,6 @@ def convert_model(func):
 
             if return_hint := type_hints.get('return'):
                 if isinstance(response, return_hint):
-                    2/0
                     response = response.dict()
 
             return response
