@@ -76,16 +76,17 @@ class GRPCServer(object):
         self.server.wait_for_termination()
 
 
-def _get_app(app_path: str) -> GRPCServer:
-    package_path = config.get_package()
-    app_module_path, app_name = app_path.split(':')
-    module_path = f'{package_path}.{app_module_path}'
+def _get_grpc_app() -> GRPCServer:
+    package: str = config.get_package()
+    app_path: str = config.get_global('GRPC_APP_PATH')
+    app_path = app_path.format(package=package)
+    module_path, app_name = app_path.split(':')
 
     try:
         app_module = __import__(module_path, fromlist=[app_name])
 
         if not hasattr(app_module, 'app'):
-            raise ImportError(f'App is not defined. (app_path = {package_path}.{app_path})')
+            raise ImportError(f'App is not defined. (app_path = {package}.{app_path})')
 
         return getattr(app_module, 'app')
     except Exception as e:
@@ -118,7 +119,7 @@ def _add_extension_services(app):
     return app
 
 
-def serve(app_path: str):
-    app = _get_app(app_path)
+def serve():
+    app = _get_grpc_app()
     app = _add_extension_services(app)
     app.run()
