@@ -134,8 +134,10 @@ def fast_api_app():
     return app
 
 
-def serve():
+def serve(app_path: str = None):
     conf = config.get_global()
+    app_path = conf['REST_APP_PATH']
+
     uvicorn_options = conf.get('UVICORN_OPTIONS', {})
 
     _LOGGER.info(f'Start REST Server ({config.get_service()}): '
