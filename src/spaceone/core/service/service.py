@@ -25,6 +25,8 @@ _TRACER = trace.get_tracer(__name__)
 
 class BaseService(CoreObject):
 
+    _plugin_methods = {}
+
     def __init__(self, metadata: dict = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.func_name = None
@@ -41,6 +43,7 @@ class BaseService(CoreObject):
 
         self.handler_exclude_apis = config.get_global('HANDLER_EXCLUDE_APIS', {})
         self.enable_stack_info = config.get_global('ENABLE_STACK_INFO', False)
+        self._methods = {}
 
     def __enter__(self):
         return self
@@ -48,6 +51,14 @@ class BaseService(CoreObject):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
             raise exc_val
+
+    @classmethod
+    def set_plugin_method(cls, method_name: str, func):
+        cls._plugin_methods[method_name] = func
+
+    @classmethod
+    def get_plugin_method(cls, method_name):
+        return cls._plugin_methods.get(method_name)
 
 
 def transaction(func=None, verb=None, append_meta=None):
