@@ -9,10 +9,15 @@ HOST = '127.0.0.1'
 MAX_WORKERS = 100
 MAX_MESSAGE_LENGTH = 1024 * 1024 * 1024
 
+# Global Configuration
+GLOBAL_CONF_PATH = '{package}.conf.global_conf:global_conf'
+
 # Unit Test Configuration
 MOCK_MODE = False
 
 # gRPC Configuration
+GRPC_APP_PATH = '{package}.interface.grpc:app'
+
 # gRPC Extension APIs
 GRPC_EXTENSION_SERVICERS = {
     'spaceone.core.pygrpc.extension.grpc_health': ['GRPCHealth'],
@@ -20,6 +25,8 @@ GRPC_EXTENSION_SERVICERS = {
 }
 
 # REST Configuration
+REST_APP_PATH = '{package}.interface.rest:app'
+
 # REST Application Options
 REST_TITLE = ''
 REST_DESCRIPTION = ''
@@ -41,6 +48,8 @@ UVICORN_OPTIONS = {
     'factory': True
 }
 
+# Plugin Configuration
+PLUGIN_APP_PATH = '{package}.main:app'
 
 # Handler Configuration
 HANDLERS = {
