@@ -8,20 +8,14 @@ import click
 import pkg_resources
 
 from spaceone.core import config, pygrpc, fastapi, utils, model
+from spaceone.core import plugin as plugin_server
 from spaceone.core import scheduler as scheduler_v1
 from spaceone.core.unittest.runner import RichTestRunner
 from spaceone.core.logger import set_logger
 from spaceone.core.opentelemetry import set_tracer, set_metric
+from spaceone.core.plugin.plugin_conf import PLUGIN_SOURCES
 
-_SOURCE_ALIAS = {
-    'auth': 'spaceone.identity.plugin.auth.skeleton',
-    'asset': 'spaceone.inventory.plugin.collector.skeleton',
-    'metric': 'spaceone.monitoring.plugin.metric.skeleton',
-    'log': 'spaceone.monitoring.plugin.log.skeleton',
-    'webhook': 'spaceone.monitoring.plugin.webhook.skeleton',
-    'cost': 'spaceone.cost_analysis.plugin.data_source.skeleton',
-    'notification': 'spaceone.notification.plugin.protocol.skeleton',
-}
+_GLOBAL_CONFIG_PATH = '{package}.conf.global_conf:global_conf'
 
 
 @click.group()
@@ -33,7 +27,7 @@ def cli():
 @click.argument('project_name')
 @click.option('-d', '--directory', type=click.Path(), help='Project directory')
 @click.option('-s', '--source', type=str, help=f'skeleton code of the plugin: ['
-                                               f'{"|".join(_SOURCE_ALIAS.keys())}] or '
+                                               f'{"|".join(PLUGIN_SOURCES.keys())}] or '
                                                f'module path(e.g. spaceone.core.skeleton)]')
 def create_project(project_name, directory=None, source=None):
     """Create a new project"""
@@ -45,8 +39,8 @@ def create_project(project_name, directory=None, source=None):
 @click.argument('package')
 @click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 50051),
               help='Port of gRPC server', show_default=True)
-@click.option('-a', '--app-path', type=str, default='interface.grpc:app', help='Path of gRPC application',
-              show_default=True)
+@click.option('-a', '--app-path', type=str,
+              help='Path of gRPC application [default: {package}.interface.grpc:app]')
 @click.option('-c', '--config-file', type=click.Path(exists=True),
               default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
 @click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Path of module')
@@ -54,7 +48,7 @@ def grpc(package, port=None, app_path=None, config_file=None, module_path=None):
     """Run a gRPC server"""
 
     # Initialize config
-    _set_server_config(package, module_path, port, config_file=config_file)
+    _set_server_config(package, module_path, port, config_file=config_file, grpc_app_path=app_path)
 
     # Enable logging configuration
     set_logger()
@@ -66,7 +60,7 @@ def grpc(package, port=None, app_path=None, config_file=None, module_path=None):
     model.init_all()
 
     # Run gRPC server
-    pygrpc.serve(app_path)
+    pygrpc.serve()
 
 
 @cli.command()
@@ -75,15 +69,15 @@ def grpc(package, port=None, app_path=None, config_file=None, module_path=None):
               help='Host of REST server', show_default=True)
 @click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 8000),
               help='Port of REST server', show_default=True)
-@click.option('-a', '--app-path', type=str, default='interface.rest:app', help='Path of gRPC application',
-              show_default=True)
+@click.option('-a', '--app-path', type=str,
+              help='Path of REST application [default: {package}.interface.rest:app]')
 @click.option('-c', '--config-file', type=click.Path(exists=True),
               default=lambda: os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
 @click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Path of module')
 def rest(package, host=None, port=None, app_path=None, config_file=None, module_path=None):
     """Run a FastAPI REST server"""
     # Initialize config
-    _set_server_config(package, module_path, port, config_file=config_file)
+    _set_server_config(package, module_path, port, config_file=config_file, rest_app_path=app_path)
 
     # Enable logging configuration
     set_logger()
@@ -119,6 +113,23 @@ def scheduler(package, config_file=None, module_path=None):
 
     # Run scheduler server
     scheduler_v1.serve()
+
+
+@cli.command()
+@click.argument('package')
+@click.option('-p', '--port', type=int, default=lambda: os.environ.get('SPACEONE_PORT', 50051),
+              help='Port of plugin server', show_default=True)
+@click.option('-a', '--app-path', type=str,
+              help='Path of Plugin application [default: {package}.main:app]')
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True, help='Path of module')
+def plugin(package, port=None, app_path=None, module_path=None):
+    """Run a plugin server"""
+
+    # Initialize config
+    _set_server_config(package, module_path, port, plugin_app_path=app_path, set_custom_config=False)
+
+    # Run Plugin Server
+    plugin_server.serve()
 
 
 @cli.command()
@@ -189,22 +200,27 @@ def _set_python_path(package, module_path):
                         'Please check the module path.')
 
 
-def _set_server_config(package, module_path=None, port=None, config_file=None):
+def _set_server_config(package, module_path=None, port=None, config_file=None, grpc_app_path=None,
+                       rest_app_path=None, plugin_app_path=None, set_custom_config=True):
     # 1. Set a python path
     _set_python_path(package, module_path)
 
     # 2. Initialize config from command argument
     config.init_conf(
         package=package,
-        port=port
+        port=port,
+        grpc_app_path=grpc_app_path,
+        rest_app_path=rest_app_path,
+        plugin_app_path=plugin_app_path
     )
 
-    # 3. Get service config from global_conf.py
-    config.set_service_config()
+    if set_custom_config:
+        # 3. Get service config from global_conf.py
+        config.set_service_config()
 
-    # 4. Merge file conf
-    if config_file:
-        config.set_file_conf(config_file)
+        # 4. Merge file conf
+        if config_file:
+            config.set_file_conf(config_file)
 
 
 def _create_project(project_name, directory=None, source=None):
@@ -215,7 +231,7 @@ def _create_project(project_name, directory=None, source=None):
 
     # Copy skeleton source code
     if source:
-        skeleton = _SOURCE_ALIAS.get(source, source)
+        skeleton = PLUGIN_SOURCES.get(source, source)
     else:
         skeleton = 'spaceone.core.skeleton'
 
