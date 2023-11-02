@@ -10,17 +10,27 @@ _GLOBAL = {}
 _LOGGER = logging.getLogger(__name__)
 
 
-def init_conf(package, **kwargs):
+def init_conf(package: str, port: int = None, host: str = None, grpc_app_path: str = None,
+              rest_app_path: str = None, plugin_app_path: str = None):
     set_default_conf()
 
     _GLOBAL['PACKAGE'] = package
     _GLOBAL['SERVICE'] = package.rsplit('.', 1)[-1:][0]
 
-    if 'host' in kwargs:
-        _GLOBAL['HOST'] = kwargs['HOST']
+    if host:
+        _GLOBAL['HOST'] = host
 
-    if 'port' in kwargs:
-        _GLOBAL['PORT'] = kwargs['port']
+    if port:
+        _GLOBAL['PORT'] = port
+
+    if grpc_app_path:
+        _GLOBAL['GRPC_APP_PATH'] = grpc_app_path
+
+    if rest_app_path:
+        _GLOBAL['REST_APP_PATH'] = rest_app_path
+
+    if plugin_app_path:
+        _GLOBAL['PLUGIN_APP_PATH'] = plugin_app_path
 
 
 def set_default_conf():
@@ -45,16 +55,21 @@ def get_connector(name):
     return _GLOBAL.get('CONNECTORS', {}).get(name, {})
 
 
-def set_service_config():
+def set_service_config(global_conf_path: str = None):
     """
-    Get config from service ({package}.conf.global_conf)
+    Get config from service
     """
 
     package = _GLOBAL['PACKAGE']
     if package is None:
         raise ValueError(f'Package is undefined.')
 
-    global_module = __import__(f'{package}.conf.global_conf', fromlist=['global_conf'])
+    global_conf_path = global_conf_path or _GLOBAL['GLOBAL_CONF_PATH']
+    global_conf_path = global_conf_path.format(package=package)
+
+    module_path, fromlist = global_conf_path.split(':')
+    global_module = __import__(module_path, fromlist=[fromlist])
+
     for key, value in vars(global_module).items():
         if not key.startswith('__'):
             if key in _GLOBAL:
@@ -147,7 +162,6 @@ def load_consul_config(endpoint):
         c = consul.Consul(**conf)
         index, data = c.kv.get(key)
         if data:
-            print(data)
             json_str = data['Value'].decode('utf-8')
             return utils.load_json(json_str)
 

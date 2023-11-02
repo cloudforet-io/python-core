@@ -1,11 +1,56 @@
 import re
 import functools
+import types
 from dateutil.parser import parse
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
+from typing import get_type_hints
+from pydantic import ValidationError, BaseModel
 
 from spaceone.core import utils
 from spaceone.core.error import *
+
+
+def _raise_pydantic_error(e: ValidationError):
+    for error in e.errors():
+        if error['type'] == 'value_error.missing':
+            raise ERROR_REQUIRED_PARAMETER(key=', '.join(error['loc']))
+        else:
+            raise ERROR_INVALID_PARAMETER(key=', '.join(error['loc']), reason=error['msg'])
+
+def _generate_response(response_iterator: types.GeneratorType):
+    for response in response_iterator:
+        if isinstance(response, BaseModel):
+            response = response.dict()
+
+        yield response
+
+
+def convert_model(func):
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped_func(self, params):
+            type_hints = get_type_hints(func)
+            params_hint = type_hints.get('params')
+
+            if params_hint and isinstance(params, dict):
+                try:
+                    params = params_hint(**params)
+                except ValidationError as e:
+                    _raise_pydantic_error(e)
+
+            response_or_iterator = func(self, params)
+
+            if isinstance(response_or_iterator, types.GeneratorType):
+                return _generate_response(response_or_iterator)
+            else:
+                if isinstance(response_or_iterator, BaseModel):
+                    response_or_iterator = response_or_iterator.dict()
+
+            return response_or_iterator
+
+        return wrapped_func
+
+    return wrapper(func)
 
 
 def change_only_key(change_rule, key_path='only'):
