@@ -1,6 +1,7 @@
 import re
 import functools
 import types
+from typing import Union
 from dateutil.parser import parse
 from datetime import datetime
 from typing import get_type_hints
@@ -17,7 +18,8 @@ def _raise_pydantic_error(e: ValidationError):
         else:
             raise ERROR_INVALID_PARAMETER(key=', '.join(error['loc']), reason=error['msg'])
 
-def _generate_response(response_iterator: types.GeneratorType):
+
+def _generate_response(response_iterator: types.GeneratorType) -> types.GeneratorType:
     for response in response_iterator:
         if isinstance(response, BaseModel):
             response = response.dict()
@@ -26,31 +28,28 @@ def _generate_response(response_iterator: types.GeneratorType):
 
 
 def convert_model(func):
-    def wrapper(func):
-        @functools.wraps(func)
-        def wrapped_func(self, params):
-            type_hints = get_type_hints(func)
-            params_hint = type_hints.get('params')
+    @functools.wraps(func)
+    def wrapped_func(self, params: dict) -> Union[dict, types.GeneratorType]:
+        type_hints = get_type_hints(func)
+        params_hint = type_hints.get('params')
 
-            if params_hint and isinstance(params, dict):
-                try:
-                    params = params_hint(**params)
-                except ValidationError as e:
-                    _raise_pydantic_error(e)
+        if params_hint and isinstance(params, dict):
+            try:
+                params = params_hint(**params)
+            except ValidationError as e:
+                _raise_pydantic_error(e)
 
-            response_or_iterator = func(self, params)
+        response_or_iterator = func(self, params)
 
-            if isinstance(response_or_iterator, types.GeneratorType):
-                return _generate_response(response_or_iterator)
-            else:
-                if isinstance(response_or_iterator, BaseModel):
-                    response_or_iterator = response_or_iterator.dict()
+        if isinstance(response_or_iterator, types.GeneratorType):
+            return _generate_response(response_or_iterator)
+        else:
+            if isinstance(response_or_iterator, BaseModel):
+                response_or_iterator = response_or_iterator.dict()
 
-            return response_or_iterator
+        return response_or_iterator
 
-        return wrapped_func
-
-    return wrapper(func)
+    return wrapped_func
 
 
 def change_only_key(change_rule, key_path='only'):
