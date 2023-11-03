@@ -85,7 +85,7 @@ class Locator(object):
                 else:
                     connector_module = _get_module(package, 'connector')
 
-                return getattr(connector_module, name_or_object)(**kwargs)
+                return getattr(connector_module, name_or_object)(connector_name=name_or_object, **kwargs)
             else:
                 return name_or_object(**kwargs)
 
@@ -94,19 +94,3 @@ class Locator(object):
 
         except Exception as e:
             raise ERROR_LOCATOR(name=name_or_object, reason=e, _meta={'type': 'connector'})
-
-    @staticmethod
-    def get_manager(name_or_object: [str, object], **kwargs):
-        package = config.get_package()
-        try:
-            if isinstance(name_or_object, str):
-                manager_module = _get_module(package, 'manager')
-                return getattr(manager_module, name_or_object)(**kwargs)
-            else:
-                return name_or_object(**kwargs)
-
-        except ERROR_BASE as e:
-            raise e
-
-        except Exception as e:
-            raise ERROR_LOCATOR(name=name_or_object, reason=e, _meta={'type': 'manager'})
