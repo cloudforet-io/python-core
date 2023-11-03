@@ -31,3 +31,4 @@ opentelemetry-sdk
 opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-instrumentation-logging
 opentelemetry-exporter-prometheus
+spaceone-core
