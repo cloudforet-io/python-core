@@ -23,6 +23,7 @@ requests
 click
 pydantic
 mongoengine
+boto3
 unittest-xml-reporting
 factory-boy
 mongomock

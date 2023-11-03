@@ -75,6 +75,9 @@ setup(
         'pydantic',
         'mongoengine',
 
+        # AWS packages
+        'boto3',
+
         # test framework packages
         'unittest-xml-reporting',
         'factory-boy',
