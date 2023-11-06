@@ -51,11 +51,14 @@ def run():
               help='Port of gRPC server', show_default=True)
 @click.option('-c', '--config-file', type=click.Path(exists=True),
               default=os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
-def grpc_server(package, app_path=None, source_root=None, port=None, config_file=None):
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True,
+              help='Additional python path')
+def grpc_server(package, app_path=None, source_root=None, port=None, config_file=None, module_path=None):
     """Run a gRPC server"""
 
     # Initialize config
-    _set_server_config(package, source_root, port, config_file=config_file, grpc_app_path=app_path)
+    _set_server_config(package, source_root, port, config_file=config_file, grpc_app_path=app_path,
+                       module_path=module_path)
 
     # Enable logging configuration
     set_logger()
@@ -82,10 +85,13 @@ def grpc_server(package, app_path=None, source_root=None, port=None, config_file
               help='Host of REST server', show_default=True)
 @click.option('-c', '--config-file', type=click.Path(exists=True),
               default=os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
-def rest_server(package, app_path=None, source_root=None, port=None, host=None, config_file=None):
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True,
+              help='Additional python path')
+def rest_server(package, app_path=None, source_root=None, port=None, host=None, config_file=None, module_path=None):
     """Run a FastAPI REST server"""
     # Initialize config
-    _set_server_config(package, source_root, port, host=host, config_file=config_file, rest_app_path=app_path)
+    _set_server_config(package, source_root, port, host=host, config_file=config_file, rest_app_path=app_path,
+                       module_path=module_path)
 
     # Enable logging configuration
     set_logger()
@@ -106,10 +112,12 @@ def rest_server(package, app_path=None, source_root=None, port=None, host=None, 
               help='Path of source root', show_default=True)
 @click.option('-c', '--config-file', type=click.Path(exists=True),
               default=os.environ.get('SPACEONE_CONFIG_FILE'), help='Path of config file')
-def scheduler(package, source_root=None, config_file=None):
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True,
+              help='Additional python path')
+def scheduler(package, source_root=None, config_file=None, module_path=None):
     """Run a scheduler server"""
     # Initialize config
-    _set_server_config(package, source_root, config_file=config_file)
+    _set_server_config(package, source_root, config_file=config_file, module_path=module_path)
 
     # Enable logging configuration
     set_logger()
@@ -132,11 +140,14 @@ def scheduler(package, source_root=None, config_file=None):
               help='Path of source root', show_default=True)
 @click.option('-p', '--port', type=int, default=os.environ.get('SPACEONE_PORT', 50051),
               help='Port of plugin server', show_default=True)
-def plugin_server(package, app_path=None, source_root=None, port=None):
+@click.option('-m', '--module-path', type=click.Path(exists=True), multiple=True,
+              help='Additional python path')
+def plugin_server(package, app_path=None, source_root=None, port=None, module_path=None):
     """Run a plugin server"""
 
     # Initialize config
-    _set_server_config(package, source_root, port, plugin_app_path=app_path, set_custom_config=False)
+    _set_server_config(package, source_root, port, plugin_app_path=app_path, module_path=module_path,
+                       set_custom_config=False)
 
     # Run Plugin Server
     plugin_srv.serve()
@@ -190,11 +201,16 @@ def test(config_file=None, dir=None, failfast=False, scenario: str = None, param
     RichTestRunner(verbosity=verbose, failfast=failfast).run(full_suite)
 
 
-def _set_python_path(package: str, source_root: str = None):
+def _set_python_path(package: str, source_root: str = None, module_path: List[str] = None):
     source_root = source_root or os.getcwd()
 
     if source_root not in sys.path:
         sys.path.insert(0, source_root)
+
+    if module_path:
+        for path in module_path:
+            if path not in sys.path:
+                sys.path.insert(0, path)
 
     if '.' in package:
         pkg_resources.declare_namespace(package)
@@ -207,9 +223,9 @@ def _set_python_path(package: str, source_root: str = None):
 
 
 def _set_server_config(package, source_root=None, port=None, host=None, config_file=None, grpc_app_path=None,
-                       rest_app_path=None, plugin_app_path=None, set_custom_config=True):
+                       rest_app_path=None, plugin_app_path=None, module_path=None, set_custom_config=True):
     # 1. Set a python path
-    _set_python_path(package, source_root)
+    _set_python_path(package, source_root, module_path)
 
     # 2. Initialize config from command argument
     config.init_conf(
