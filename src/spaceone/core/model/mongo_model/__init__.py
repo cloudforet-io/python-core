@@ -149,8 +149,6 @@ class MongoModel(Document, BaseModel):
                 register_connection(alias, **db_conf)
                 is_connect = True
                 _LOGGER.debug(f'Create MongoDB Connection: {alias}')
-            else:
-                _LOGGER.warning(f'MongoDB is not configured. (alias = {alias})')
 
         return is_connect
 
