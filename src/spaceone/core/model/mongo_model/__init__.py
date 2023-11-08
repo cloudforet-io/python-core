@@ -523,8 +523,57 @@ class MongoModel(Document, BaseModel):
         return changed_only
 
     @classmethod
+    def _stat_with_unwind(cls, only=None, filter=None, filter_or=None, sort=None, page=None,
+                                       unwind=None, target=None):
+        if only is None:
+            raise ERROR_DB_QUERY(reason='unwind option requires only option.')
+
+        aggregate = [
+            {
+                'unwind': {
+                    'path': unwind
+                }
+            },
+            {
+                'project': {
+                    'exclude_keys': True,
+                    'only_keys': True,
+                    'fields': []
+                }
+            }
+        ]
+
+        for key in only:
+            aggregate[1]['project']['fields'].append({
+                'key': key,
+                'name': key,
+            })
+
+        if sort:
+            aggregate.append({
+                'sort': sort
+            })
+
+        response = cls.stat(aggregate=aggregate, filter=filter, filter_or=filter_or, page=page, tageet=target)
+
+        try:
+            vos = []
+            total_count = response.get('total_count', 0)
+            for result in response.get('results', []):
+
+                unwind_data = utils.get_dict_value(result, unwind)
+                result = utils.change_dict_value(result, unwind, [unwind_data])
+
+                vo = cls(**result)
+                vos.append(vo)
+        except Exception as e:
+            raise ERROR_DB_QUERY(reason=f'Failed to convert unwind result: {e}')
+
+        return vos, total_count
+
+    @classmethod
     def query(cls, *args, only=None, exclude=None, all_fields=False, filter=None, filter_or=None,
-              sort=None, page=None, minimal=False, count_only=False, target=None, **kwargs):
+              sort=None, page=None, minimal=False, count_only=False, unwind=None, target=None, **kwargs):
 
         if filter is None:
             filter = []
@@ -538,76 +587,78 @@ class MongoModel(Document, BaseModel):
         if page is None:
             page = {}
 
-        _order_by = []
-        minimal_fields = cls._meta.get('minimal_fields')
+        if unwind:
+            return cls._stat_with_unwind(only, filter, filter_or, sort, page, unwind)
 
-        _filter = cls._make_filter(filter, filter_or)
+        else:
+            _order_by = []
+            minimal_fields = cls._meta.get('minimal_fields')
 
-        if 'key' in sort:
-            if sort.get('desc', False):
-                _order_by.append(f'-{sort["key"]}')
-            else:
-                _order_by.append(f'{sort["key"]}')
-        elif 'keys' in sort:
-            for s in sort['keys']:
-                if s.get('desc', False):
-                    _order_by.append(f'-{s["key"]}')
+            _filter = cls._make_filter(filter, filter_or)
+
+            if 'key' in sort:
+                if sort.get('desc', False):
+                    _order_by.append(f'-{sort["key"]}')
                 else:
-                    _order_by.append(f'{s["key"]}')
+                    _order_by.append(f'{sort["key"]}')
+            elif 'keys' in sort:
+                for s in sort['keys']:
+                    if s.get('desc', False):
+                        _order_by.append(f'-{s["key"]}')
+                    else:
+                        _order_by.append(f'{s["key"]}')
 
-        try:
-            vos = cls._get_target_objects(target).filter(_filter)
+            try:
+                vos = cls._get_target_objects(target).filter(_filter)
 
-            if len(_order_by) > 0:
-                vos = vos.order_by(*_order_by)
-
-            if only:
                 if len(_order_by) > 0:
-                    ordering = _order_by
+                    vos = vos.order_by(*_order_by)
+
+                if only:
+                    if len(_order_by) > 0:
+                        ordering = _order_by
+                    else:
+                        ordering = cls._meta.get('ordering')
+
+                    for key in ordering:
+                        if key.startswith('+') or key.startswith('-'):
+                            key = key[1:]
+                        if key not in only:
+                            only.append(key)
+
+                    only = cls._remove_duplicate_only_keys(only)
+                    vos = vos.only(*only)
+
+                if exclude:
+                    vos = vos.exclude(*exclude)
+
+                if minimal and minimal_fields:
+                    vos = vos.only(*minimal_fields)
+
+                if all_fields:
+                    vos = vos.all_fields()
+
+                total_count = vos.count()
+
+                if count_only:
+                    vos = []
+
                 else:
-                    ordering = cls._meta.get('ordering')
+                    if 'limit' in page and page['limit'] > 0:
+                        start = page.get('start', 1)
+                        if start < 1:
+                            start = 1
 
-                for key in ordering:
-                    if key.startswith('+') or key.startswith('-'):
-                        key = key[1:]
-                    if key not in only:
-                        only.append(key)
+                        vos = vos[start - 1:start + page['limit'] - 1]
 
-                only = cls._remove_duplicate_only_keys(only)
-                vos = vos.only(*only)
+                return vos, total_count
 
-            if exclude:
-                vos = vos.exclude(*exclude)
-
-            if minimal and minimal_fields:
-                vos = vos.only(*minimal_fields)
-
-            if all_fields:
-                vos = vos.all_fields()
-
-            total_count = vos.count()
-
-            if count_only:
-                vos = []
-
-            else:
-                if 'limit' in page and page['limit'] > 0:
-                    start = page.get('start', 1)
-                    if start < 1:
-                        start = 1
-
-                    vos = vos[start - 1:start + page['limit'] - 1]
-
-            return vos, total_count
-
-        except Exception as e:
-            raise ERROR_DB_QUERY(reason=e)
+            except Exception as e:
+                raise ERROR_DB_QUERY(reason=e)
 
     @classmethod
     def _check_well_known_type(cls, value):
-        if isinstance(value, datetime):
-            return f'{value.isoformat()}Z'
-        elif isinstance(value, bson.objectid.ObjectId):
+        if isinstance(value, bson.objectid.ObjectId):
             return str(value)
         elif isinstance(value, Document):
             return str(value.id)
@@ -808,6 +859,7 @@ class MongoModel(Document, BaseModel):
         _rules = []
         _fields = options.get('fields', [])
         _exclude_keys = options.get('exclude_keys', False)
+        _only_keys = options.get('only_keys', False)
         _project_rule = {
             '$project': {
             }
@@ -826,7 +878,10 @@ class MongoModel(Document, BaseModel):
                 if key in _group_keys:
                     key = f'_id.{key}'
 
-                _project_rule['$project'][name] = f'${key}'
+                if _only_keys:
+                    _project_rule['$project'][name] = 1
+                else:
+                    _project_rule['$project'][name] = f'${key}'
 
         if _exclude_keys:
             _project_rule['$project']['_id'] = 0
