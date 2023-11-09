@@ -1053,7 +1053,6 @@ class MongoModel(Document, BaseModel):
             else:
                 raise ERROR_DB_QUERY(reason=f'Unsupported operator: {operator}')
 
-        print(match_options)
         return {
             '$match': match_options
         }
