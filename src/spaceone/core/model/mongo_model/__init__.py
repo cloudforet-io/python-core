@@ -996,7 +996,7 @@ class MongoModel(Document, BaseModel):
         for condition in options.get('filter', []):
             key = condition.get('key', condition.get('k'))
             value = condition.get('value', condition.get('v'))
-            operator = condition.get('opperator', condition.get('o'))
+            operator = condition.get('operator', condition.get('o'))
 
             if not (key and value and operator):
                 raise ERROR_REQUIRED_PARAMETER(key='aggregate.match.filter')
