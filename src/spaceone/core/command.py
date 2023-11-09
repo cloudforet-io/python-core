@@ -5,7 +5,6 @@ import unittest
 from typing import List
 
 import click
-import pkg_resources
 
 from spaceone.core import config, pygrpc, fastapi, utils, model
 from spaceone.core import plugin as plugin_srv
@@ -213,8 +212,7 @@ def _set_python_path(package: str, source_root: str = None, module_path: List[st
                 sys.path.insert(0, path)
 
     if '.' in package:
-        pkg_resources.declare_namespace(package)
-
+        __path__ = __import__('pkgutil').extend_path(__path__, package)
     try:
         __import__(package)
     except Exception:
