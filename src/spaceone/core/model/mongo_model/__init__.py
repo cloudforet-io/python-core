@@ -522,33 +522,70 @@ class MongoModel(Document, BaseModel):
 
         return changed_only
 
-    @classmethod
-    def _stat_with_unwind(cls, only=None, filter=None, filter_or=None, sort=None, page=None,
-                                       unwind=None, target=None):
-        if only is None:
-            raise ERROR_DB_QUERY(reason='unwind option requires only option.')
-
-        aggregate = [
-            {
-                'unwind': {
-                    'path': unwind
-                }
-            },
-            {
-                'project': {
-                    'exclude_keys': True,
-                    'only_keys': True,
-                    'fields': []
-                }
-            }
-        ]
-
+    @staticmethod
+    def _make_unwind_project_stage(only: list):
+        project_fields = []
         for key in only:
-            aggregate[1]['project']['fields'].append({
+            project_fields.append({
                 'key': key,
                 'name': key,
             })
 
+        return {
+            'project': {
+                'exclude_keys': False,
+                'only_keys': False,
+                'fields': project_fields
+            }
+        }
+
+    @classmethod
+    def _stat_with_unwind(cls, unwind: list, only: list = None, filter: list = None, filter_or: list = None,
+                          sort: dict = None, page: dict = None, target: str = None):
+        if only is None:
+            raise ERROR_DB_QUERY(reason='unwind option requires only option.')
+
+        if not isinstance(unwind, dict):
+            raise ERROR_DB_QUERY(reason='unwind option should be dict type.')
+
+        if 'path' not in unwind:
+            raise ERROR_DB_QUERY(reason='unwind option should have path key.')
+
+        unwind_path = unwind['path']
+        unwind_filter = unwind.get('filter')
+
+        aggregate = [
+            {
+                'unwind': {
+                    'path': unwind_path
+                }
+            }
+        ]
+
+        if unwind_filter:
+            aggregate.append({
+                'match': {
+                    'filter': unwind_filter
+                }
+            })
+
+        # Add project stage
+        project_fields = []
+        for key in only:
+            project_fields.append({
+                'key': key,
+                'name': key,
+            })
+
+        aggregate.append({
+            'project': {
+                'exclude_keys': True,
+                'only_keys': True,
+                'fields': project_fields
+            }
+        })
+
+        # Add sort stage
         if sort:
             aggregate.append({
                 'sort': sort
@@ -560,9 +597,8 @@ class MongoModel(Document, BaseModel):
             vos = []
             total_count = response.get('total_count', 0)
             for result in response.get('results', []):
-
-                unwind_data = utils.get_dict_value(result, unwind)
-                result = utils.change_dict_value(result, unwind, [unwind_data])
+                unwind_data = utils.get_dict_value(result, unwind_path)
+                result = utils.change_dict_value(result, unwind_path, [unwind_data])
 
                 vo = cls(**result)
                 vos.append(vo)
@@ -588,7 +624,7 @@ class MongoModel(Document, BaseModel):
             page = {}
 
         if unwind:
-            return cls._stat_with_unwind(only, filter, filter_or, sort, page, unwind)
+            return cls._stat_with_unwind(unwind, only, filter, filter_or, sort, page, target)
 
         else:
             _order_by = []
@@ -952,6 +988,76 @@ class MongoModel(Document, BaseModel):
         }
 
     @classmethod
+    def _make_match_rule(cls, options):
+        match_options = {
+            '$and': []
+        }
+
+        for condition in options.get('filter', []):
+            key = condition.get('key', condition.get('k'))
+            value = condition.get('value', condition.get('v'))
+            operator = condition.get('opperator', condition.get('o'))
+
+            if not (key and value and operator):
+                raise ERROR_REQUIRED_PARAMETER(key='aggregate.match.filter')
+
+            if operator == 'eq':
+                match_options['$and'].append({
+                    key: value
+                })
+            elif operator == 'not':
+                match_options['$and'].append({
+                    key: {
+                        '$ne': value
+                    }
+                })
+            elif operator == 'in':
+                match_options['$and'].append({
+                    key: {
+                        '$in': value
+                    }
+                })
+            elif operator == 'not_in':
+                match_options['$and'].append({
+                    key: {
+                        '$nin': value
+                    }
+                })
+            elif operator == 'contain':
+                match_options['$and'].append({
+                    key: {
+                        '$regex': f'.*{value}.*'
+                    }
+
+                })
+            elif operator == 'not_contain':
+                match_options['$and'].append({
+                    key: {
+                        '$not': {
+                            '$regex': f'.*{value}.*'
+                        }
+                    }
+                })
+            elif operator == 'contain_in':
+                match_options['$and'].append({
+                    '$or': [
+                        {key: {'$regex': f'.*{v}.*'}} for v in value
+                    ]
+                })
+            elif operator == 'not_contain_in':
+                match_options['$and'].append({
+                    '$nor': [
+                        {key: {'$regex': f'.*{v}.*'}} for v in value
+                    ]
+                })
+            else:
+                raise ERROR_DB_QUERY(reason=f'Unsupported operator: {operator}')
+
+        return {
+            '$match': match_options
+        }
+
+    @classmethod
     def _make_aggregate_rules(cls, aggregate):
         _aggregate_rules = []
         _group_keys = []
@@ -981,6 +1087,9 @@ class MongoModel(Document, BaseModel):
                 _aggregate_rules.append(rule)
             elif 'skip' in stage:
                 rule = cls._make_skip_rule(stage['skip'])
+                _aggregate_rules.append(rule)
+            elif 'match' in stage:
+                rule = cls._make_match_rule(stage['match'])
                 _aggregate_rules.append(rule)
             else:
                 raise ERROR_REQUIRED_PARAMETER(key='aggregate.unwind or aggregate.group or '
