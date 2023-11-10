@@ -121,5 +121,5 @@ def add_extension_services(app):
 
 def serve():
     app = _get_grpc_app()
-    app = _add_extension_services(app)
+    app = add_extension_services(app)
     app.run()
