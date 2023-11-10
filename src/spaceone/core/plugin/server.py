@@ -1,7 +1,7 @@
 from spaceone.core import config
 from spaceone.core.logger import set_logger
 from spaceone.core.opentelemetry import set_tracer, set_metric
-from spaceone.core.pygrpc.server import GRPCServer
+from spaceone.core.pygrpc.server import GRPCServer, add_extension_services
 
 
 class PluginServer(object):
@@ -19,6 +19,10 @@ class PluginServer(object):
 
         # Set OTel Tracer and Metric
         set_tracer()
+
+    @property
+    def grpc_app(self) -> GRPCServer:
+        return self._grpc_app
 
     @classmethod
     def route(cls, plugin_method: str) -> callable:
@@ -38,7 +42,8 @@ class PluginServer(object):
         return wrapper
 
     def run(self):
-        self._grpc_app.run()
+        add_extension_services(self.grpc_app)
+        self.grpc_app.run()
 
 
 def _get_plugin_app() -> PluginServer:
