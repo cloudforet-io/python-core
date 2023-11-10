@@ -103,7 +103,7 @@ def _import_module(module_path, servicer_name):
     return module
 
 
-def _add_extension_services(app):
+def add_extension_services(app):
     ext_proto_conf = config.get_global('GRPC_EXTENSION_SERVICERS', {})
     for module_path, servicer_names in ext_proto_conf.items():
         for servicer_name in servicer_names:
