@@ -285,7 +285,12 @@ def get_dict_value(data: dict, dotted_key: str, default_value: any = None):
 
         if isinstance(data, dict) and key in data:
             if isinstance(data[key], list):
-                return get_list_values(data[key], rest, default_value)
+                list_values = []
+                for value in data[key]:
+                    list_values.append(get_dict_value(value, rest, default_value))
+
+                return list_values
+
             else:
                 return get_dict_value(data[key], rest, default_value)
 
@@ -293,6 +298,7 @@ def get_dict_value(data: dict, dotted_key: str, default_value: any = None):
             return default_value
     else:
         if isinstance(data, dict):
+            print(dotted_key, data.get(dotted_key))
             return data.get(dotted_key, default_value)
         else:
             return default_value
