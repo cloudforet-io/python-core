@@ -298,7 +298,6 @@ def get_dict_value(data: dict, dotted_key: str, default_value: any = None):
             return default_value
     else:
         if isinstance(data, dict):
-            print(dotted_key, data.get(dotted_key))
             return data.get(dotted_key, default_value)
         else:
             return default_value
