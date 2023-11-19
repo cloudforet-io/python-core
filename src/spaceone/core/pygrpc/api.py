@@ -2,13 +2,12 @@ import grpc
 import inspect
 import logging
 import types
-from typing import Union
 from collections.abc import Iterable
 
-from google.protobuf.message_factory import MessageFactory
+from google.protobuf.descriptor import ServiceDescriptor
 from google.protobuf.json_format import MessageToDict, ParseDict
-from google.protobuf.descriptor_pool import DescriptorPool
 from google.protobuf.empty_pb2 import Empty
+from google.protobuf.struct_pb2 import Struct
 
 from spaceone.core import config
 from spaceone.core.error import *
@@ -149,7 +148,13 @@ class BaseAPI(object):
         method_name = inspect.stack()[1][3]
 
         response_message_name = self._grpc_messages[method_name]['response']
-        response_message = getattr(self.pb2, response_message_name)()
+
+        if hasattr(self.pb2, response_message_name):
+            response_message = getattr(self.pb2, response_message_name)()
+        elif response_message_name == 'Struct':
+            response_message = Struct()
+        else:
+            raise Exception(f'Not found response message in pb2. (message={response_message_name})')
 
         return ParseDict(response, response_message)
 
