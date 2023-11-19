@@ -381,7 +381,7 @@ class MongoModel(Document, BaseModel):
         return cls.objects.filter(**change_conditions)
 
     def to_dict(self):
-        return self.to_mongo()
+        return dict(self.to_mongo())
 
     @classmethod
     def _get_target_objects(cls, target):
