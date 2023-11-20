@@ -6,11 +6,11 @@ on:
       version:
         description: 'enter version(x.y.z)'
         required: true
-        default: '1.0.0'
+        default: '2.0.0'
       container_arch:
         type: choice
         description: 'choose container architecture'
-        default: linux/amd64,linux/arm64
+        default: linux/amd64
         options:
         - "linux/amd64"
         - "linux/amd64,linux/arm64"
@@ -128,7 +128,7 @@ jobs:
             cloudforet/${{ github.event.repository.name }}:${{ env.VERSION }}
             cloudforet/${{ github.event.repository.name }}:${{ env.X_VERSION }}
             cloudforet/${{ github.event.repository.name }}:${{ env.XY_VERSION }}
-
+          provenance: false
       - name: Notice when job fails
         if: failure()
         uses: 8398a7/action-slack@v3.15.0
