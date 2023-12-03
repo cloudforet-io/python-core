@@ -107,15 +107,13 @@ class MongoModel(Document, BaseModel):
             for alias, db_conf in databases.items():
                 is_connect = cls._connect(alias, db_conf, db_name_prefix)
                 if is_connect:
-                    for model in cls.get_inherited_models():
-                        if (model != cls
-                                and issubclass(model, MongoModel)
-                                and model not in _MONGO_INIT_MODELS):
-                            model.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-                            model._create_index()
-                            model._load_default_meta()
+                    package_path = config.get_package()
+                    model_path = config.get_global('DATABASE_MODEL_PATH', 'model')
+                    __import__(f'{package_path}.{model_path}', fromlist=['*'])
 
-                            _MONGO_INIT_MODELS.append(model)
+                    for model in cls.__subclasses__():
+                        model._create_index()
+                        model._load_default_meta()
 
     @classmethod
     def _connect(cls, alias: str, db_conf: dict, db_name_prefix: str):
@@ -608,7 +606,7 @@ class MongoModel(Document, BaseModel):
         return vos, total_count
 
     @classmethod
-    def query(cls, *args, only=None, exclude=None, all_fields=False, filter=None, filter_or=None,
+    def query(cls, *args, only=None, exclude=None, filter=None, filter_or=None,
               sort=None, page=None, minimal=False, count_only=False, unwind=None, target=None, **kwargs):
 
         if filter is None:
@@ -670,9 +668,6 @@ class MongoModel(Document, BaseModel):
 
                 if minimal and minimal_fields:
                     vos = vos.only(*minimal_fields)
-
-                if all_fields:
-                    vos = vos.all_fields()
 
                 total_count = vos.count()
 
