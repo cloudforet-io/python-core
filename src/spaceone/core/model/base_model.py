@@ -13,7 +13,7 @@ class BaseModel(object):
         raise NotImplementedError('model.init not implemented!')
 
     @classmethod
-    def create(cls, data: dict) -> object:
+    def create(cls, data: dict):
         """
         Args:
             data (dict)
@@ -22,7 +22,7 @@ class BaseModel(object):
         """
         raise NotImplementedError('model.create not implemented!')
 
-    def update(self, data: dict) -> object:
+    def update(self, data: dict):
         """
         Args:
             data (dict)
@@ -57,7 +57,7 @@ class BaseModel(object):
         """
         raise NotImplementedError('model.increment not implemented!')
 
-    def decrement(self, key: str, amount: int = 1) -> object:
+    def decrement(self, key: str, amount: int = 1):
         """
         Args:
             key (str)
@@ -68,7 +68,7 @@ class BaseModel(object):
         raise NotImplementedError('model.decrement not implemented!')
 
     @classmethod
-    def get(cls, **conditions) -> object:
+    def get(cls, **conditions):
         """
         Args:
             **conditions (kwargs)
@@ -79,7 +79,7 @@ class BaseModel(object):
         raise NotImplementedError('model.get not implemented!')
 
     @classmethod
-    def filter(cls, **conditions) -> List[object]:
+    def filter(cls, **conditions):
         """
         Args:
             **conditions (kwargs)
@@ -89,7 +89,7 @@ class BaseModel(object):
         """
         raise NotImplementedError('model.filter not implemented!')
 
-    def to_dict(self) -> dict:
+    def to_dict(self):
         """
         Args:
         Returns:
@@ -110,7 +110,7 @@ class BaseModel(object):
             minimal: bool = False,
             count_only: bool = False,
             **kwargs
-    ) -> Tuple[List[object], int]:
+    ):
         """
         Args:
             *args (list)
@@ -148,7 +148,7 @@ class BaseModel(object):
             date_field: str = 'date',
             date_field_format: str = '%Y-%m-%d',
             **kwargs
-    ) -> Tuple[List[object], bool]:
+    ):
         """
         Args:
             *args (list)

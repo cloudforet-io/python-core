@@ -59,15 +59,7 @@ HANDLERS = {
     'event': []
 }
 
-HANDLER_EXCLUDE_APIS = {
-    'authentication': [],
-    'authorization': [],
-    'mutation': [],
-    'event': []
-}
-
 # Logging Configuration
-ENABLE_STACK_INFO = False
 LOG = {}
 
 # OpenTelemetry Configuration

@@ -58,14 +58,8 @@ def grpc_server(package, app_path=None, source_root=None, port=None, config_file
     _set_server_config(package, source_root, port, config_file=config_file, grpc_app_path=app_path,
                        module_path=module_path)
 
-    # Enable logging configuration
-    set_logger()
-
-    # Set OTel Tracer and Metric
-    set_tracer()
-
-    # Connect all databases
-    model.init_all()
+    # Initialize common modules
+    _init_common_modules()
 
     # Run gRPC server
     pygrpc.serve()
@@ -87,18 +81,13 @@ def grpc_server(package, app_path=None, source_root=None, port=None, config_file
               help='Additional python path')
 def rest_server(package, app_path=None, source_root=None, port=None, host=None, config_file=None, module_path=None):
     """Run a FastAPI REST server"""
+
     # Initialize config
     _set_server_config(package, source_root, port, host=host, config_file=config_file, rest_app_path=app_path,
                        module_path=module_path)
 
-    # Enable logging configuration
-    set_logger()
-
-    # Set OTel Tracer and Metric
-    set_tracer()
-
-    # Connect all databases
-    model.init_all()
+    # Initialize common modules
+    _init_common_modules()
 
     # Run REST server
     fastapi.serve()
@@ -114,17 +103,12 @@ def rest_server(package, app_path=None, source_root=None, port=None, host=None, 
               help='Additional python path')
 def scheduler(package, source_root=None, config_file=None, module_path=None):
     """Run a scheduler server"""
+
     # Initialize config
     _set_server_config(package, source_root, config_file=config_file, module_path=module_path)
 
-    # Enable logging configuration
-    set_logger()
-
-    # Set OTel Tracer and Metric
-    set_tracer()
-
-    # Connect all databases
-    model.init_all()
+    # Initialize common modules
+    _init_common_modules()
 
     # Run scheduler server
     scheduler_v1.serve()
@@ -273,6 +257,17 @@ def _print_config(output):
         print(utils.dump_json(data, indent=4))
     else:
         print(utils.dump_yaml(data))
+
+
+def _init_common_modules() -> None:
+    # Enable logging configuration
+    set_logger()
+
+    # Set OTel Tracer and Metric
+    set_tracer()
+
+    # Connect all databases
+    model.init_all()
 
 
 if __name__ == '__main__':

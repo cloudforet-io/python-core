@@ -1,16 +1,13 @@
-import os
 import re
 import time
 import random
 import string
 import secrets
-import sys
 import datetime
 import yaml
 import json
 import hashlib
 import urllib
-import pkg_resources
 
 from urllib.parse import urlparse
 from dateutil.parser import isoparse
