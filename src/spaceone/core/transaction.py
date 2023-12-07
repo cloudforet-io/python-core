@@ -3,7 +3,7 @@ import traceback
 import logging
 from threading import local
 
-from spaceone.core import utils, config
+from spaceone.core import utils
 from opentelemetry import trace
 from opentelemetry.trace import format_trace_id
 from opentelemetry.trace.span import TraceFlags
@@ -17,18 +17,25 @@ LOCAL_STORAGE = local()
 
 class Transaction(object):
 
-    def __init__(self, resource: str = None, verb: str = None, trace_id: str = None, meta=None):
+    def __init__(
+            self,
+            service: str = None,
+            resource: str = None,
+            verb: str = None,
+            trace_id: str = None,
+            meta=None
+    ):
         self._id = None
         self._thread_id = str(threading.current_thread().ident)
-        self._service = config.get_service()
+        self._service = service
         self._resource = resource
         self._verb = verb
         self._rollbacks = []
-        self._set_meta(meta)
+        self._init_meta(meta)
         self._set_trace_id(trace_id)
         self._event_handlers = []
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Transaction ({self._resource}.{self._verb})>"
 
     def _set_trace_id(self, trace_id: str = None) -> None:
@@ -37,7 +44,7 @@ class Transaction(object):
         else:
             self._id = format_trace_id(utils.generate_trace_id())
 
-    def _set_meta(self, meta: dict = None):
+    def _init_meta(self, meta: dict = None):
         if meta:
             self._meta = meta.copy()
         else:
@@ -63,7 +70,7 @@ class Transaction(object):
     def verb(self) -> str:
         return self._verb
 
-    def add_rollback(self, fn, *args, **kwargs) -> None:
+    def add_rollback(self, fn: callable, *args, **kwargs) -> None:
         self._rollbacks.insert(0, {
             'fn': fn,
             'args': args,
@@ -74,18 +81,18 @@ class Transaction(object):
         for rollback in self._rollbacks:
             try:
                 rollback['fn'](*rollback['args'], **rollback['kwargs'])
-            except Exception:
-                _LOGGER.info(f'[ROLLBACK-ERROR] {self}')
+            except Exception as e:
+                _LOGGER.info(f'[ROLLBACK-ERROR] {self}: {e}')
                 _LOGGER.info(traceback.format_exc())
 
     @property
     def meta(self) -> dict:
         return self._meta
 
-    def set_meta(self, key, value) -> None:
+    def set_meta(self, key: str, value: any) -> None:
         self._meta[key] = value
 
-    def get_meta(self, key, default=None):
+    def get_meta(self, key: str , default: any = None):
         return self._meta.get(key, default)
 
     def get_connection_meta(self) -> list:
@@ -94,13 +101,6 @@ class Transaction(object):
         for key in keys:
             result.append((key, self.get_meta(key)))
         return result
-
-    def notify_event(self, message):
-        for handler in self._event_handlers:
-            if not isinstance(message, dict):
-                message = {'message': str(message)}
-
-            handler.notify(self, 'IN_PROGRESS', message)
 
 
 def get_transaction(is_create: bool = True) -> [Transaction, None]:
@@ -118,9 +118,15 @@ def get_transaction(is_create: bool = True) -> [Transaction, None]:
         return None
 
 
-def create_transaction(resource: str = None, verb: str = None, trace_id: str = None,
-                       meta: dict = None, thread_id: str = None) -> Transaction:
-    transaction = Transaction(resource, verb, trace_id, meta)
+def create_transaction(
+        service: str = None,
+        resource: str = None,
+        verb: str = None,
+        trace_id: str = None,
+        meta: dict = None,
+        thread_id: str = None
+) -> Transaction:
+    transaction = Transaction(service, resource, verb, trace_id, meta)
 
     if thread_id:
         setattr(LOCAL_STORAGE, thread_id, transaction)

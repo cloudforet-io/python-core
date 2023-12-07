@@ -1,4 +1,3 @@
-import re
 import logging
 import types
 import grpc
@@ -184,7 +183,7 @@ class _GRPCStub(object):
             ))
 
 
-class _GRPCClient(object):
+class GRPCClient(object):
 
     def __init__(self, channel, options, channel_key):
         self._request_map = {}
@@ -260,7 +259,7 @@ def client(endpoint=None, ssl_enabled=False, max_message_length=None, **client_o
             raise ERROR_GRPC_CONNECTION(channel=endpoint, message='Channel is not ready.')
 
         try:
-            _GRPC_CHANNEL[endpoint] = _GRPCClient(channel, client_opts, endpoint)
+            _GRPC_CHANNEL[endpoint] = GRPCClient(channel, client_opts, endpoint)
         except Exception as e:
             if hasattr(e, 'details'):
                 raise ERROR_GRPC_CONNECTION(channel=endpoint, message=e.details())

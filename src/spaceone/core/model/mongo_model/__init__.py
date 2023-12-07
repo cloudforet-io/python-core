@@ -3,6 +3,7 @@ import re
 import logging
 import certifi
 import copy
+from typing import Tuple, List
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from functools import reduce
@@ -98,7 +99,7 @@ class MongoModel(Document, BaseModel):
     }
 
     @classmethod
-    def init(cls):
+    def init(cls) -> None:
         global_conf = config.get_global()
         databases = global_conf.get('DATABASES', {})
         db_name_prefix = global_conf.get('DATABASE_NAME_PREFIX', '')
@@ -107,18 +108,16 @@ class MongoModel(Document, BaseModel):
             for alias, db_conf in databases.items():
                 is_connect = cls._connect(alias, db_conf, db_name_prefix)
                 if is_connect:
-                    for model in cls.get_inherited_models():
-                        if (model != cls
-                                and issubclass(model, MongoModel)
-                                and model not in _MONGO_INIT_MODELS):
-                            model.auto_create_index = global_conf.get('DATABASE_AUTO_CREATE_INDEX', True)
-                            model._create_index()
-                            model._load_default_meta()
+                    package_path = config.get_package()
+                    model_path = config.get_global('DATABASE_MODEL_PATH', 'model')
+                    __import__(f'{package_path}.{model_path}', fromlist=['*'])
 
-                            _MONGO_INIT_MODELS.append(model)
+                    for model in cls.__subclasses__():
+                        model._create_index()
+                        model._load_default_meta()
 
     @classmethod
-    def _connect(cls, alias: str, db_conf: dict, db_name_prefix: str):
+    def _connect(cls, alias: str, db_conf: dict, db_name_prefix: str) -> bool:
         is_connect = False
         db_conf = copy.deepcopy(db_conf)
         engine = db_conf.get('engine')
@@ -164,7 +163,7 @@ class MongoModel(Document, BaseModel):
                 cls._meta['datetime_fields'].append(name)
 
     @classmethod
-    def _create_index(cls):
+    def _create_index(cls) -> None:
         if cls.auto_create_index:
             indexes = cls._meta.get('indexes', [])
 
@@ -273,9 +272,9 @@ class MongoModel(Document, BaseModel):
 
         return self
 
-    def delete(self):
+    def delete(self, *args):
         try:
-            super().delete()
+            super().delete(*args)
         except OperationError as e:
             _raise_reference_error(self.__class__.__name__, str(e))
             raise ERROR_DB_QUERY(reason=e)
@@ -326,7 +325,7 @@ class MongoModel(Document, BaseModel):
         self.reload()
         return self
 
-    def append(self, key, data):
+    def append(self, key, data) -> Document:
         key = key.replace('.', '__')
         append_data = {}
 
@@ -380,7 +379,7 @@ class MongoModel(Document, BaseModel):
 
         return cls.objects.filter(**change_conditions)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return dict(self.to_mongo())
 
     @classmethod
@@ -608,8 +607,10 @@ class MongoModel(Document, BaseModel):
         return vos, total_count
 
     @classmethod
-    def query(cls, *args, only=None, exclude=None, all_fields=False, filter=None, filter_or=None,
-              sort=None, page=None, minimal=False, count_only=False, unwind=None, target=None, **kwargs):
+    def query(
+            cls, *args, only=None, exclude=None, filter=None, filter_or=None, sort=None, page=None,
+            minimal=False, count_only=False, unwind=None, target=None, **kwargs
+    ):
 
         if filter is None:
             filter = []
@@ -670,9 +671,6 @@ class MongoModel(Document, BaseModel):
 
                 if minimal and minimal_fields:
                     vos = vos.only(*minimal_fields)
-
-                if all_fields:
-                    vos = vos.all_fields()
 
                 total_count = vos.count()
 
@@ -1158,8 +1156,10 @@ class MongoModel(Document, BaseModel):
         return result
 
     @classmethod
-    def stat(cls, *args, aggregate=None, distinct=None, filter=None, filter_or=None, page=None,
-             target='SECONDARY_PREFERRED', allow_disk_use=False, **kwargs):
+    def stat(
+            cls, *args, aggregate=None, distinct=None, filter=None, filter_or=None, page=None,
+            target='SECONDARY_PREFERRED', allow_disk_use=False, **kwargs
+    ):
 
         if filter is None:
             filter = []
@@ -1481,10 +1481,12 @@ class MongoModel(Document, BaseModel):
             return date_value
 
     @classmethod
-    def analyze(cls, *args, granularity=None, fields=None, select=None, group_by=None, field_group=None,
-                filter=None, filter_or=None, page=None, sort=None, start=None, end=None,
-                date_field='date', date_field_format='%Y-%m-%d', target='SECONDARY_PREFERRED',
-                allow_disk_use=False, **kwargs):
+    def analyze(
+            cls, *args, granularity=None, fields=None, select=None, group_by=None, field_group=None,
+            filter=None, filter_or=None, page=None, sort=None, start=None, end=None,
+            date_field='date', date_field_format='%Y-%m-%d', target='SECONDARY_PREFERRED',
+            allow_disk_use=False, **kwargs
+    ):
 
         if fields is None:
             raise ERROR_REQUIRED_PARAMETER(key='fields')

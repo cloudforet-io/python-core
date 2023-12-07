@@ -1,5 +1,5 @@
-import pkgutil
-from spaceone.core import config
+from typing import Tuple, List
+
 
 class BaseModel(object):
 
@@ -12,23 +12,8 @@ class BaseModel(object):
         """
         raise NotImplementedError('model.init not implemented!')
 
-
     @classmethod
-    def get_inherited_models(cls):
-        package_path = config.get_package()
-        model_path = config.get_global('DATABASE_MODEL_PATH', 'model')
-        root_model_module = __import__(f'{package_path}.{model_path}', fromlist=['*'])
-
-        for _, name, _ in pkgutil.iter_modules(root_model_module.__path__):
-            module = __import__(f'{package_path}.{model_path}.{name}', fromlist=['*'])
-            for attr_name in dir(module):
-                attr = getattr(module, attr_name)
-                if isinstance(attr, type) and issubclass(attr, BaseModel):
-                    yield attr
-
-
-    @classmethod
-    def create(cls, data):
+    def create(cls, data: dict):
         """
         Args:
             data (dict)
@@ -37,7 +22,7 @@ class BaseModel(object):
         """
         raise NotImplementedError('model.create not implemented!')
 
-    def update(self, data):
+    def update(self, data: dict):
         """
         Args:
             data (dict)
@@ -62,7 +47,7 @@ class BaseModel(object):
         """
         raise NotImplementedError('model.terminate not implemented!')
 
-    def increment(self, key, amount=1):
+    def increment(self, key: str, amount: int = 1) -> object:
         """
         Args:
             key (str)
@@ -72,7 +57,7 @@ class BaseModel(object):
         """
         raise NotImplementedError('model.increment not implemented!')
 
-    def decrement(self, key, amount=1):
+    def decrement(self, key: str, amount: int = 1):
         """
         Args:
             key (str)
@@ -113,49 +98,31 @@ class BaseModel(object):
         raise NotImplementedError('model.to_dict not implemented!')
 
     @classmethod
-    def query(cls, **query):
+    def query(
+            cls,
+            *args,
+            only: list = None,
+            exclude: list = None,
+            filter: list = None,
+            filter_or: list = None,
+            sort: dict = None,
+            page: dict = None,
+            minimal: bool = False,
+            count_only: bool = False,
+            **kwargs
+    ):
         """
         Args:
-            **query (kwargs)
-                - filter (list)
-                [
-                    {
-                        'key' : 'field (str)',
-                        'value' : 'value (any)',
-                        'operator' : 'lt | lte | gt | gte | eq | not | exists | contain |
-                        not_contain | in | not_in | not_contain_in | match | regex | regex_in |
-                        datetime_lt | datetime_lte | datetime_gt | datetime_gte |
-                        timediff_lt | timediff_lte | timediff_gt | timediff_gte'
-                    },
-                    ...
-                ]
-                - filter_or (list)
-                [
-                    {
-                        'key' : 'field (str)',
-                        'value' : 'value (any)',
-                        'operator' : 'lt | lte | gt | gte | eq | not | exists | contain |
-                        not_contain | in | not_in | not_contain_in | match | regex | regex_in |
-                        datetime_lt | datetime_lte | datetime_gt | datetime_gte |
-                        timediff_lt | timediff_lte | timediff_gt | timediff_gte'
-                    },
-                    ...
-                ]
-                - sort (dict)
-                {
-                  'key' : 'field (str)',
-                  'desc' : True | False
-                }
-                - page (dict)
-                {
-                    'start': 'start_row (int)',
-                    'limit' : 'row_limit (int)'
-                }
-                - distinct (str): 'field'
-                - only (list): ['field1', 'field2', '...']
-                - exclude(list): ['field1', 'field2', '...']
-                - minimal (bool)
-                - count_only (bool)
+            *args (list)
+            only (list)
+            exclude (list)
+            filter (list)
+            filter_or (list)
+            sort (dict)
+            page (dict)
+            minimal (bool)
+            count_only (bool)
+            **kwargs (kwargs)
 
         Returns:
             model_vos (list)
@@ -164,79 +131,44 @@ class BaseModel(object):
         raise NotImplementedError('model.query not implemented!')
 
     @classmethod
-    def stat(cls, **query):
+    def analyze(
+            cls,
+            *args,
+            granularity: str = None,
+            fields: dict = None,
+            select: dict = None,
+            group_by: list = None,
+            field_group: list = None,
+            filter: list = None,
+            filter_or: list = None,
+            page: dict = None,
+            sort: dict = None,
+            start: str = None,
+            end: str = None,
+            date_field: str = 'date',
+            date_field_format: str = '%Y-%m-%d',
+            **kwargs
+    ):
         """
         Args:
-            **query (kwargs)
-                - filter (list)
-                [
-                    {
-                        'key' : 'field (str)',
-                        'value' : 'value (any)',
-                        'operator' : 'lt | lte | gt | gte | eq | not | exists | contain | not_contain |
-                        in | not_in | contain_in | not_contain_in | match | regex | regex_in |
-                        datetime_lt | datetime_lte | datetime_gt | datetime_gte |
-                        timediff_lt | timediff_lte | timediff_gt | timediff_gte'
-                    },
-                    ...
-                ]
-                - filter_or(list)
-                [
-                    {
-                        'key' : 'field (str)',
-                        'value' : 'value (any)',
-                        'operator' : 'lt | lte | gt | gte | eq | not | exists | contain | not_contain |
-                        in | not_in | contain_in | not_contain_in | match | regex | regex_in |
-                        datetime_lt | datetime_lte | datetime_gt | datetime_gte |
-                        timediff_lt | timediff_lte | timediff_gt | timediff_gte'
-                    },
-                    ...
-                ]
-                - aggregate (dict)
-                {
-                    'unwind': [
-                        {
-                            'path': 'key path (str)'
-                        }
-                    ],
-                    'group': {
-                        'keys': [
-                            {
-                                'key': 'field (str)',
-                                'name': 'alias name (str)'
-                            },
-                            ...
-                        ],
-                        'fields': [
-                            {
-                                'key': 'field (str)',
-                                'name': 'alias name (str)',
-                                'operator': 'count | sum | avg | max | min | size | add_to_set | merge_objects'
-                            },
-                            ...
-                        ]
-                    }
-                    'count': {
-                        'name': 'alias name (str)'
-                    }
-                }
-                - sort(dict)
-                {
-                  'name' : 'field (str)',
-                  'desc' : True | False
-                }
-                - page(dict)
-                {
-                    'start': 'start_row (int)',
-                    'limit' : 'row_limit (int)'
-                }
+            *args (list)
+            granularity (str)
+            fields (dict)
+            select (dict)
+            group_by (list)
+            field_group (list)
+            filter (list)
+            filter_or (list)
+            page (dict)
+            sort (dict)
+            start (str)
+            end (str)
+            date_field (str)
+            date_field_format (str)
+            **kwargs (kwargs)
 
         Returns:
-            values (list)
+            results (list)
+            more (bool)
         """
-        raise NotImplementedError('model.stat not implemented!')
-
-
-    @classmethod
-    def analyze(cls, **query):
         raise NotImplementedError('model.analyze not implemented!')

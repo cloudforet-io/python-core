@@ -1,12 +1,13 @@
 import types
 import logging
+from typing import Any, List, Tuple
 from google.protobuf.json_format import MessageToDict
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
-from spaceone.core import config as global_config
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
 from spaceone.core.utils import parse_grpc_endpoint
+from spaceone.core.pygrpc.client import GRPCClient
 from spaceone.core.error import *
 
 __all__ = ["SpaceConnector"]
@@ -16,39 +17,42 @@ _LOGGER = logging.getLogger(__name__)
 
 class SpaceConnector(BaseConnector):
 
-    def __init__(self, return_type: str = 'dict', service: str = None, endpoint: str = None, *args, **kwargs):
+    def __init__(
+            self,
+            *args,
+            service: str = None,
+            endpoint: str = None,
+            token: str = None,
+            return_type: str = 'dict',
+            **kwargs
+    ):
         super().__init__(*args, **kwargs)
-
-        self._mock_mode = global_config.get_global('MOCK_MODE', False)
         self._service = service
         self._endpoint = endpoint
+        self._token = token
         self._return_type = return_type
-        self._token = kwargs.get('token')
-        self._endpoints = self.config.get('endpoints', {})
-        self._verify()
 
-        if self._mock_mode is False:
-            self._init_client()
+        self._client = None
+        self._endpoints: dict = self.config.get('endpoints', {})
+
+        self._verify()
+        self._init_client()
 
     @property
-    def client(self):
+    def client(self) -> GRPCClient:
         return self._client
 
-    def dispatch(self, method: str, params: dict = None, **kwargs):
+    def dispatch(self, method: str, params: dict = None, **kwargs) -> Any:
         return self._call_api(method, params, **kwargs)
 
-    def _call_api(self, method: str, params: dict = None, **kwargs):
-        token = kwargs.get('token')
-
-        self._check_mock_mode(method)
-
+    def _call_api(self, method: str, params: dict = None, token: str = None) -> Any:
         resource, verb = self._parse_method(method)
         self._check_method(resource, verb)
 
         params = params or {}
-        kwargs['metadata'] = self._get_connection_metadata(token)
+        metadata = self._get_connection_metadata(token)
 
-        response_or_iterator = getattr(getattr(self._client, resource), verb)(params, **kwargs)
+        response_or_iterator = getattr(getattr(self._client, resource), verb)(params, metadata=metadata)
 
         if self._return_type == 'dict':
             if isinstance(response_or_iterator, types.GeneratorType):
@@ -58,39 +62,33 @@ class SpaceConnector(BaseConnector):
         else:
             return response_or_iterator
 
-    def _check_mock_mode(self, method):
-        if self._mock_mode:
-            raise ERROR_CONNECTOR(connector='SpaceConnector',
-                                  reason=f'Dispatch cannot be executed in mock mode. '
-                                         f'(endpoint = {self._get_endpoint()}, method = {method})')
-
-    def _verify(self):
-        if self._endpoint:
-            pass
-        elif self._service:
+    def _verify(self) -> None:
+        if self._service:
             if not isinstance(self._endpoints, dict):
                 raise ERROR_CONNECTOR_CONFIGURATION(connector='SpaceConnector')
 
             if self._service not in self._endpoints:
                 raise ERROR_CONNECTOR_LOAD(connector='SpaceConnector', reason=f'{self._service} endpoint is undefined.')
-        else:
+
+        elif not self._endpoint:
             raise ERROR_CONNECTOR_LOAD(connector='SpaceConnector', reason='service or endpoint is required.')
 
-    def _init_client(self):
+    def _init_client(self) -> None:
         endpoint = self._get_endpoint()
         e = parse_grpc_endpoint(endpoint)
-        self._client = pygrpc.client(endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'],
-                                     max_message_length=1024 * 1024 * 256)
+        self._client: GRPCClient = pygrpc.client(
+            endpoint=e['endpoint'], ssl_enabled=e['ssl_enabled'], max_message_length=1024 * 1024 * 256
+        )
 
     @staticmethod
-    def _change_message(message):
+    def _change_message(message) -> dict:
         return MessageToDict(message, preserving_proto_field_name=True)
 
     def _generate_response(self, response_iterator):
         for response in response_iterator:
             yield self._change_message(response)
 
-    def _get_connection_metadata(self, token=None):
+    def _get_connection_metadata(self, token: str = None) -> List[Tuple]:
         metadata = []
 
         if token:
@@ -108,7 +106,7 @@ class SpaceConnector(BaseConnector):
 
         return metadata
 
-    def _parse_method(self, method):
+    def _parse_method(self, method: str) -> Tuple[str, str]:
         try:
             resource, verb = method.split('.')
         except Exception:
@@ -117,13 +115,15 @@ class SpaceConnector(BaseConnector):
 
         return resource, verb
 
-    def _check_method(self, resource, verb):
+    def _check_method(self, resource: str, verb: str) -> None:
         supported_verb = self._client.api_resources.get(resource)
 
         if supported_verb is None or verb not in supported_verb:
-            raise ERROR_CONNECTOR(connector='SpaceConnector',
-                                  reason=f'Method not supported. (endpoint = {self._get_endpoint()}, '
-                                         f'method = {resource}.{verb})')
+            raise ERROR_CONNECTOR(
+                connector='SpaceConnector',
+                reason=f'Method not supported. '
+                       f'(endpoint = {self._get_endpoint()}, method = {resource}.{verb})'
+            )
 
-    def _get_endpoint(self):
+    def _get_endpoint(self) -> str:
         return self._endpoint or self._endpoints[self._service]

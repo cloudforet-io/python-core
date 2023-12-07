@@ -47,10 +47,6 @@ def get_service():
     return _GLOBAL['SERVICE']
 
 
-def get_handler(name):
-    return _GLOBAL.get('HANDLERS', {}).get(name, {})
-
-
 def get_connector(name):
     return _GLOBAL.get('CONNECTORS', {}).get(name, {})
 

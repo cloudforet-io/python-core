@@ -171,11 +171,11 @@ class ERROR_GRPC_CONFIGURATION(ERROR_CONFIGURATION):
 
 
 class ERROR_HANDLER_CONFIGURATION(ERROR_CONFIGURATION):
-    _message = 'Handler configuration is invalid. (handler = {handler})'
+    _message = 'Handler configuration is invalid. (handler = {handler}, reason = {reason})'
 
 
 class ERROR_CONNECTOR_CONFIGURATION(ERROR_CONFIGURATION):
-    _message = 'Connector configuration is invalid. (connector = {connector})'
+    _message = 'Connector configuration is invalid. (connector = {connector}, reason = {reason})'
 
 
 class ERROR_LOG_CONFIG(ERROR_CONFIGURATION):

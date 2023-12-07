@@ -72,7 +72,7 @@ class BaseAPI(object):
 
         for f_name, f_object in inspect.getmembers(self.__class__, predicate=inspect.isfunction):
             if hasattr(grpc_servicer, f_name):
-                setattr(self, f_name, self._grpc_method(f_object, config.get_service()))
+                setattr(self, f_name, self._grpc_method(f_object))
 
     @staticmethod
     def _error_method(error, context):
@@ -93,15 +93,9 @@ class BaseAPI(object):
         except Exception as e:
             self._error_method(e, context)
 
-    def _grpc_method(self, func, service_name):
+    def _grpc_method(self, func):
         def wrapper(request_or_iterator, context):
             try:
-                context.api_info = {
-                    'service': service_name,
-                    'resource': self.__class__.__name__,
-                    'verb': func.__name__
-                }
-
                 response_or_iterator = func(self, request_or_iterator, context)
 
                 if isinstance(response_or_iterator, types.GeneratorType):
@@ -123,8 +117,6 @@ class BaseAPI(object):
         metadata = {}
         for key, value in context.invocation_metadata():
             metadata[key.strip()] = value.strip()
-
-        metadata.update(context.api_info)
 
         metadata.update({'peer': context.peer()})
 
