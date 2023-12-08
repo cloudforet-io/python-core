@@ -92,7 +92,7 @@ class BaseService(CoreObject):
         pass
 
 
-def transaction(scope: str = None, verb: str = None) -> callable:
+def transaction(cls_func: callable = None, scope: str = None, verb: str = None) -> callable:
     def wrapper(func: callable):
         @functools.wraps(func)
         def wrapped_func(self, params: dict):
@@ -113,7 +113,7 @@ def transaction(scope: str = None, verb: str = None) -> callable:
 
         return wrapped_func
 
-    return wrapper
+    return wrapper(cls_func) if cls_func else wrapper
 
 
 def _make_scope_full_string(

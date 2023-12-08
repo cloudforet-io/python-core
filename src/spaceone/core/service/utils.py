@@ -3,7 +3,7 @@ import functools
 import types
 from typing import Union
 from dateutil.parser import parse
-from datetime import datetime
+from datetime import datetime, date
 from typing import get_type_hints
 from pydantic import ValidationError, BaseModel
 
@@ -40,7 +40,7 @@ def _generate_response(response_iterator: types.GeneratorType) -> types.Generato
         yield response
 
 
-def convert_model(func):
+def convert_model(func) -> callable:
     @functools.wraps(func)
     def wrapped_func(self, params: dict) -> Union[dict, types.GeneratorType]:
         type_hints = get_type_hints(func)
@@ -65,7 +65,7 @@ def convert_model(func):
     return wrapped_func
 
 
-def change_only_key(change_rule, key_path='only'):
+def change_only_key(change_rule, key_path='only') -> callable:
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(cls, params):
@@ -88,7 +88,7 @@ def change_only_key(change_rule, key_path='only'):
     return wrapper
 
 
-def check_required(required_keys):
+def check_required(required_keys) -> callable:
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(cls, params):
@@ -104,7 +104,7 @@ def check_required(required_keys):
     return wrapper
 
 
-def set_query_page_limit(default_limit):
+def set_query_page_limit(default_limit) -> callable:
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(cls, params):
@@ -125,7 +125,7 @@ def set_query_page_limit(default_limit):
     return wrapper
 
 
-def append_query_filter(filter_keys):
+def append_query_filter(filter_keys) -> callable:
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(cls, params):
@@ -148,7 +148,7 @@ def append_query_filter(filter_keys):
     return wrapper
 
 
-def change_tag_filter(tag_key='tags'):
+def change_tag_filter(tag_key='tags') -> callable:
     def wrapper(func):
         @functools.wraps(func)
         def wrapped_func(cls, params):
@@ -189,7 +189,7 @@ def change_tag_filter(tag_key='tags'):
     return wrapper
 
 
-def _change_match_query(operator, value, condition):
+def _change_match_query(operator, value, condition) -> callable:
     if operator == 'eq':
         return value
     elif operator == 'not':
@@ -234,7 +234,7 @@ def _change_match_query(operator, value, condition):
         raise ERROR_DB_QUERY(reason='Filter operator is not supported.')
 
 
-def append_keyword_filter(keywords=None):
+def append_keyword_filter(keywords=None) -> callable:
     if keywords is None:
         keywords = []
 
@@ -264,7 +264,7 @@ def append_keyword_filter(keywords=None):
     return wrapper
 
 
-def change_timestamp_value(timestamp_keys=None, timestamp_format='google_timestamp'):
+def change_timestamp_value(timestamp_keys=None, timestamp_format='google_timestamp') -> callable:
     if timestamp_keys is None:
         timestamp_keys = []
 
@@ -288,7 +288,7 @@ def change_timestamp_value(timestamp_keys=None, timestamp_format='google_timesta
     return wrapper
 
 
-def change_date_value(date_keys=None, date_format='%Y-%m-%d'):
+def change_date_value(date_keys=None, date_format='%Y-%m-%d') -> callable:
     if date_keys is None:
         date_keys = []
 
@@ -312,7 +312,7 @@ def change_date_value(date_keys=None, date_format='%Y-%m-%d'):
     return wrapper
 
 
-def change_timestamp_filter(filter_keys=None, timestamp_format='google_timestamp'):
+def change_timestamp_filter(filter_keys=None, timestamp_format='google_timestamp') -> callable:
     if filter_keys is None:
         filter_keys = []
 
@@ -339,14 +339,14 @@ def change_timestamp_filter(filter_keys=None, timestamp_format='google_timestamp
     return wrapper
 
 
-def _is_null(value):
+def _is_null(value) -> bool:
     if value is None or str(value).strip() == '':
         return True
 
     return False
 
 
-def _change_timestamp_condition(query_filter, filter_keys, filter_type, timestamp_format):
+def _change_timestamp_condition(query_filter, filter_keys, filter_type, timestamp_format) -> list:
     change_filter = []
 
     for condition in query_filter:
@@ -366,7 +366,7 @@ def _change_timestamp_condition(query_filter, filter_keys, filter_type, timestam
     return change_filter
 
 
-def _convert_datetime_from_timestamp(timestamp, key, timestamp_format):
+def _convert_datetime_from_timestamp(timestamp, key, timestamp_format) -> datetime:
     type_message = 'google.protobuf.Timestamp({seconds: <second>, nanos: <nano second>})'
 
     try:
@@ -384,7 +384,7 @@ def _convert_datetime_from_timestamp(timestamp, key, timestamp_format):
         raise ERROR_INVALID_PARAMETER_TYPE(key=key, type=type_message)
 
 
-def _convert_date_from_string(date_str, key, date_format):
+def _convert_date_from_string(date_str, key, date_format) -> date:
     try:
         return datetime.strptime(date_str, date_format).date()
     except Exception as e:
