@@ -41,22 +41,16 @@ __all__ = [
 
 class BaseService(CoreObject):
 
-    _plugin_methods = {}
     service = None
     resource = None
     permission_group = None
-    _handler_state = {
-        'authentication': False,
-        'authorization': False,
-        'mutation': False,
-        'event': False,
-    }
+    _plugin_methods = {}
+    _handler_state = {}
 
     def __init__(self, metadata: dict = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.current_span_context = None
         self._metadata = metadata or {}
-        self._methods = {}
 
     @property
     def metadata(self) -> dict:
@@ -72,11 +66,30 @@ class BaseService(CoreObject):
 
     @classmethod
     def enable_handler(cls, handler_type: _HANDLER_TYPE) -> None:
-        cls._handler_state[handler_type] = True
+        if cls._handler_state.get(handler_type) is None:
+            cls._handler_state[cls.__name__] = {
+                'authentication': False,
+                'authorization': False,
+                'mutation': False,
+                'event': False,
+            }
+
+        cls._handler_state[cls.__name__][handler_type] = True
 
     @classmethod
-    def get_handler_state(cls, handler_type: _HANDLER_TYPE) -> bool:
-        return cls._handler_state[handler_type]
+    def get_handler_state(cls) -> bool:
+        return cls._handler_state.get(cls.__name__, {
+            'authentication': False,
+            'authorization': False,
+            'mutation': False,
+            'event': False,
+        })
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
 def transaction(scope: str = None, verb: str = None) -> callable:
@@ -96,7 +109,7 @@ def transaction(scope: str = None, verb: str = None) -> callable:
                 create_transaction(
                     self.service, self.resource, _verb, trace_id, self._metadata
                 )
-                return _pipeline(func, self, params, _scope, self._handler_state)
+                return _pipeline(func, self, params, _scope, self.get_handler_state())
 
         return wrapped_func
 
