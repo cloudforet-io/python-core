@@ -33,7 +33,6 @@ class Transaction(object):
         self._rollbacks = []
         self._init_meta(meta)
         self._set_trace_id(trace_id)
-        self._event_handlers = []
 
     def __repr__(self) -> str:
         return f"<Transaction ({self._resource}.{self._verb})>"
