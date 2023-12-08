@@ -3,7 +3,6 @@ import re
 import logging
 import certifi
 import copy
-from typing import Tuple, List
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from functools import reduce

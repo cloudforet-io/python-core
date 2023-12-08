@@ -1,13 +1,12 @@
 import functools
 import logging
 import copy
-from typing import Generator, Union, Literal, List
+from typing import Generator, Union, Literal
 
 from opentelemetry import trace
 from opentelemetry.trace import format_trace_id
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
-from spaceone.core import config
 from spaceone.core.base import CoreObject
 from spaceone.core.error import *
 from spaceone.core.transaction import get_transaction, create_transaction, delete_transaction
