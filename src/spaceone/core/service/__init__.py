@@ -77,7 +77,7 @@ class BaseService(CoreObject):
         cls._handler_state[cls.__name__][handler_type] = True
 
     @classmethod
-    def get_handler_state(cls) -> bool:
+    def get_handler_state(cls) -> dict:
         return cls._handler_state.get(cls.__name__, {
             'authentication': False,
             'authorization': False,
