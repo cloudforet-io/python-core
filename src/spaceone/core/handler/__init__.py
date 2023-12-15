@@ -6,31 +6,30 @@ from spaceone.core import config
 from spaceone.core.error import *
 
 __all__ = [
-    'BaseHandler',
-    'BaseAuthenticationHandler',
-    'BaseAuthorizationHandler',
-    'BaseMutationHandler',
-    'BaseEventHandler',
-    'get_authentication_handlers',
-    'get_authorization_handlers',
-    'get_mutation_handlers',
-    'get_event_handlers',
+    "BaseHandler",
+    "BaseAuthenticationHandler",
+    "BaseAuthorizationHandler",
+    "BaseMutationHandler",
+    "BaseEventHandler",
+    "get_authentication_handlers",
+    "get_authorization_handlers",
+    "get_mutation_handlers",
+    "get_event_handlers",
 ]
 
-_HANDLER_TYPE = ['authentication', 'authorization', 'mutation', 'event']
+_HANDLER_TYPE = ["authentication", "authorization", "mutation", "event"]
 _HANDLER_INFO = {
-    'init': False,
-    'authentication': [],
-    'authorization': [],
-    'mutation': [],
-    'event': [],
+    "init": False,
+    "authentication": [],
+    "authorization": [],
+    "mutation": [],
+    "event": [],
 }
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class BaseHandler(CoreObject):
-
     def __init__(self, handler_config: dict):
         super().__init__()
 
@@ -38,38 +37,36 @@ class BaseHandler(CoreObject):
 
 
 class BaseAuthenticationHandler(abc.ABC, BaseHandler):
-
     @abc.abstractmethod
-    def verify(self, scope: str, params: dict) -> None:
+    def verify(self, params: dict) -> None:
         """
         Args:
-            scope (str): Permission Scope
             params (dict): Request Parameter
 
         Returns:
             None
         """
-        raise NotImplementedError('verify method not implemented!')
+        raise NotImplementedError("verify method not implemented!")
 
 
 class BaseAuthorizationHandler(abc.ABC, BaseHandler):
-
     @abc.abstractmethod
-    def verify(self, scope: str, params: dict) -> None:
+    def verify(
+        self, params: dict, permission: str = None, role_types: list = None
+    ) -> None:
         """
         Args:
-            scope (str): Permission Scope
+            permission (str): API Permission
+            role_types (list): Allowed Role Types
             params (dict): Request Parameter
 
         Returns:
             None
         """
-        raise NotImplementedError('verify method not implemented!')
+        raise NotImplementedError("verify method not implemented!")
 
 
 class BaseMutationHandler(BaseHandler):
-
-    @abc.abstractmethod
     def request(self, params: dict) -> dict:
         """
         Args:
@@ -80,7 +77,6 @@ class BaseMutationHandler(BaseHandler):
         """
         return params
 
-    @abc.abstractmethod
     def response(self, result: Any) -> Any:
         """
         Args:
@@ -93,7 +89,6 @@ class BaseMutationHandler(BaseHandler):
 
 
 class BaseEventHandler(abc.ABC, BaseHandler):
-
     @abc.abstractmethod
     def notify(self, status: str, message: dict) -> None:
         """
@@ -104,16 +99,16 @@ class BaseEventHandler(abc.ABC, BaseHandler):
         Returns:
             None
         """
-        raise NotImplementedError('notify method not implemented!')
+        raise NotImplementedError("notify method not implemented!")
 
 
 def _init_handlers() -> None:
-    registered_handlers = config.get_global('HANDLERS', {})
+    registered_handlers = config.get_global("HANDLERS", {})
     for handler_type in _HANDLER_TYPE:
         for handler_conf in registered_handlers.get(handler_type, []):
             try:
-                module_name, class_name = handler_conf['backend'].rsplit(':', 1)
-                _LOGGER.debug(f'[_init_handlers] {handler_type} handler: {class_name}')
+                module_name, class_name = handler_conf["backend"].rsplit(":", 1)
+                _LOGGER.debug(f"[_init_handlers] {handler_type} handler: {class_name}")
 
                 handler_module = __import__(module_name, fromlist=[class_name])
 
@@ -127,28 +122,28 @@ def _init_handlers() -> None:
 
 def get_authentication_handlers() -> List[BaseAuthenticationHandler]:
     _check_init_state()
-    return _HANDLER_INFO.get('authentication', [])
+    return _HANDLER_INFO.get("authentication", [])
 
 
 def get_authorization_handlers() -> List[BaseAuthorizationHandler]:
     _check_init_state()
-    return _HANDLER_INFO.get('authorization', [])
+    return _HANDLER_INFO.get("authorization", [])
 
 
 def get_mutation_handlers(reverse: bool = False) -> List[BaseMutationHandler]:
     _check_init_state()
     if reverse:
-        return _HANDLER_INFO.get('mutation', [])[::-1]
+        return _HANDLER_INFO.get("mutation", [])[::-1]
     else:
-        return _HANDLER_INFO.get('mutation', [])
+        return _HANDLER_INFO.get("mutation", [])
 
 
 def get_event_handlers() -> List[BaseEventHandler]:
     _check_init_state()
-    return _HANDLER_INFO.get('event', [])
+    return _HANDLER_INFO.get("event", [])
 
 
 def _check_init_state() -> None:
-    if not _HANDLER_INFO['init']:
+    if not _HANDLER_INFO["init"]:
         _init_handlers()
-        _HANDLER_INFO['init'] = True
+        _HANDLER_INFO["init"] = True
