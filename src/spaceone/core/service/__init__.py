@@ -31,6 +31,7 @@ __all__ = [
     "mutation_handler",
     "event_handler",
     "convert_model",
+    "change_value_by_rule",
     "change_only_key",
     "check_required",
     "set_query_page_limit",

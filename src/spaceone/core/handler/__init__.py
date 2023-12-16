@@ -1,6 +1,6 @@
 import abc
 import logging
-from typing import Any, List
+from typing import List
 from spaceone.core.base import CoreObject
 from spaceone.core import config
 from spaceone.core.error import *
@@ -56,9 +56,9 @@ class BaseAuthorizationHandler(abc.ABC, BaseHandler):
     ) -> None:
         """
         Args:
+            params (dict): Request Parameter
             permission (str): API Permission
             role_types (list): Allowed Role Types
-            params (dict): Request Parameter
 
         Returns:
             None
@@ -77,7 +77,7 @@ class BaseMutationHandler(BaseHandler):
         """
         return params
 
-    def response(self, result: Any) -> Any:
+    def response(self, result: any) -> any:
         """
         Args:
             result (dict): Result data
