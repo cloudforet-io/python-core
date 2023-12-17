@@ -6,7 +6,7 @@ from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
 from spaceone.core.transaction import get_transaction
 from spaceone.core.handler import BaseAuthenticationHandler
-from spaceone.core.error import ERROR_AUTHENTICATE_FAILURE, ERROR_HANDLER_CONFIGURATION
+from spaceone.core.error import ERROR_AUTHENTICATE_FAILURE
 
 _LOGGER = logging.getLogger(__name__)
 
