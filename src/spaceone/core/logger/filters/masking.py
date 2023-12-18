@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import copy
 import json
@@ -10,8 +9,8 @@ class MaskingFilter(logging.Filter):
         self.rules = rules
 
     def filter(self, record):
-        tnx_method = getattr(record, 'tnx_method', None)
-        parameter = getattr(record, 'parameter', None)
+        tnx_method = getattr(record, "tnx_method", None)
+        parameter = getattr(record, "parameter", None)
 
         if tnx_method and parameter:
             record.parameter = self._check_masking(tnx_method, parameter)
@@ -23,13 +22,13 @@ class MaskingFilter(logging.Filter):
         if tnx_method in self.rules:
             return self._masking(masking_parameter, self.rules[tnx_method])
 
-        '''
+        """
         masking_parameter = copy.deepcopy(params)
         
         for _rule in self.rules:
             if fnmatch(tnx_method, _rule):
                 masking_parameter = self._masking(masking_parameter, self.rules[_rule])
-        '''
+        """
         return masking_parameter
 
     @staticmethod

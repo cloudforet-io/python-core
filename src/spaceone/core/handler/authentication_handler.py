@@ -91,6 +91,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         self.transaction.set_meta("authorization.role_type", role_type)
         self.transaction.set_meta("authorization.owner_type", owner_type)
         self.transaction.set_meta("authorization.domain_id", domain_id)
+        self.transaction.set_meta("authorization.audience", audience)
         self.transaction.set_meta("authorization.workspace_id", workspace_id)
         self.transaction.set_meta("authorization.permissions", permissions)
         self.transaction.set_meta("authorization.projects", projects)
