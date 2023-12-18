@@ -38,7 +38,7 @@ class SpaceONEAuthorizationHandler(BaseAuthorizationHandler):
             if resource_group != "DOMAIN":
                 raise ERROR_PERMISSION_DENIED()
         elif user_role_type == "WORKSPACE_OWNER":
-            if resource_group != "WORKSPACE":
+            if resource_group not in ["WORKSPACE", "PROJECT"]:
                 raise ERROR_PERMISSION_DENIED()
         elif user_role_type == "WORKSPACE_MEMBER":
             if resource_group != "PROJECT":
