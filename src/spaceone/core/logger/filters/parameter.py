@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
 import logging
 import json
 
 
 class ParameterFilter(logging.Filter):
     def filter(self, record):
-        params = getattr(record, 'parameter', None)
+        params = getattr(record, "parameter", None)
 
         if params is None:
-            record.params = ''
+            record.params = ""
         else:
             record.params = json.dumps(params)
 
@@ -17,10 +16,10 @@ class ParameterFilter(logging.Filter):
 
 class ParameterLogFilter(logging.Filter):
     def filter(self, record):
-        params = getattr(record, 'parameter', None)
+        params = getattr(record, "parameter", None)
 
-        if params is None or params == '':
-            record.params_log = '{}'
+        if params is None or params == "":
+            record.params_log = "{}"
         else:
             record.params_log = json.dumps(params)
 
