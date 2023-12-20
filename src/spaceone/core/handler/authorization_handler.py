@@ -10,20 +10,26 @@ class SpaceONEAuthorizationHandler(BaseAuthorizationHandler):
     def verify(
         self, params: dict, permission: str = None, role_types: list = None
     ) -> None:
-        if user_role_type := self.transaction.get_meta("authorization.role_type"):
-            if role_types:
-                self._check_role_type(user_role_type, role_types)
+        token_type = self.transaction.get_meta("authorization.token_type")
+        if token_type == "SYSTEM_TOKEN":
+            _LOGGER.debug(f"[verify] Skip authorization for system token.")
+        else:
+            if user_role_type := self.transaction.get_meta("authorization.role_type"):
+                if role_types:
+                    self._check_role_type(user_role_type, role_types)
 
-                if resource_group := params.get("resource_group"):
-                    self._check_resource_group(resource_group, user_role_type)
+                    if resource_group := params.get("resource_group"):
+                        self._check_resource_group(resource_group, user_role_type)
 
-        if user_permissions := self.transaction.get_meta("authorization.permissions"):
-            if permission:
-                self._check_permissions(user_permissions, permission)
+            if user_permissions := self.transaction.get_meta(
+                "authorization.permissions"
+            ):
+                if permission:
+                    self._check_permissions(user_permissions, permission)
 
-        if user_projects := self.transaction.get_meta("authorization.projects"):
-            if request_project_id := params.get("project_id"):
-                self._check_user_projects(user_projects, request_project_id)
+            if user_projects := self.transaction.get_meta("authorization.projects"):
+                if request_project_id := params.get("project_id"):
+                    self._check_user_projects(user_projects, request_project_id)
 
     def _check_role_type(self, user_role_type: str, role_types: list) -> None:
         if "USER" in role_types:

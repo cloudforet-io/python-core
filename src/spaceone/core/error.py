@@ -68,6 +68,10 @@ class ERROR_INVALID_ARGUMENT(ERROR_BASE):
     _message = "Argument is invalid."
 
 
+class ERROR_REQUIRED_X_DOMAIN_ID(ERROR_INVALID_ARGUMENT):
+    _message = "System token requires 'x_domain_id' in metadata."
+
+
 class ERROR_REQUIRED_PARAMETER(ERROR_INVALID_ARGUMENT):
     _message = "Required parameter. (key = {key})"
 
