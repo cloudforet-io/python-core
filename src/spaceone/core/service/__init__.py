@@ -42,6 +42,13 @@ __all__ = [
     "change_date_value",
     "change_timestamp_filter",
 ]
+_METADATA_KEYS = [
+    "token",
+    "x_domain_id",
+    "x_workspace_id",
+    "traceparent",
+    "peer",
+]
 
 
 class BaseService(CoreObject):
@@ -53,8 +60,14 @@ class BaseService(CoreObject):
     def __init__(self, metadata: dict = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.current_span_context = None
-        self._metadata = metadata or {}
         self.service = config.get_service()
+        self._metadata = {}
+        self._set_metadata(metadata)
+
+    def _set_metadata(self, metadata: dict) -> None:
+        for key in _METADATA_KEYS:
+            if value := metadata.get(key):
+                self._metadata[key] = value
 
     @property
     def metadata(self) -> dict:
@@ -118,7 +131,7 @@ def transaction(
                 self.current_span_context = span.get_span_context()
                 trace_id = format_trace_id(self.current_span_context.trace_id)
                 create_transaction(
-                    self.service, self.resource, _verb, trace_id, self._metadata
+                    self.service, self.resource, _verb, trace_id, self.metadata
                 )
                 return _pipeline(
                     func,

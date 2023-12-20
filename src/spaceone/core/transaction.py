@@ -8,22 +8,26 @@ from opentelemetry import trace
 from opentelemetry.trace import format_trace_id
 from opentelemetry.trace.span import TraceFlags
 
-__all__ = ['LOCAL_STORAGE', 'get_transaction', 'create_transaction', 'delete_transaction',
-           'Transaction']
+__all__ = [
+    "LOCAL_STORAGE",
+    "get_transaction",
+    "create_transaction",
+    "delete_transaction",
+    "Transaction",
+]
 
 _LOGGER = logging.getLogger(__name__)
 LOCAL_STORAGE = local()
 
 
 class Transaction(object):
-
     def __init__(
-            self,
-            service: str = None,
-            resource: str = None,
-            verb: str = None,
-            trace_id: str = None,
-            meta=None
+        self,
+        service: str = None,
+        resource: str = None,
+        verb: str = None,
+        trace_id: str = None,
+        meta=None,
     ):
         self._id = None
         self._thread_id = str(threading.current_thread().ident)
@@ -70,18 +74,14 @@ class Transaction(object):
         return self._verb
 
     def add_rollback(self, fn: callable, *args, **kwargs) -> None:
-        self._rollbacks.insert(0, {
-            'fn': fn,
-            'args': args,
-            'kwargs': kwargs
-        })
+        self._rollbacks.insert(0, {"fn": fn, "args": args, "kwargs": kwargs})
 
     def execute_rollback(self) -> None:
         for rollback in self._rollbacks:
             try:
-                rollback['fn'](*rollback['args'], **rollback['kwargs'])
+                rollback["fn"](*rollback["args"], **rollback["kwargs"])
             except Exception as e:
-                _LOGGER.info(f'[ROLLBACK-ERROR] {self}: {e}')
+                _LOGGER.info(f"[ROLLBACK-ERROR] {self}: {e}")
                 _LOGGER.info(traceback.format_exc())
 
     @property
@@ -91,15 +91,8 @@ class Transaction(object):
     def set_meta(self, key: str, value: any) -> None:
         self._meta[key] = value
 
-    def get_meta(self, key: str , default: any = None):
+    def get_meta(self, key: str, default: any = None):
         return self._meta.get(key, default)
-
-    def get_connection_meta(self) -> list:
-        keys = ['token', 'domain_id']
-        result = []
-        for key in keys:
-            result.append((key, self.get_meta(key)))
-        return result
 
 
 def get_transaction(is_create: bool = True) -> [Transaction, None]:
@@ -118,12 +111,12 @@ def get_transaction(is_create: bool = True) -> [Transaction, None]:
 
 
 def create_transaction(
-        service: str = None,
-        resource: str = None,
-        verb: str = None,
-        trace_id: str = None,
-        meta: dict = None,
-        thread_id: str = None
+    service: str = None,
+    resource: str = None,
+    verb: str = None,
+    trace_id: str = None,
+    meta: dict = None,
+    thread_id: str = None,
 ) -> Transaction:
     transaction = Transaction(service, resource, verb, trace_id, meta)
 

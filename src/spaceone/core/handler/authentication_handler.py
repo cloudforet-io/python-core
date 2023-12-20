@@ -1,7 +1,7 @@
 import json
 import logging
 
-from spaceone.core.cache import cacheable
+from spaceone.core import cache
 from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
 from spaceone.core.transaction import get_transaction
@@ -25,9 +25,16 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         domain_id = self._extract_domain_id(token)
 
         token_info = self._authenticate(token, domain_id)
+
+        owner_type = token_info.get("own")
+        api_key_id = token_info.get("jti")
+        domain_id = token_info.get("did")
+        if owner_type == "APP":
+            token_info["permissions"] = self._check_app(api_key_id, domain_id)
+
         self._update_meta(token_info)
 
-    @cacheable(key="handler:authentication:{domain_id}:public-key", alias="local")
+    @cache.cacheable(key="handler:authentication:{domain_id}:public-key", alias="local")
     def _get_public_key(self, domain_id: str) -> str:
         _LOGGER.debug(f"[_get_public_key] get jwk from identity service: {domain_id}")
         response = self.identity_conn.dispatch(
@@ -35,6 +42,21 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         )
 
         return response["public_key"]
+
+    @cache.cacheable(
+        key="handler:authentication:{domain_id}:api-key:{api_key_id}", alias="local"
+    )
+    def _check_app(self, api_key_id, domain_id) -> bool:
+        _LOGGER.debug(f"[_check_app] check app from identity service: {api_key_id}")
+        response = self.identity_conn.dispatch(
+            "App.check",
+            {
+                "api_key_id": api_key_id,
+                "domain_id": domain_id,
+            },
+        )
+
+        return response.get("permissions")
 
     def _authenticate(self, token: str, domain_id: str) -> dict:
         public_key = self._get_public_key(domain_id)
