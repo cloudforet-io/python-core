@@ -26,16 +26,13 @@ class SpaceONEAuthorizationHandler(BaseAuthorizationHandler):
                 self._check_user_projects(user_projects, request_project_id)
 
     def _check_role_type(self, user_role_type: str, role_types: list) -> None:
-        if "USER" in role_types:
-            self.transaction.set_meta("authorization.set_user_id", True)
-
-        elif user_role_type not in role_types:
+        if user_role_type not in role_types:
             raise ERROR_PERMISSION_DENIED()
 
     @staticmethod
     def _check_resource_group(resource_group: str, user_role_type: str) -> None:
         if user_role_type == "DOMAIN_ADMIN":
-            if resource_group != "DOMAIN":
+            if resource_group not in ["DOMAIN", "WORKSPACE", "PROJECT"]:
                 raise ERROR_PERMISSION_DENIED()
         elif user_role_type == "WORKSPACE_OWNER":
             if resource_group not in ["WORKSPACE", "PROJECT"]:
