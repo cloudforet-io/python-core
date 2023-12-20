@@ -13,7 +13,12 @@ class SpaceONEMutationHandler(BaseMutationHandler):
         user_id: str = self.transaction.get_meta("authorization.user_id")
         set_user_id: str = self.transaction.get_meta("authorization.set_user_id")
 
-        if user_role_type == "DOMAIN_ADMIN":
+        if user_role_type == "SYSTEM_TOKEN":
+            params["domain_id"] = domain_id
+            if workspace_id:
+                params["workspace_id"] = workspace_id
+
+        elif user_role_type == "DOMAIN_ADMIN":
             params["domain_id"] = domain_id
         elif user_role_type == "WORKSPACE_OWNER":
             params["domain_id"] = domain_id

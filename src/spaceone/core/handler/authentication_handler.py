@@ -6,7 +6,7 @@ from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
 from spaceone.core.transaction import get_transaction
 from spaceone.core.handler import BaseAuthenticationHandler
-from spaceone.core.error import ERROR_AUTHENTICATE_FAILURE
+from spaceone.core.error import ERROR_AUTHENTICATE_FAILURE, ERROR_REQUIRED_X_DOMAIN_ID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,13 +26,16 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
 
         token_info = self._authenticate(token, domain_id)
 
-        owner_type = token_info.get("own")
-        api_key_id = token_info.get("jti")
-        domain_id = token_info.get("did")
-        if owner_type == "APP":
-            token_info["permissions"] = self._check_app(api_key_id, domain_id)
+        if token_info.get("typ") == "SYSTEM_TOKEN":
+            self._update_system_meta(token_info)
+        else:
+            owner_type = token_info.get("own")
+            if owner_type == "APP":
+                api_key_id = token_info.get("jti")
+                domain_id = token_info.get("did")
+                token_info["permissions"] = self._check_app(api_key_id, domain_id)
 
-        self._update_meta(token_info)
+            self._update_meta(token_info)
 
     @cache.cacheable(key="handler:authentication:{domain_id}:public-key", alias="local")
     def _get_public_key(self, domain_id: str) -> str:
@@ -102,6 +105,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
                 'ver': 'str',   # jwt version
         """
 
+        token_type = token_info.get("typ")
         role_type = token_info.get("rol")
         owner_type = token_info.get("own")
         audience = token_info.get("aud")
@@ -110,6 +114,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         permissions = token_info.get("permissions")
         projects = token_info.get("projects")
 
+        self.transaction.set_meta("authorization.token_type", token_type)
         self.transaction.set_meta("authorization.role_type", role_type)
         self.transaction.set_meta("authorization.owner_type", owner_type)
         self.transaction.set_meta("authorization.domain_id", domain_id)
@@ -122,3 +127,33 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
             self.transaction.set_meta("authorization.user_id", audience)
         elif owner_type == "APP":
             self.transaction.set_meta("authorization.app_id", audience)
+
+    def _update_system_meta(self, token_info: dict) -> None:
+        """
+        Args:
+            token_info(dict): {
+                'iss': 'str',   # issuer (spaceone.identity)
+                'typ': 'str',   # token type (SYSTEM_TOKEN)
+                'own': 'str',   # owner (SYSTEM)
+                'did': 'str',   # domain_id (domain-root)
+                'aud': 'str',   # audience (root_domain_user_id)
+                'iat': 'int',   # issued at
+                'jti': 'str',   # jwt id
+                'ver': 'str',   # jwt version
+        """
+
+        token_type = token_info.get("typ")
+        owner_type = token_info.get("own")
+        audience = token_info.get("aud")
+        domain_id = self.transaction.get_meta("x_domain_id")
+        workspace_id = self.transaction.get_meta("x_workspace_id")
+
+        if domain_id is None:
+            raise ERROR_REQUIRED_X_DOMAIN_ID()
+
+        self.transaction.set_meta("authorization.token_type", token_type)
+        self.transaction.set_meta("authorization.role_type", "SYSTEM_TOKEN")
+        self.transaction.set_meta("authorization.owner_type", owner_type)
+        self.transaction.set_meta("authorization.domain_id", domain_id)
+        self.transaction.set_meta("authorization.audience", audience)
+        self.transaction.set_meta("authorization.workspace_id", workspace_id)
