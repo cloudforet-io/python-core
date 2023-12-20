@@ -46,12 +46,19 @@ class SpaceConnector(BaseConnector):
     def dispatch(self, method: str, params: dict = None, **kwargs) -> Any:
         return self._call_api(method, params, **kwargs)
 
-    def _call_api(self, method: str, params: dict = None, token: str = None) -> Any:
+    def _call_api(
+        self,
+        method: str,
+        params: dict = None,
+        token: str = None,
+        x_domain_id: str = None,
+        x_workspace_id: str = None,
+    ) -> Any:
         resource, verb = self._parse_method(method)
         self._check_method(resource, verb)
 
         params = params or {}
-        metadata = self._get_connection_metadata(token)
+        metadata = self._get_connection_metadata(token, x_domain_id, x_workspace_id)
 
         response_or_iterator = getattr(getattr(self._client, resource), verb)(
             params, metadata=metadata
@@ -98,7 +105,9 @@ class SpaceConnector(BaseConnector):
         for response in response_iterator:
             yield self._change_message(response)
 
-    def _get_connection_metadata(self, token: str = None) -> List[Tuple]:
+    def _get_connection_metadata(
+        self, token: str = None, x_domain_id: str = None, x_workspace_id: str = None
+    ) -> List[Tuple]:
         metadata = []
 
         if token:
@@ -108,10 +117,14 @@ class SpaceConnector(BaseConnector):
         elif token := self.transaction.meta.get("token"):
             metadata.append(("token", token))
 
-        if x_domain_id := self.transaction.meta.get("x_domain_id"):
+        if x_domain_id:
+            metadata.append(("x_domain_id", x_domain_id))
+        elif x_domain_id := self.transaction.meta.get("x_domain_id"):
             metadata.append(("x_domain_id", x_domain_id))
 
-        if x_workspace_id := self.transaction.meta.get("x_workspace_id"):
+        if x_workspace_id:
+            metadata.append(("x_workspace_id", x_workspace_id))
+        elif x_workspace_id := self.transaction.meta.get("x_workspace_id"):
             metadata.append(("x_workspace_id", x_workspace_id))
 
         carrier = {}
