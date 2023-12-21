@@ -64,7 +64,8 @@ class BaseService(CoreObject):
         self._metadata = {}
         self._set_metadata(metadata)
 
-    def _set_metadata(self, metadata: dict) -> None:
+    def _set_metadata(self, metadata: dict = None) -> None:
+        metadata = metadata or self.transaction.meta
         for key in _METADATA_KEYS:
             if value := metadata.get(key):
                 self._metadata[key] = value

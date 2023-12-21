@@ -11,9 +11,7 @@ class SpaceONEAuthorizationHandler(BaseAuthorizationHandler):
         self, params: dict, permission: str = None, role_types: list = None
     ) -> None:
         token_type = self.transaction.get_meta("authorization.token_type")
-        if token_type == "SYSTEM_TOKEN":
-            _LOGGER.debug(f"[verify] Skip authorization for system token.")
-        else:
+        if token_type != "SYSTEM_TOKEN":
             if user_role_type := self.transaction.get_meta("authorization.role_type"):
                 if role_types:
                     self._check_role_type(user_role_type, role_types)
