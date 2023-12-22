@@ -28,36 +28,35 @@ class BaseScheduler(Process):
         # Create Task
         try:
             tasks = self.create_task()
-            _LOGGER.debug(f'[push_task] task: {len(tasks)}')
+            _LOGGER.debug(f"[push_task] task: {len(tasks)}")
         except Exception as e:
-            _LOGGER.error(f'[push_task] error create_task: {e}')
+            _LOGGER.error(f"[push_task] error create_task: {e}")
             tasks = []
 
         for task in tasks:
             try:
                 validate(task, schema=SPACEONE_TASK_SCHEMA)
                 json_task = json.dumps(task)
-                _LOGGER.debug(f'[push_task] Task schema: {self._remove_metadata(task)}')
+                _LOGGER.debug(f"[push_task] Task schema: {self._remove_metadata(task)}")
                 queue.put(self.queue, json_task)
             except Exception as e:
-                print(e)
-                _LOGGER.debug(f'[push_task] Task schema: {task}, {e}')
+                _LOGGER.debug(f"[push_task] Task schema: {task}, {e}")
 
     def run(self):
-        NotImplementedError('scheduler.run is not implemented')
+        NotImplementedError("scheduler.run is not implemented")
 
     def create_task(self):
-        NotImplementedError('scheduler.create_task is not implemented')
+        NotImplementedError("scheduler.create_task is not implemented")
 
     def _remove_metadata(self, task):
         copied_task = copy.deepcopy(task)
         change_stages = []
-        for stage in copied_task.get('stages', []):
-            if 'metadata' in stage:
-                stage['metadata'] = '*****'
+        for stage in copied_task.get("stages", []):
+            if "metadata" in stage:
+                stage["metadata"] = "*****"
             change_stages.append(stage)
 
-        copied_task['stages'] = change_stages
+        copied_task["stages"] = change_stages
         return copied_task
 
 
@@ -67,14 +66,14 @@ class IntervalScheduler(BaseScheduler):
         self.config = self.parse_config(interval)
 
     def parse_config(self, expr):
-        """ expr
-          format: integer (second)
+        """expr
+        format: integer (second)
         """
         try:
             if isinstance(expr, int):
                 return int(expr)
         except Exception as e:
-            _LOGGER.error(f'[parse_config] Wrong configraiton, {e}')
+            _LOGGER.error(f"[parse_config] Wrong configraiton, {e}")
 
     def run(self):
         config.set_global_force(**self.global_config)
@@ -94,21 +93,22 @@ class HourlyScheduler(BaseScheduler):
     If you want to start at different minutes
     send minute like ':15' meaning every 15 minute
     """
-    def __init__(self, queue, interval=1, minute=':00'):
+
+    def __init__(self, queue, interval=1, minute=":00"):
         super().__init__(queue)
         self.config = self.parse_config(interval)
         self.minute = minute
 
     def parse_config(self, expr):
-        """ expr
-          format: integer (hour)
+        """expr
+        format: integer (hour)
         """
         try:
             if isinstance(expr, int):
                 return int(expr)
         except Exception as e:
-            _LOGGER.error(f'[parse_config] Wrong configuration, {e}')
-            raise ERROR_CONFIGURATION(key='interval')
+            _LOGGER.error(f"[parse_config] Wrong configuration, {e}")
+            raise ERROR_CONFIGURATION(key="interval")
 
     def run(self):
         config.set_global_force(**self.global_config)
@@ -127,14 +127,15 @@ class CronScheduler(BaseScheduler):
     """
     cronjob: min hour day month week
     """
+
     def __init__(self, queue, rule):
         super().__init__(queue)
         self.config = self.parse_config(rule)
 
     def parse_config(self, expr):
-        """ exprd
-          format: min hour day month week
-          * * * * *
+        """exprd
+        format: min hour day month week
+        * * * * *
         """
         # TODO: verify format
         return expr

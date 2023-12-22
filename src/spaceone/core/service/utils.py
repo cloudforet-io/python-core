@@ -27,7 +27,6 @@ __all__ = [
 
 def _raise_pydantic_error(e: ValidationError):
     for error in e.errors():
-        print(error["type"])
         if error["type"] == "value_error.missing":
             raise ERROR_REQUIRED_PARAMETER(key=", ".join(error["loc"]))
         elif error["type"].startswith("type_error"):
