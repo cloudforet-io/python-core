@@ -30,7 +30,7 @@ class SpaceONEAuthorizationHandler(BaseAuthorizationHandler):
                     self._check_user_projects(user_projects, request_project_id)
 
     def _check_role_type(self, user_role_type: str, role_types: list) -> None:
-        if "USER" in role_types:
+        if role_types == ["USER"]:
             owner_type = self.transaction.get_meta("authorization.owner_type")
             if owner_type == "APP":
                 raise ERROR_PERMISSION_DENIED()
