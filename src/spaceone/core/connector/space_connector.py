@@ -119,12 +119,8 @@ class SpaceConnector(BaseConnector):
 
         if x_domain_id:
             metadata.append(("x_domain_id", x_domain_id))
-        elif x_domain_id := self.transaction.meta.get("x_domain_id"):
-            metadata.append(("x_domain_id", x_domain_id))
 
         if x_workspace_id:
-            metadata.append(("x_workspace_id", x_workspace_id))
-        elif x_workspace_id := self.transaction.meta.get("x_workspace_id"):
             metadata.append(("x_workspace_id", x_workspace_id))
 
         carrier = {}
