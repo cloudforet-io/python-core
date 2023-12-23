@@ -271,21 +271,23 @@ class ERROR_LOCATOR(ERROR_UNKNOWN):
 
 
 class ERROR_TASK_LOCATOR(ERROR_LOCATOR):
-    _message = "Call locator failure. locator: {locator}, name: {name}"
+    _message = "Call locator failure. (locator = {locator}, name = {name})"
 
 
 class ERROR_TASK_METHOD(ERROR_UNKNOWN):
-    _message = "Call method failure. name: {name}, method: {method}, params: {params}"
+    _message = "Call method failure. (name = {name}, method = {method})"
 
 
 class ERROR_NOT_IMPLEMENTED(ERROR_UNKNOWN):
     _status_code = "UNIMPLEMENTED"
-    _message = "Not implemented, {name}"
+    _message = "Not implemented."
 
 
 class ERROR_MESSAGE_FORMAT(ERROR_UNKNOWN):
-    _message = "Error message format is invalid. (error_class={error_class}, key={key})"
+    _message = (
+        "Error message format is invalid. (error_class = {error_class}, key = {key})"
+    )
 
 
 class ERROR_CACHE_KEY_FORMAT(ERROR_UNKNOWN):
-    _message = "Cache key format is invalid. (key={key})"
+    _message = "Cache key format is invalid. (key = {key})"
