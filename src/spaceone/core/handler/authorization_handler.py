@@ -19,11 +19,11 @@ class SpaceONEAuthorizationHandler(BaseAuthorizationHandler):
                     if resource_group := params.get("resource_group"):
                         self._check_resource_group(resource_group, user_role_type)
 
-            if user_permissions := self.transaction.get_meta(
-                "authorization.permissions"
-            ):
-                if permission:
-                    self._check_permissions(user_permissions, permission)
+            user_permissions = self.transaction.get_meta(
+                "authorization.permissions", []
+            )
+            if len(user_permissions) > 0 and permission:
+                self._check_permissions(user_permissions, permission)
 
             if user_projects := self.transaction.get_meta("authorization.projects"):
                 if request_project_id := params.get("project_id"):

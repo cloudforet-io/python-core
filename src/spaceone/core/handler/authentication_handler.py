@@ -49,7 +49,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
     @cache.cacheable(
         key="handler:authentication:{domain_id}:api-key:{api_key_id}", alias="local"
     )
-    def _check_app(self, api_key_id, domain_id) -> bool:
+    def _check_app(self, api_key_id, domain_id) -> list:
         _LOGGER.debug(f"[_check_app] check app from identity service: {api_key_id}")
         response = self.identity_conn.dispatch(
             "App.check",
@@ -59,7 +59,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
             },
         )
 
-        return response.get("permissions")
+        return response.get("permissions", [])
 
     def _authenticate(self, token: str, domain_id: str) -> dict:
         public_key = self._get_public_key(domain_id)
