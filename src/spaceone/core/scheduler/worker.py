@@ -51,7 +51,7 @@ class SingleTask:
             return resp
         except Exception as e:
             _LOGGER.error(
-                f"[SingleTask] fail to execute method: {self.method}, params: {self.params}, {e}"
+                f"[SingleTask] fail to execute method: {self.method}, reason = {e}",
             )
             raise ERROR_TASK_METHOD(
                 name=self.name, method=self.method, params=self.params
