@@ -19,8 +19,8 @@ class SpaceONEAuthorizationHandler(BaseAuthorizationHandler):
                     if resource_group := params.get("resource_group"):
                         self._check_resource_group(resource_group, user_role_type)
 
-            user_permissions = self.transaction.get_meta(
-                "authorization.permissions", []
+            user_permissions = (
+                self.transaction.get_meta("authorization.permissions") or []
             )
             if len(user_permissions) > 0 and permission:
                 self._check_permissions(user_permissions, permission)

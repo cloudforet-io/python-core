@@ -95,7 +95,7 @@ class MongoModel(Document, BaseModel):
     }
 
     @classmethod
-    def init(cls) -> None:
+    def init(cls, create_index: bool = True) -> None:
         global_conf = config.get_global()
         databases = global_conf.get("DATABASES", {})
         db_name_prefix = global_conf.get("DATABASE_NAME_PREFIX", "")
@@ -109,7 +109,8 @@ class MongoModel(Document, BaseModel):
                     __import__(f"{package_path}.{model_path}", fromlist=["*"])
 
                     for model in cls.__subclasses__():
-                        model._create_index()
+                        if create_index:
+                            model._create_index()
                         model._load_default_meta()
 
     @classmethod
