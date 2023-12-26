@@ -148,9 +148,6 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         domain_id = self.transaction.get_meta("x_domain_id")
         workspace_id = self.transaction.get_meta("x_workspace_id")
 
-        if domain_id is None:
-            raise ERROR_REQUIRED_X_DOMAIN_ID()
-
         self.transaction.set_meta("authorization.token_type", token_type)
         self.transaction.set_meta("authorization.role_type", "SYSTEM_TOKEN")
         self.transaction.set_meta("authorization.owner_type", owner_type)
