@@ -31,9 +31,9 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         else:
             owner_type = token_info.get("own")
             if owner_type == "APP":
-                api_key_id = token_info.get("jti")
+                client_id = token_info.get("jti")
                 domain_id = token_info.get("did")
-                token_info["permissions"] = self._check_app(api_key_id, domain_id)
+                token_info["permissions"] = self._check_app(client_id, domain_id)
 
             self._update_meta(token_info)
 
@@ -47,14 +47,14 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         return response["public_key"]
 
     @cache.cacheable(
-        key="handler:authentication:{domain_id}:api-key:{api_key_id}", alias="local"
+        key="handler:authentication:{domain_id}:client:{client_id}", alias="local"
     )
-    def _check_app(self, api_key_id, domain_id) -> list:
-        _LOGGER.debug(f"[_check_app] check app from identity service: {api_key_id}")
+    def _check_app(self, client_id, domain_id) -> list:
+        _LOGGER.debug(f"[_check_app] check app from identity service: {client_id}")
         response = self.identity_conn.dispatch(
             "App.check",
             {
-                "api_key_id": api_key_id,
+                "client_id": client_id,
                 "domain_id": domain_id,
             },
         )
@@ -93,14 +93,14 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
             token_info(dict): {
                 'iss': 'str',   # issuer (spaceone.identity)
                 'rol': 'str',   # role type
-                'typ': 'str',   # token type (ACCESS_TOKEN | REFRESH_TOKEN | API_KEY)
+                'typ': 'str',   # token type (ACCESS_TOKEN | REFRESH_TOKEN | CLIENT_SECRET)
                 'own': 'str',   # owner (USER | APP)
                 'did': 'str',   # domain_id
                 'wid': 'str',   # workspace_id, Optional
                 'aud': 'str',   # audience (user_id | app_id)
                 'exp': 'int',   # expiration time
                 'iat': 'int',   # issued at
-                'jti': 'str',   # jwt id (token_key | api_key_id), Optional
+                'jti': 'str',   # jwt id (token_key | client_id), Optional
                 'permissions': 'list',  # permissions, Optional
                 'ver': 'str',   # jwt version
         """
