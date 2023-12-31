@@ -203,6 +203,23 @@ class MongoModel(Document, BaseModel):
         return unique_fields
 
     @classmethod
+    def _trim_value(cls, value: any) -> any:
+        if isinstance(value, str):
+            return value.strip()
+        elif isinstance(value, dict):
+            changed_value = {}
+            for k, v in value.items():
+                if isinstance(k, str):
+                    k = k.strip()
+                if isinstance(v, str):
+                    v = v.strip()
+                changed_value[k] = cls._trim_value(v)
+
+            return changed_value
+        else:
+            return value
+
+    @classmethod
     def create(cls, data):
         create_data = {}
 
@@ -226,6 +243,9 @@ class MongoModel(Document, BaseModel):
             vos = cls.filter(**conditions)
             if vos.count() > 0:
                 raise ERROR_SAVE_UNIQUE_VALUES(keys=unique_field)
+
+        for key, value in create_data.items():
+            create_data[key] = cls._trim_value(value)
 
         try:
             new_vo = cls(**create_data).save()
@@ -263,6 +283,9 @@ class MongoModel(Document, BaseModel):
                 del data[key]
 
         if data != {}:
+            for key, value in data.items():
+                data[key] = self._trim_value(value)
+
             try:
                 super().update(**data)
                 self.reload()
