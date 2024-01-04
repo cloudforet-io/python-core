@@ -29,6 +29,10 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         if token_info.get("typ") == "SYSTEM_TOKEN":
             self._update_system_meta(token_info)
         else:
+            version = token_info.get("ver")
+            if version not in ["2.0"]:
+                raise ERROR_AUTHENTICATE_FAILURE(message="invalid token version.")
+
             owner_type = token_info.get("own")
             if owner_type == "APP":
                 client_id = token_info.get("jti")
