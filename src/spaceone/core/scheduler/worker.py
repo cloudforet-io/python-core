@@ -38,20 +38,21 @@ class SingleTask:
                 caller = self._locator.get_manager(self.name)
 
         except Exception as e:
-            _LOGGER.debug(f"[SingleTask] fail at locator {e}")
+            _LOGGER.debug(f"[SingleTask.execute] locator error: {e}")
             raise ERROR_TASK_LOCATOR(locator=self.locator, name=self.name)
 
         try:
             _LOGGER.debug(
-                f"[SingleTask] request: {self.name}.{self.method} {self.params}"
+                f"[SingleTask.execute] (REQUEST) => {self.name}.{self.method}"
             )
             method = getattr(caller, self.method)
             resp = method(**self.params)
-            _LOGGER.debug(f"[SingleTask] response: {resp}")
+            _LOGGER.debug(f"[SingleTask.execute] (RESPONSE) => SUCCESS")
             return resp
         except Exception as e:
             _LOGGER.error(
-                f"[SingleTask] fail to execute method: {self.method}, reason = {e}",
+                f"[SingleTask.execute] Fail to execute method ({self.method}): {e}",
+                exc_info=True,
             )
             raise ERROR_TASK_METHOD(
                 name=self.name, method=self.method, params=self.params
