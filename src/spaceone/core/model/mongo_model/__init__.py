@@ -165,13 +165,14 @@ class MongoModel(Document, BaseModel):
     def _create_index(cls) -> None:
         if cls.auto_create_index:
             indexes = cls._meta.get("indexes", [])
+            unique_fields = cls._get_unique_fields()
 
-            if len(indexes) > 0:
+            if len(indexes) > 0 or len(unique_fields) > 0:
+                total_index_count = len(indexes) + len(unique_fields)
+
                 _LOGGER.debug(
-                    f"Create MongoDB Indexes ({cls.__name__} Model: {len(indexes)} Indexes)"
+                    f"Create MongoDB Indexes ({cls.__name__} Model: {total_index_count} Indexes)"
                 )
-
-                unique_fields = cls._get_unique_fields()
 
                 for unique_field in unique_fields:
                     try:
