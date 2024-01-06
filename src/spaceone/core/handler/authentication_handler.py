@@ -1,7 +1,7 @@
 import json
 import logging
 
-from spaceone.core import cache
+from spaceone.core import cache, config
 from spaceone.core.connector.space_connector import SpaceConnector
 from spaceone.core.auth.jwt import JWTAuthenticator, JWTUtil
 from spaceone.core.transaction import get_transaction
@@ -43,9 +43,11 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
 
     @cache.cacheable(key="handler:authentication:{domain_id}:public-key", alias="local")
     def _get_public_key(self, domain_id: str) -> str:
+        system_token = config.get_global("TOKEN")
+
         _LOGGER.debug(f"[_get_public_key] get jwk from identity service: {domain_id}")
         response = self.identity_conn.dispatch(
-            "Domain.get_public_key", {"domain_id": domain_id}
+            "Domain.get_public_key", {"domain_id": domain_id}, token=system_token
         )
 
         return response["public_key"]
@@ -54,6 +56,8 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         key="handler:authentication:{domain_id}:client:{client_id}", alias="local"
     )
     def _check_app(self, client_id, domain_id) -> list:
+        system_token = config.get_global("TOKEN")
+
         _LOGGER.debug(f"[_check_app] check app from identity service: {client_id}")
         response = self.identity_conn.dispatch(
             "App.check",
@@ -61,6 +65,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
                 "client_id": client_id,
                 "domain_id": domain_id,
             },
+            token=system_token,
         )
 
         return response.get("permissions", [])

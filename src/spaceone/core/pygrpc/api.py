@@ -42,19 +42,25 @@ class BaseAPI(object):
         return self.pb2.DESCRIPTOR.services_by_name[self.__class__.__name__].full_name
 
     def _load_grpc_messages(self):
-        service_desc: ServiceDescriptor = self._desc_pool.FindServiceByName(self.service_name)
+        service_desc: ServiceDescriptor = self._desc_pool.FindServiceByName(
+            self.service_name
+        )
         for method_desc in service_desc.methods:
             self._grpc_messages[method_desc.name] = {
-                'request': method_desc.input_type.name,
-                'response': method_desc.output_type.name
+                "request": method_desc.input_type.name,
+                "response": method_desc.output_type.name,
             }
 
     def _check_variables(self):
-        if not hasattr(self, 'pb2'):
-            raise Exception(f'gRPC Servicer has not set <pb2> variable. (servicer={self.__class__.__name__})')
+        if not hasattr(self, "pb2"):
+            raise Exception(
+                f"gRPC Servicer has not set <pb2> variable. (servicer={self.__class__.__name__})"
+            )
 
-        if not hasattr(self, 'pb2_grpc'):
-            raise Exception(f'gRPC Servicer has not set <pb2_grpc> variable. (servicer={self.__class__.__name__})')
+        if not hasattr(self, "pb2_grpc"):
+            raise Exception(
+                f"gRPC Servicer has not set <pb2_grpc> variable. (servicer={self.__class__.__name__})"
+            )
 
     def _get_grpc_servicer(self):
         grpc_servicer = None
@@ -63,14 +69,18 @@ class BaseAPI(object):
                 grpc_servicer = base_class
 
         if grpc_servicer is None:
-            raise Exception(f'gRPC servicer is not set. (servicer={self.__class__.__name__})')
+            raise Exception(
+                f"gRPC servicer is not set. (servicer={self.__class__.__name__})"
+            )
 
         return grpc_servicer
 
     def _set_grpc_method(self):
         grpc_servicer = self._get_grpc_servicer()
 
-        for f_name, f_object in inspect.getmembers(self.__class__, predicate=inspect.isfunction):
+        for f_name, f_object in inspect.getmembers(
+            self.__class__, predicate=inspect.isfunction
+        ):
             if hasattr(grpc_servicer, f_name):
                 setattr(self, f_name, self._grpc_method(f_object))
 
@@ -79,10 +89,10 @@ class BaseAPI(object):
         if not isinstance(error, ERROR_BASE):
             error = ERROR_UNKNOWN(message=error)
 
-        if not error.meta.get('skip_error_log'):
-            _LOGGER.error(f'(Error) => {error.message} {error}', exc_info=True)
+        if not error.meta.get("skip_error_log"):
+            _LOGGER.error(f"(Error) => {error.message} {error}", exc_info=True)
 
-        details = f'{error.error_code}: {error.message}'
+        details = f"{error.error_code}: {error.message}"
         context.abort(grpc.StatusCode[error.status_code], details)
 
     def _generate_response(self, response_iterator, context):
@@ -118,8 +128,7 @@ class BaseAPI(object):
         for key, value in context.invocation_metadata():
             metadata[key.strip()] = value.strip()
 
-        metadata.update({'peer': context.peer()})
-
+        metadata.update({"peer": context.peer()})
         return metadata
 
     def _generate_message(self, request_iterator):
@@ -128,9 +137,13 @@ class BaseAPI(object):
 
     def parse_request(self, request_or_iterator, context):
         if isinstance(request_or_iterator, Iterable):
-            return self._generate_message(request_or_iterator), self._get_metadata(context)
+            return self._generate_message(request_or_iterator), self._get_metadata(
+                context
+            )
         else:
-            return self._convert_message(request_or_iterator), self._get_metadata(context)
+            return self._convert_message(request_or_iterator), self._get_metadata(
+                context
+            )
 
     def empty(self):
         return Empty()
@@ -139,17 +152,19 @@ class BaseAPI(object):
         # Get grpc method name from call stack
         method_name = inspect.stack()[1][3]
 
-        response_message_name = self._grpc_messages[method_name]['response']
+        response_message_name = self._grpc_messages[method_name]["response"]
 
         if hasattr(self.pb2, response_message_name):
             response_message = getattr(self.pb2, response_message_name)()
-        elif response_message_name == 'Struct':
+        elif response_message_name == "Struct":
             response_message = Struct()
         else:
-            raise Exception(f'Not found response message in pb2. (message={response_message_name})')
+            raise Exception(
+                f"Not found response message in pb2. (message={response_message_name})"
+            )
 
         return ParseDict(response, response_message)
 
     @staticmethod
     def get_minimal(params: dict):
-        return params.get('query', {}).get('minimal', False)
+        return params.get("query", {}).get("minimal", False)
