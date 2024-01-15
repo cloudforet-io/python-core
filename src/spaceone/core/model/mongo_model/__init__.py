@@ -622,6 +622,7 @@ class MongoModel(Document, BaseModel):
             filter_or=filter_or,
             page=page,
             tageet=target,
+            allow_disk_use=True,
         )
 
         try:
