@@ -291,3 +291,9 @@ class ERROR_MESSAGE_FORMAT(ERROR_UNKNOWN):
 
 class ERROR_CACHE_KEY_FORMAT(ERROR_UNKNOWN):
     _message = "Cache key format is invalid. (key = {key})"
+
+
+class ERROR_SERVICE_ACCOUNT_CANNOT_BE_DELETED_WITH_EXISTING_APP(ERROR_INVALID_ARGUMENT):
+    _status_code = "INVALID_OPERATION"
+    _message = """Service Account cannot be deleted as long as an associated App exists. 
+    Please delete the App before deleting the Service Account. (error_class = {error_class}, key = {key})"""

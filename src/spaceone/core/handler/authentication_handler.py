@@ -111,6 +111,8 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
                 'iat': 'int',   # issued at
                 'jti': 'str',   # jwt id (token_key | client_id), Optional
                 'permissions': 'list',  # permissions, Optional
+                'projects': 'list',     # project_ids, if workspace member, Optional
+                'injected_params': 'dict',  # injected parameters, override parameters, Optional
                 'ver': 'str',   # jwt version
         """
 
@@ -122,6 +124,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         workspace_id = token_info.get("wid")
         permissions = token_info.get("permissions")
         projects = token_info.get("projects")
+        injected_params = token_info.get("injected_params")
 
         self.transaction.set_meta("authorization.token_type", token_type)
         self.transaction.set_meta("authorization.role_type", role_type)
@@ -131,6 +134,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         self.transaction.set_meta("authorization.workspace_id", workspace_id)
         self.transaction.set_meta("authorization.permissions", permissions)
         self.transaction.set_meta("authorization.projects", projects)
+        self.transaction.set_meta("authorization.injected_params", injected_params)
 
         if owner_type == "USER":
             self.transaction.set_meta("authorization.user_id", audience)
