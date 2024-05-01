@@ -1266,9 +1266,9 @@ class MongoModel(Document, BaseModel):
     @classmethod
     def _make_field_group_keys(cls, group_keys, field_group):
         field_group_keys = []
-        for group_key in group_keys:
-            key = group_key["key"].rsplit(".", 1)[-1:][0]
-            name = group_key["name"]
+        for group_option in group_keys:
+            key = group_option["name"]
+            name = group_option["name"]
             if name not in field_group:
                 if name == "date":
                     field_group_keys.append({"key": "date", "name": "date"})
