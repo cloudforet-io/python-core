@@ -479,7 +479,7 @@ class MongoModel(Document, BaseModel):
         if operator not in FILTER_OPERATORS:
             raise ERROR_DB_QUERY(
                 reason=f"Filter operator is not supported. (operator = "
-                f"{FILTER_OPERATORS.keys()})"
+                       f"{FILTER_OPERATORS.keys()})"
             )
 
         resolver, mongo_operator, is_multiple = FILTER_OPERATORS.get(operator)
@@ -566,14 +566,14 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def _stat_with_unwind(
-        cls,
-        unwind: list,
-        only: list = None,
-        filter: list = None,
-        filter_or: list = None,
-        sort: list = None,
-        page: dict = None,
-        target: str = None,
+            cls,
+            unwind: list,
+            only: list = None,
+            filter: list = None,
+            filter_or: list = None,
+            sort: list = None,
+            page: dict = None,
+            target: str = None,
     ):
         if only is None:
             raise ERROR_DB_QUERY(reason="unwind option requires only option.")
@@ -641,19 +641,19 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def query(
-        cls,
-        *args,
-        only=None,
-        exclude=None,
-        filter=None,
-        filter_or=None,
-        sort=None,
-        page=None,
-        minimal=False,
-        count_only=False,
-        unwind=None,
-        target=None,
-        **kwargs,
+            cls,
+            *args,
+            only=None,
+            exclude=None,
+            filter=None,
+            filter_or=None,
+            sort=None,
+            page=None,
+            minimal=False,
+            count_only=False,
+            unwind=None,
+            target=None,
+            **kwargs,
     ):
         filter = filter or []
         filter_or = filter_or or []
@@ -715,7 +715,7 @@ class MongoModel(Document, BaseModel):
                         if start < 1:
                             start = 1
 
-                        vos = vos[start - 1 : start + page["limit"] - 1]
+                        vos = vos[start - 1: start + page["limit"] - 1]
 
                 return vos, total_count
 
@@ -786,7 +786,7 @@ class MongoModel(Document, BaseModel):
             if operator not in _SUPPORTED_OPERATOR:
                 raise ERROR_DB_QUERY(
                     reason=f"'aggregate.group.fields.conditions.operator' condition's {operator} operator is not "
-                    f"supported. (supported_operator = {_SUPPORTED_OPERATOR})"
+                           f"supported. (supported_operator = {_SUPPORTED_OPERATOR})"
                 )
 
             if key in _before_group_keys:
@@ -808,7 +808,7 @@ class MongoModel(Document, BaseModel):
         if operator not in STAT_GROUP_OPERATORS:
             raise ERROR_DB_QUERY(
                 reason=f"'aggregate.group.fields' condition's {operator} operator is not supported. "
-                f"(supported_operator = {list(STAT_GROUP_OPERATORS.keys())})"
+                       f"(supported_operator = {list(STAT_GROUP_OPERATORS.keys())})"
             )
 
         if name is None:
@@ -927,7 +927,7 @@ class MongoModel(Document, BaseModel):
         if operator and operator not in STAT_PROJECT_OPERATORS:
             raise ERROR_DB_QUERY(
                 reason=f"'aggregate.project.fields' condition's {operator} operator is not supported. "
-                f"(supported_operator = {list(STAT_PROJECT_OPERATORS.keys())})"
+                       f"(supported_operator = {list(STAT_PROJECT_OPERATORS.keys())})"
             )
 
         if name is None:
@@ -1085,9 +1085,9 @@ class MongoModel(Document, BaseModel):
             else:
                 raise ERROR_REQUIRED_PARAMETER(
                     key="aggregate.unwind or aggregate.group or "
-                    "aggregate.count or aggregate.sort or "
-                    "aggregate.project or aggregate.limit or "
-                    "aggregate.skip"
+                        "aggregate.count or aggregate.sort or "
+                        "aggregate.project or aggregate.limit or "
+                        "aggregate.skip"
                 )
 
         return _aggregate_rules
@@ -1141,23 +1141,23 @@ class MongoModel(Document, BaseModel):
                 start = 1
 
             result["total_count"] = len(values)
-            values = values[start - 1 : start + page["limit"] - 1]
+            values = values[start - 1: start + page["limit"] - 1]
 
         result["results"] = cls._make_distinct_values(values)
         return result
 
     @classmethod
     def stat(
-        cls,
-        *args,
-        aggregate=None,
-        distinct=None,
-        filter=None,
-        filter_or=None,
-        page=None,
-        target="SECONDARY_PREFERRED",
-        allow_disk_use=False,
-        **kwargs,
+            cls,
+            *args,
+            aggregate=None,
+            distinct=None,
+            filter=None,
+            filter_or=None,
+            page=None,
+            target="SECONDARY_PREFERRED",
+            allow_disk_use=False,
+            **kwargs,
     ):
         filter = filter or []
         filter_or = filter_or or []
@@ -1195,8 +1195,25 @@ class MongoModel(Document, BaseModel):
     @classmethod
     def _make_group_keys(cls, group_by, date_field, granularity=None):
         group_keys = []
-        for key in group_by:
-            name = key.rsplit(".", 1)[-1:][0]
+        for group_option in group_by:
+            if isinstance(group_option, dict):
+                key = group_option.get("key")
+                name = group_option.get("name")
+
+                if not (key and name):
+                    raise ERROR_INVALID_PARAMETER(
+                        key="group_by",
+                        reason="group_by option requires a key and name.",
+                    )
+            elif isinstance(group_option, str):
+                key = group_option
+                name = key.rsplit(".", 1)[-1:][0]
+            else:
+                raise ERROR_INVALID_PARAMETER(
+                    key="group_by",
+                    reason="group_by option should be dict or str type.",
+                )
+
             group_keys.append({"key": key, "name": name})
 
         if granularity and granularity in ["DAILY", "MONTHLY", "YEARLY"]:
@@ -1436,24 +1453,24 @@ class MongoModel(Document, BaseModel):
 
     @classmethod
     def analyze(
-        cls,
-        *args,
-        granularity=None,
-        fields=None,
-        select=None,
-        group_by=None,
-        field_group=None,
-        filter=None,
-        filter_or=None,
-        page=None,
-        sort=None,
-        start=None,
-        end=None,
-        date_field="date",
-        date_field_format="%Y-%m-%d",
-        target="SECONDARY_PREFERRED",
-        allow_disk_use=False,
-        **kwargs,
+            cls,
+            *args,
+            granularity=None,
+            fields=None,
+            select=None,
+            group_by=None,
+            field_group=None,
+            filter=None,
+            filter_or=None,
+            page=None,
+            sort=None,
+            start=None,
+            end=None,
+            date_field="date",
+            date_field_format="%Y-%m-%d",
+            target="SECONDARY_PREFERRED",
+            allow_disk_use=False,
+            **kwargs,
     ):
         if fields is None:
             raise ERROR_REQUIRED_PARAMETER(key="fields")
