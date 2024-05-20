@@ -54,9 +54,7 @@ class SingleTask:
                 f"[SingleTask.execute] Fail to execute method ({self.method}): {e}",
                 exc_info=True,
             )
-            raise ERROR_TASK_METHOD(
-                name=self.name, method=self.method, params=self.params
-            )
+            raise ERROR_TASK_METHOD(name=self.name, method=self.method)
 
 
 class SpaceoneTask:
