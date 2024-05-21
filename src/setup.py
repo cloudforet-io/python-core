@@ -18,82 +18,69 @@ import os
 from setuptools import setup, find_packages
 
 setup(
-    name='spaceone-core',
-    version=os.environ.get('PACKAGE_VERSION'),
-    description='Cloudforet Core Library',
-    long_description='',
-    url='https://cloudforet.io/',
-    author='MEGAZONE Cloud Corp.',
-    author_email='admin@spaceone.dev',
-    license='Apache License 2.0',
+    name="spaceone-core",
+    version=os.environ.get("PACKAGE_VERSION"),
+    description="Cloudforet Core Library",
+    long_description="",
+    url="https://cloudforet.io/",
+    author="MEGAZONE Cloud Corp.",
+    author_email="admin@spaceone.dev",
+    license="Apache License 2.0",
     packages=find_packages(),
     install_requires=[
         # grpc packages
-        'protobuf==3.*',
+        "protobuf==3.*",
         # 'grpcio',
-        'grpcio-reflection',
-        'google-api-core',
-        'grpcio-health-checking',
-
-        # fastapi packages
-        'fastapi',
-        'fastapi-utils',
-        'uvicorn',
-
-        # asyncio packages
-        'asyncio',
-
-        # data parser packages
-        'PyYAML',
-        'jsonschema',
-
-        # scheduler packages
-        'schedule',
-        'scheduler-cron',
-
-        # cache packages
-        'redis',
-        'cachetools',
-
-        # crypto(jwt) packages
-        'pycryptodome',
-        'jwcrypto',
-        'python-jose',
-
-        # utils packages
-        'python-dateutil',
-        'python-consul',
-        'dnspython',
-
-        # HTTP packages
-        'requests',
-
-        # CLI packages
-        'click',
-
+        "grpcio-reflection",
+        "google-api-core",
+        "grpcio-health-checking",
         # model packages
-        'pydantic',
-        'mongoengine',
-
+        "pydantic=1.*",
+        "mongoengine",
+        # fastapi packages
+        "fastapi",
+        "fastapi-utils",
+        "uvicorn",
+        # asyncio packages
+        "asyncio",
+        # data parser packages
+        "PyYAML",
+        "jsonschema",
+        # scheduler packages
+        "schedule",
+        "scheduler-cron",
+        # cache packages
+        "redis",
+        "cachetools",
+        # crypto(jwt) packages
+        "pycryptodome",
+        "jwcrypto",
+        "python-jose",
+        # utils packages
+        "python-dateutil",
+        "python-consul",
+        "dnspython",
+        # HTTP packages
+        "requests",
+        # CLI packages
+        "click",
         # AWS packages
-        'boto3',
-
+        "boto3",
         # test framework packages
-        'unittest-xml-reporting',
-        'factory-boy',
-        'mongomock',
-
+        "unittest-xml-reporting",
+        "factory-boy",
+        "mongomock",
         # tracing packages
-        'opentelemetry-api',
-        'opentelemetry-sdk',
-        'opentelemetry-exporter-otlp-proto-grpc',
-        'opentelemetry-instrumentation-logging',
-        'opentelemetry-exporter-prometheus'
+        "opentelemetry-api",
+        "opentelemetry-sdk",
+        "opentelemetry-exporter-otlp-proto-grpc",
+        "opentelemetry-instrumentation-logging",
+        "opentelemetry-exporter-prometheus",
     ],
     zip_safe=False,
     entry_points={
-        'console_scripts': [
-            'spaceone = spaceone.core.command:cli',
+        "console_scripts": [
+            "spaceone = spaceone.core.command:cli",
         ]
     },
 )

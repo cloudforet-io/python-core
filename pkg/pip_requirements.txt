@@ -3,6 +3,8 @@ grpcio
 grpcio-reflection
 google-api-core
 grpcio-health-checking
+pydantic==1.*
+mongoengine
 fastapi
 fastapi-utils
 uvicorn
@@ -21,8 +23,6 @@ python-consul
 dnspython
 requests
 click
-pydantic
-mongoengine
 boto3
 unittest-xml-reporting
 factory-boy
