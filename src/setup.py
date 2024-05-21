@@ -35,7 +35,7 @@ setup(
         "google-api-core",
         "grpcio-health-checking",
         # model packages
-        "pydantic=1.*",
+        "pydantic==1.*",
         "mongoengine",
         # fastapi packages
         "fastapi",
