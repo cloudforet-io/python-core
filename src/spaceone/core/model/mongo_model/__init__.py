@@ -1493,6 +1493,7 @@ class MongoModel(Document, BaseModel):
         sort=None,
         start=None,
         end=None,
+        unwind=None,
         date_field="date",
         date_field_format="%Y-%m-%d",
         reference_filter=None,
@@ -1526,10 +1527,17 @@ class MongoModel(Document, BaseModel):
         group_keys = cls._make_group_keys(group_by, date_field, granularity)
         group_fields = cls._make_group_fields(fields)
 
+        aggregate = []
+
+        if unwind:
+            aggregate.append({"unwind": unwind})
+
+        aggregate.append({"group": {"keys": group_keys, "fields": group_fields}})
+
         query = {
             "filter": filter,
             "filter_or": filter_or,
-            "aggregate": [{"group": {"keys": group_keys, "fields": group_fields}}],
+            "aggregate": aggregate,
             "target": target,
             "allow_disk_use": allow_disk_use,
             "reference_filter": reference_filter,
