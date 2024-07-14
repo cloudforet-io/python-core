@@ -105,7 +105,7 @@ class _ClientInterceptor(
             self._check_error(e)
 
     def _retry_call(
-            self, continuation, client_call_details, request_or_iterator, is_stream
+        self, continuation, client_call_details, request_or_iterator, is_stream
     ):
         retries = 0
 
@@ -142,12 +142,12 @@ class _ClientInterceptor(
             retries += 1
 
     def _intercept_call(
-            self,
-            continuation,
-            client_call_details,
-            request_or_iterator,
-            is_request_stream,
-            is_response_stream,
+        self,
+        continuation,
+        client_call_details,
+        request_or_iterator,
+        is_request_stream,
+        is_response_stream,
     ):
         new_request_or_iterator = self._check_message(
             client_call_details, request_or_iterator, is_request_stream
@@ -171,14 +171,14 @@ class _ClientInterceptor(
         )
 
     def intercept_stream_unary(
-            self, continuation, client_call_details, request_iterator
+        self, continuation, client_call_details, request_iterator
     ):
         return self._intercept_call(
             continuation, client_call_details, request_iterator, True, False
         )
 
     def intercept_stream_stream(
-            self, continuation, client_call_details, request_iterator
+        self, continuation, client_call_details, request_iterator
     ):
         return self._intercept_call(
             continuation, client_call_details, request_iterator, True, True
@@ -187,20 +187,20 @@ class _ClientInterceptor(
 
 class _GRPCStub(object):
     def __init__(
-            self,
-            desc_pool: DescriptorPool,
-            service_desc: ServiceDescriptor,
-            channel: grpc.Channel,
+        self,
+        desc_pool: DescriptorPool,
+        service_desc: ServiceDescriptor,
+        channel: grpc.Channel,
     ):
         self._desc_pool = desc_pool
         for method_desc in service_desc.methods:
             self._bind_grpc_method(service_desc, method_desc, channel)
 
     def _bind_grpc_method(
-            self,
-            service_desc: ServiceDescriptor,
-            method_desc: MethodDescriptor,
-            channel: grpc.Channel,
+        self,
+        service_desc: ServiceDescriptor,
+        method_desc: MethodDescriptor,
+        channel: grpc.Channel,
     ):
         method_name = method_desc.name
         method_key = f"/{service_desc.full_name}/{method_name}"
