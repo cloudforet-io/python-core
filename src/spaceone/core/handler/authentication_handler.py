@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Tuple, List
 
 from spaceone.core import cache, config
 from spaceone.core.connector.space_connector import SpaceConnector
@@ -37,7 +38,9 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
             if owner_type == "APP":
                 client_id = token_info.get("jti")
                 domain_id = token_info.get("did")
-                token_info["permissions"] = self._check_app(client_id, domain_id)
+                permissions, projects = self._check_app(client_id, domain_id)
+                token_info["permissions"] = permissions
+                token_info["projects"] = projects
 
             self._update_meta(token_info)
 
@@ -55,7 +58,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
     @cache.cacheable(
         key="handler:authentication:{domain_id}:client:{client_id}", alias="local"
     )
-    def _check_app(self, client_id, domain_id) -> list:
+    def _check_app(self, client_id: str, domain_id: str) -> Tuple[List[str], List[str]]:
         system_token = config.get_global("TOKEN")
 
         _LOGGER.debug(f"[_check_app] check app from identity service: {client_id}")
@@ -68,7 +71,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
             token=system_token,
         )
 
-        return response.get("permissions", [])
+        return response.get("permissions", []), response.get("projects", [])
 
     def _authenticate(self, token: str, domain_id: str) -> dict:
         public_key = self._get_public_key(domain_id)
