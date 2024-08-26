@@ -1119,7 +1119,7 @@ class MongoModel(Document, BaseModel):
         return _aggregate_rules
 
     @classmethod
-    def _stat_aggregate(cls, vos, aggregate, page, allow_disk_use):
+    def _stat_aggregate(cls, vos, aggregate, page, allow_disk_use, return_type):
         result = {}
         pipeline = []
         _aggregate_rules = cls._make_aggregate_rules(aggregate)
@@ -1148,8 +1148,12 @@ class MongoModel(Document, BaseModel):
             cursor = vos.aggregate(pipeline, allowDiskUse=True)
         else:
             cursor = vos.aggregate(pipeline)
-        result["results"] = cls._make_aggregate_values(cursor)
-        return result
+
+        if return_type == "cursor":
+            return cursor
+        else:
+            result["results"] = cls._make_aggregate_values(cursor)
+            return result
 
     @classmethod
     def _stat_distinct(cls, vos, distinct, page):
@@ -1184,6 +1188,7 @@ class MongoModel(Document, BaseModel):
         reference_filter=None,
         target="SECONDARY_PREFERRED",
         allow_disk_use=False,
+        return_type="dict",
         **kwargs,
     ):
         filter = filter or []
@@ -1199,7 +1204,9 @@ class MongoModel(Document, BaseModel):
             vos = cls._get_target_objects(target).filter(_filter)
 
             if aggregate:
-                return cls._stat_aggregate(vos, aggregate, page, allow_disk_use)
+                return cls._stat_aggregate(
+                    vos, aggregate, page, allow_disk_use, return_type
+                )
 
             elif distinct:
                 return cls._stat_distinct(vos, distinct, page)
@@ -1499,6 +1506,7 @@ class MongoModel(Document, BaseModel):
         reference_filter=None,
         target="SECONDARY_PREFERRED",
         allow_disk_use=False,
+        return_type="dict",
         **kwargs,
     ):
         if fields is None:
@@ -1540,6 +1548,7 @@ class MongoModel(Document, BaseModel):
             "aggregate": aggregate,
             "target": target,
             "allow_disk_use": allow_disk_use,
+            "return_type": return_type,
             "reference_filter": reference_filter,
         }
 
@@ -1561,8 +1570,11 @@ class MongoModel(Document, BaseModel):
 
         response = cls.stat(**query)
 
-        if page_limit:
-            response["more"] = len(response["results"]) > page_limit
-            response["results"] = response["results"][:page_limit]
+        if return_type == "cursor":
+            return response
+        else:
+            if page_limit:
+                response["more"] = len(response["results"]) > page_limit
+                response["results"] = response["results"][:page_limit]
 
-        return response
+            return response
