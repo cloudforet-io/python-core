@@ -2,7 +2,7 @@ import logging
 import types
 import grpc
 from google.protobuf.json_format import ParseDict
-from google.protobuf.message_factory import MessageFactory, GetMessageClass
+from google.protobuf.message_factory import MessageFactory #, GetMessageClass
 from google.protobuf.descriptor_pool import DescriptorPool
 from google.protobuf.descriptor import ServiceDescriptor, MethodDescriptor
 from grpc_reflection.v1alpha.proto_reflection_descriptor_database import (
@@ -207,14 +207,14 @@ class _GRPCStub(object):
         request_desc = self._desc_pool.FindMessageTypeByName(
             method_desc.input_type.full_name
         )
-        # request_message_desc = MessageFactory(self._desc_pool).GetPrototype(request_desc)
-        request_message_desc = GetMessageClass(request_desc)
+        request_message_desc = MessageFactory(self._desc_pool).GetPrototype(request_desc)
+        # request_message_desc = GetMessageClass(request_desc)
 
         response_desc = self._desc_pool.FindMessageTypeByName(
             method_desc.output_type.full_name
         )
-        # response_message_desc = MessageFactory(self._desc_pool).GetPrototype(response_desc)
-        response_message_desc = GetMessageClass(response_desc)
+        response_message_desc = MessageFactory(self._desc_pool).GetPrototype(response_desc)
+        # response_message_desc = GetMessageClass(response_desc)
 
         if method_desc.client_streaming and method_desc.server_streaming:
             setattr(
@@ -286,8 +286,8 @@ class GRPCClient(object):
                 request_desc = self._desc_pool.FindMessageTypeByName(
                     method_desc.input_type.full_name
                 )
-                # self._request_map[method_key] = MessageFactory(self._desc_pool).GetPrototype(request_desc)
-                self._request_map[method_key] = GetMessageClass(request_desc)
+                self._request_map[method_key] = MessageFactory(self._desc_pool).GetPrototype(request_desc)
+                # self._request_map[method_key] = GetMessageClass(request_desc)
 
                 if service_desc.name not in self._api_resources:
                     self._api_resources[service_name] = []
