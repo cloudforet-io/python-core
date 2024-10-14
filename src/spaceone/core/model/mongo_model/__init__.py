@@ -1147,18 +1147,15 @@ class MongoModel(Document, BaseModel):
 
             pipeline.append({"$limit": limit})
 
+        options = {}
         if allow_disk_use:
             _LOGGER.debug(f"[_stat_aggregate] allow_disk_use: {allow_disk_use}")
+            options["allowDiskUse"] = True
 
-            if hint:
-                cursor = vos.aggregate(pipeline, hint=hint, allowDiskUse=True)
-            else:
-                cursor = vos.aggregate(pipeline, allowDiskUse=True)
-        else:
-            if hint:
-                cursor = vos.aggregate(pipeline, hint=hint)
-            else:
-                cursor = vos.aggregate(pipeline)
+        if hint:
+            options["hint"] = hint
+
+        cursor = vos.aggregate(pipeline, **options)
 
         if return_type == "cursor":
             return cursor
@@ -1518,6 +1515,7 @@ class MongoModel(Document, BaseModel):
         date_field_format="%Y-%m-%d",
         reference_filter=None,
         target="SECONDARY_PREFERRED",
+        hint=None,
         allow_disk_use=False,
         return_type="dict",
         **kwargs,
@@ -1560,6 +1558,7 @@ class MongoModel(Document, BaseModel):
             "filter_or": filter_or,
             "aggregate": aggregate,
             "target": target,
+            "hint": hint,
             "allow_disk_use": allow_disk_use,
             "return_type": return_type,
             "reference_filter": reference_filter,
