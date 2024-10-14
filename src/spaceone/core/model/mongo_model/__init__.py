@@ -679,6 +679,7 @@ class MongoModel(Document, BaseModel):
         unwind=None,
         reference_filter=None,
         target=None,
+        hint=None,
         **kwargs,
     ):
         filter = filter or []
@@ -705,6 +706,9 @@ class MongoModel(Document, BaseModel):
 
             try:
                 vos = cls._get_target_objects(target).filter(_filter)
+
+                if hint:
+                    vos = vos.hint(hint)
 
                 if len(_order_by) > 0:
                     vos = vos.order_by(*_order_by)
@@ -1119,7 +1123,7 @@ class MongoModel(Document, BaseModel):
         return _aggregate_rules
 
     @classmethod
-    def _stat_aggregate(cls, vos, aggregate, page, allow_disk_use, return_type):
+    def _stat_aggregate(cls, vos, aggregate, page, hint, allow_disk_use, return_type):
         result = {}
         pipeline = []
         _aggregate_rules = cls._make_aggregate_rules(aggregate)
@@ -1143,11 +1147,15 @@ class MongoModel(Document, BaseModel):
 
             pipeline.append({"$limit": limit})
 
+        options = {}
         if allow_disk_use:
             _LOGGER.debug(f"[_stat_aggregate] allow_disk_use: {allow_disk_use}")
-            cursor = vos.aggregate(pipeline, allowDiskUse=True)
-        else:
-            cursor = vos.aggregate(pipeline)
+            options["allowDiskUse"] = True
+
+        if hint:
+            options["hint"] = hint
+
+        cursor = vos.aggregate(pipeline, **options)
 
         if return_type == "cursor":
             return cursor
@@ -1158,6 +1166,7 @@ class MongoModel(Document, BaseModel):
     @classmethod
     def _stat_distinct(cls, vos, distinct, page):
         result = {}
+
         values = vos.distinct(distinct)
 
         try:
@@ -1187,6 +1196,7 @@ class MongoModel(Document, BaseModel):
         page=None,
         reference_filter=None,
         target="SECONDARY_PREFERRED",
+        hint=None,
         allow_disk_use=False,
         return_type="dict",
         **kwargs,
@@ -1205,7 +1215,7 @@ class MongoModel(Document, BaseModel):
 
             if aggregate:
                 return cls._stat_aggregate(
-                    vos, aggregate, page, allow_disk_use, return_type
+                    vos, aggregate, page, hint, allow_disk_use, return_type
                 )
 
             elif distinct:
@@ -1505,6 +1515,7 @@ class MongoModel(Document, BaseModel):
         date_field_format="%Y-%m-%d",
         reference_filter=None,
         target="SECONDARY_PREFERRED",
+        hint=None,
         allow_disk_use=False,
         return_type="dict",
         **kwargs,
@@ -1547,6 +1558,7 @@ class MongoModel(Document, BaseModel):
             "filter_or": filter_or,
             "aggregate": aggregate,
             "target": target,
+            "hint": hint,
             "allow_disk_use": allow_disk_use,
             "return_type": return_type,
             "reference_filter": reference_filter,
