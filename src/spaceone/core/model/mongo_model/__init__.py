@@ -1171,8 +1171,8 @@ class MongoModel(Document, BaseModel):
 
         try:
             values.sort()
-        except Exception:
-            pass
+        except Exception as e:
+            _LOGGER.debug(f"[_stat_distinct] Failed to sort values: {e}")
 
         if "limit" in page and page["limit"] > 0:
             start = page.get("start", 1)
