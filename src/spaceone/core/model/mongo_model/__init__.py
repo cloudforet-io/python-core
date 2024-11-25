@@ -610,12 +610,7 @@ class MongoModel(Document, BaseModel):
             raise ERROR_DB_QUERY(reason="unwind option should have path key.")
 
         unwind_path = unwind["path"]
-        unwind_filter = unwind.get("filter")
-
-        aggregate = [{"unwind": {"path": unwind_path}}]
-
-        if unwind_filter:
-            aggregate.append({"match": {"filter": unwind_filter}})
+        aggregate = [{"unwind": unwind}]
 
         # Add project stage
         project_fields = []
@@ -1088,6 +1083,11 @@ class MongoModel(Document, BaseModel):
             if "unwind" in stage:
                 rule = cls._make_unwind_rule(stage["unwind"])
                 _aggregate_rules.append(rule)
+
+                if unwind_filter := stage["unwind"].get("filter"):
+                    rule = cls._make_match_rule({"filter": unwind_filter})
+                    _aggregate_rules.append(rule)
+
             elif "group" in stage:
                 rule, group_keys = cls._make_group_rule(stage["group"], _group_keys)
                 _aggregate_rules.append(rule)
