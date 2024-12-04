@@ -22,6 +22,7 @@ __all__ = [
     "change_timestamp_value",
     "change_date_value",
     "change_timestamp_filter",
+    "check_query_filter",
 ]
 
 
@@ -420,3 +421,49 @@ def _convert_date_from_string(date_str, key, date_format) -> date:
         return datetime.strptime(date_str, date_format).date()
     except Exception as e:
         raise ERROR_INVALID_PARAMETER_TYPE(key=key, type=date_format)
+
+
+def check_query_filter(keywords=None) -> callable:
+    if keywords is None:
+        keywords = []
+
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped_func(cls, params):
+            query = params.get("query", {})
+            if "filter" in query:
+                for filters in query["filter"]:
+                    key = filters.get("key", filters.get("k"))
+                    if key in keywords:
+                        raise ERROR_INVALID_PARAMETER(
+                            key=key, reason="Include secure parameter"
+                        )
+
+            if "group_by" in query:
+                for group_bys in query["group_by"]:
+                    key = group_bys.get("key", group_bys.get("k"))
+                    if key in keywords:
+                        raise ERROR_INVALID_PARAMETER(
+                            key=key, reason="Include secure parameter"
+                        )
+
+            if "fields" in query:
+                value = query["fields"].get("value", query["fields"].get("v"))
+                key = value.get("key", value.get("k"))
+                if key in keywords:
+                    raise ERROR_INVALID_PARAMETER(
+                        key=key, reason="Include secure parameter"
+                    )
+
+            if "distinct" in query:
+                key = query["distinct"]
+                if key in keywords:
+                    raise ERROR_INVALID_PARAMETER(
+                        key=key, reason="Include secure parameter"
+                    )
+
+            return func(cls, params)
+
+        return wrapped_func
+
+    return wrapper
