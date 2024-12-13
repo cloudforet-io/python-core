@@ -1,6 +1,7 @@
+import copy
 import functools
 import logging
-import copy
+import time
 from typing import Generator, Union, Literal
 
 from opentelemetry import trace
@@ -181,6 +182,8 @@ def _pipeline(
 
     try:
         with _TRACER.start_as_current_span("PreProcessing"):
+            start_time = time.time()
+
             # 1. Event - Start
             if event_handler_state:
                 for handler in get_event_handlers():
@@ -239,7 +242,9 @@ def _pipeline(
 
             # 9. Print Response Info Log
             if print_info_log:
-                _LOGGER.info(f"(RESPONSE) => SUCCESS")
+
+                process_time = time.time() - start_time
+                _LOGGER.info(f"(RESPONSE) => SUCCESS (Time = {process_time:.2f}s)")
 
         return response_or_iterator
 
