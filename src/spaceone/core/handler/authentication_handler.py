@@ -1,5 +1,6 @@
 import json
 import logging
+import copy
 from typing import Tuple, List
 
 from spaceone.core import cache, config
@@ -39,8 +40,8 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
                 client_id = token_info.get("jti")
                 domain_id = token_info.get("did")
                 permissions, projects = self._check_app(client_id, domain_id)
-                token_info["permissions"] = permissions
-                token_info["projects"] = projects
+                token_info["permissions"] = copy.deepcopy(permissions)
+                token_info["projects"] = copy.deepcopy(projects)
 
             self._update_meta(token_info)
 
