@@ -77,7 +77,8 @@ def change_value_by_rule(rule: str, param_key: str, value: any = None) -> any:
     def wrapper(func: callable) -> callable:
         @functools.wraps(func)
         def wrapped_func(cls, params: dict) -> Union[dict, types.GeneratorType]:
-            if param_value := params.get(param_key):
+            if param_key in params:
+                param_value = params[param_key]
                 if rule == "APPEND":
                     if isinstance(param_value, list):
                         param_value.append(value)
@@ -287,7 +288,7 @@ def append_keyword_filter(keywords=None) -> callable:
 
 
 def change_timestamp_value(
-    timestamp_keys=None, timestamp_format="google_timestamp"
+        timestamp_keys=None, timestamp_format="google_timestamp"
 ) -> callable:
     if timestamp_keys is None:
         timestamp_keys = []
@@ -339,7 +340,7 @@ def change_date_value(date_keys=None, date_format="%Y-%m-%d") -> callable:
 
 
 def change_timestamp_filter(
-    filter_keys=None, timestamp_format="google_timestamp"
+        filter_keys=None, timestamp_format="google_timestamp"
 ) -> callable:
     if filter_keys is None:
         filter_keys = []
@@ -377,7 +378,7 @@ def _is_null(value) -> bool:
 
 
 def _change_timestamp_condition(
-    query_filter, filter_keys, filter_type, timestamp_format
+        query_filter, filter_keys, filter_type, timestamp_format
 ) -> list:
     change_filter = []
 
