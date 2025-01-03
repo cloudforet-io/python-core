@@ -105,7 +105,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         Args:
             token_info(dict): {
                 'iss': 'str',   # issuer (spaceone.identity)
-                'rol': 'str',   # role type
+                'rol': 'str',   # role type (SYSTEM_TOKEN | DOMAIN_ADMIN | WORKSPACE_OWNER | WORKSPACE_MEMBER | USER )
                 'typ': 'str',   # token type (ACCESS_TOKEN | REFRESH_TOKEN | CLIENT_SECRET)
                 'own': 'str',   # owner (USER | APP)
                 'did': 'str',   # domain_id
@@ -116,6 +116,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
                 'jti': 'str',   # jwt id (token_key | client_id), Optional
                 'permissions': 'list',  # permissions, Optional
                 'projects': 'list',     # project_ids, if workspace member, Optional
+                'user_groups': 'list',  # user_group_ids, if workspace owner or member, Optional
                 'injected_params': 'dict',  # injected parameters, override parameters, Optional
                 'ver': 'str',   # jwt version
         """
@@ -128,6 +129,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         workspace_id = token_info.get("wid")
         permissions = token_info.get("permissions")
         projects = token_info.get("projects")
+        user_groups = token_info.get("user_groups")
         injected_params = token_info.get("injected_params")
 
         self.transaction.set_meta("authorization.token_type", token_type)
@@ -138,6 +140,7 @@ class SpaceONEAuthenticationHandler(BaseAuthenticationHandler):
         self.transaction.set_meta("authorization.workspace_id", workspace_id)
         self.transaction.set_meta("authorization.permissions", permissions)
         self.transaction.set_meta("authorization.projects", projects)
+        self.transaction.set_meta("authorization.user_groups", user_groups)
         self.transaction.set_meta("authorization.injected_params", injected_params)
 
         if owner_type == "USER":
