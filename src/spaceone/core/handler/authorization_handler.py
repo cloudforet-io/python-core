@@ -65,5 +65,8 @@ class SpaceONEAuthorizationHandler(BaseAuthorizationHandler):
 
     @staticmethod
     def _check_user_projects(user_projects: list, request_project_id: str) -> None:
+        if request_project_id == "*":
+            return
+
         if request_project_id not in user_projects:
             raise ERROR_PERMISSION_DENIED()
