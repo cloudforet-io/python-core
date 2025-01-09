@@ -397,7 +397,11 @@ def _check_condition(match_option: str, val1, val2):
 
 
 def change_dict_value(
-    data: dict, dotted_key: str, change_value, change_type="value"
+    data: dict,
+    dotted_key: str,
+    change_value,
+    change_type="value",
+    is_new: bool = False,
 ) -> dict:
     # change_value = func or value(any type)
     if "." in dotted_key:
@@ -423,7 +427,7 @@ def change_dict_value(
                     data[key], rest, change_value, change_type
                 )
     else:
-        if dotted_key in data:
+        if dotted_key in data or is_new:
             data[dotted_key] = _change_value_by_type(
                 change_type, data[dotted_key], change_value
             )
