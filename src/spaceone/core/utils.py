@@ -401,7 +401,7 @@ def change_dict_value(
     dotted_key: str,
     change_value,
     change_type="value",
-    is_new: bool = False,
+    allow_new_key: bool = False,
 ) -> dict:
     # change_value = func or value(any type)
     if "." in dotted_key:
@@ -418,19 +418,30 @@ def change_dict_value(
                         sub_rest = rest.split(".", 1)[1]
                         list_data.append(
                             change_dict_value(
-                                sub_data, sub_rest, change_value, change_type
+                                sub_data,
+                                sub_rest,
+                                change_value,
+                                change_type,
+                                allow_new_key=allow_new_key,
                             )
                         )
                 data[key] = list_data
             elif isinstance(data[key], dict):
                 data[key] = change_dict_value(
-                    data[key], rest, change_value, change_type
+                    data[key],
+                    rest,
+                    change_value,
+                    change_type,
+                    allow_new_key=allow_new_key,
                 )
     else:
-        if dotted_key in data or is_new:
+        if dotted_key in data:
             data[dotted_key] = _change_value_by_type(
                 change_type, data[dotted_key], change_value
             )
+        else:
+            if allow_new_key:
+                data[dotted_key] = change_value
 
     return data
 
