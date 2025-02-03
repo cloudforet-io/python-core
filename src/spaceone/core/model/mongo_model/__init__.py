@@ -670,6 +670,7 @@ class MongoModel(Document, BaseModel):
         sort=None,
         page=None,
         minimal=False,
+        include_count=True,
         count_only=False,
         unwind=None,
         reference_filter=None,
@@ -729,7 +730,10 @@ class MongoModel(Document, BaseModel):
                 if minimal and minimal_fields:
                     vos = vos.only(*minimal_fields)
 
-                total_count = vos.count()
+                if include_count:
+                    total_count = vos.count()
+                else:
+                    total_count = 0
 
                 if count_only:
                     vos = []
