@@ -44,7 +44,6 @@ class SpaceConnector(BaseConnector):
         return self._client
 
     def dispatch(self, method: str, params: dict = None, **kwargs) -> Any:
-        _LOGGER.debug(f"space_connector.dispatch : method: {method}")
         return self._call_api(method, params, **kwargs)
 
     def _call_api(
@@ -56,21 +55,13 @@ class SpaceConnector(BaseConnector):
         x_workspace_id: str = None,
     ) -> Any:
         resource, verb = self._parse_method(method)
-        _LOGGER.debug(f"space_connector.dispatch :: resource: {resource}, verb: {verb}")
-
         self._check_method(resource, verb)
 
         params = params or {}
-        _LOGGER.debug(f"space_connector.dispatch :: params: {params}")
         metadata = self._get_connection_metadata(token, x_domain_id, x_workspace_id)
-        _LOGGER.debug(f"space_connector.dispatch :: metadata: {metadata}")
 
         response_or_iterator = getattr(getattr(self._client, resource), verb)(
             params, metadata=metadata
-        )
-
-        _LOGGER.debug(
-            f"space_connector.dispatch :: response_or_iterator: {response_or_iterator}"
         )
 
         if self._return_type == "dict":
