@@ -2,7 +2,7 @@ import logging
 import types
 import grpc
 from google.protobuf.json_format import ParseDict
-from google.protobuf.message_factory import MessageFactory #, GetMessageClass
+from google.protobuf.message_factory import MessageFactory  # , GetMessageClass
 from google.protobuf.descriptor_pool import DescriptorPool
 from google.protobuf.descriptor import ServiceDescriptor, MethodDescriptor
 from grpc_reflection.v1alpha.proto_reflection_descriptor_database import (
@@ -109,16 +109,24 @@ class _ClientInterceptor(
     ):
         retries = 0
 
+        _LOGGER.debug(
+            f"client._retry_call.init :: client_call_details: {client_call_details}"
+        )
+
         while True:
             try:
+                _LOGGER.debug(f"client._retry_call.start!!!")
                 response_or_iterator = continuation(
                     client_call_details, request_or_iterator
                 )
+                _LOGGER.debug(f"client._retry_call.response_or_iterator Success!!!")
 
                 if is_stream:
                     response_or_iterator = self._generate_response(response_or_iterator)
                 else:
+                    _LOGGER.debug(f"client._retry_call.start _check_error!!!")
                     self._check_error(response_or_iterator)
+                    _LOGGER.debug(f"client._retry_call.finished _check_error!!!")
 
                 return response_or_iterator
 
@@ -207,13 +215,17 @@ class _GRPCStub(object):
         request_desc = self._desc_pool.FindMessageTypeByName(
             method_desc.input_type.full_name
         )
-        request_message_desc = MessageFactory(self._desc_pool).GetPrototype(request_desc)
+        request_message_desc = MessageFactory(self._desc_pool).GetPrototype(
+            request_desc
+        )
         # request_message_desc = GetMessageClass(request_desc)
 
         response_desc = self._desc_pool.FindMessageTypeByName(
             method_desc.output_type.full_name
         )
-        response_message_desc = MessageFactory(self._desc_pool).GetPrototype(response_desc)
+        response_message_desc = MessageFactory(self._desc_pool).GetPrototype(
+            response_desc
+        )
         # response_message_desc = GetMessageClass(response_desc)
 
         if method_desc.client_streaming and method_desc.server_streaming:
@@ -286,7 +298,9 @@ class GRPCClient(object):
                 request_desc = self._desc_pool.FindMessageTypeByName(
                     method_desc.input_type.full_name
                 )
-                self._request_map[method_key] = MessageFactory(self._desc_pool).GetPrototype(request_desc)
+                self._request_map[method_key] = MessageFactory(
+                    self._desc_pool
+                ).GetPrototype(request_desc)
                 # self._request_map[method_key] = GetMessageClass(request_desc)
 
                 if service_desc.name not in self._api_resources:
@@ -323,6 +337,11 @@ def _create_insecure_channel(endpoint, options):
 def client(endpoint=None, ssl_enabled=False, max_message_length=None, **client_opts):
     if endpoint is None:
         raise Exception("Client's endpoint is undefined.")
+
+    _LOGGER.debug(f"pygrpc.client :: endpoint: {endpoint}")
+    _LOGGER.debug(
+        f"pygrpc.client :: _GRPC_CHANNEL: {_GRPC_CHANNEL}  /  is in? {endpoint in _GRPC_CHANNEL}"
+    )
 
     if endpoint not in _GRPC_CHANNEL:
         options = []
