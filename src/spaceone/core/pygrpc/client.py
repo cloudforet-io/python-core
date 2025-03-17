@@ -109,24 +109,16 @@ class _ClientInterceptor(
     ):
         retries = 0
 
-        _LOGGER.debug(
-            f"client._retry_call.init :: client_call_details: {client_call_details}"
-        )
-
         while True:
             try:
-                _LOGGER.debug(f"client._retry_call.start!!!")
                 response_or_iterator = continuation(
                     client_call_details, request_or_iterator
                 )
-                _LOGGER.debug(f"client._retry_call.response_or_iterator Success!!!")
 
                 if is_stream:
                     response_or_iterator = self._generate_response(response_or_iterator)
                 else:
-                    _LOGGER.debug(f"client._retry_call.start _check_error!!!")
                     self._check_error(response_or_iterator)
-                    _LOGGER.debug(f"client._retry_call.finished _check_error!!!")
 
                 return response_or_iterator
 
@@ -337,11 +329,6 @@ def _create_insecure_channel(endpoint, options):
 def client(endpoint=None, ssl_enabled=False, max_message_length=None, **client_opts):
     if endpoint is None:
         raise Exception("Client's endpoint is undefined.")
-
-    _LOGGER.debug(f"pygrpc.client :: endpoint: {endpoint}")
-    _LOGGER.debug(
-        f"pygrpc.client :: _GRPC_CHANNEL: {_GRPC_CHANNEL}  /  is in? {endpoint in _GRPC_CHANNEL}"
-    )
 
     if endpoint not in _GRPC_CHANNEL:
         options = []
