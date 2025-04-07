@@ -166,9 +166,7 @@ class _ClientInterceptor(
             is_response_stream,
         )
 
-    def intercept_unary_unary(
-        self, continuation: object, client_call_details: object, request: object
-    ) -> object:
+    def intercept_unary_unary(self, continuation, client_call_details, request):
         return self._intercept_call(
             continuation, client_call_details, request, False, False
         )
