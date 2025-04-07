@@ -111,11 +111,9 @@ class _ClientInterceptor(
 
         while True:
             try:
-                _LOGGER.debug(f"client._retry_call.start!!!")
                 response_or_iterator = continuation(
                     client_call_details, request_or_iterator
                 )
-                _LOGGER.debug(f"client._retry_call.response_or_iterator Success!!!")
 
                 if is_stream:
                     response_or_iterator = self._generate_response(response_or_iterator)
@@ -125,11 +123,7 @@ class _ClientInterceptor(
                 return response_or_iterator
 
             except Exception as e:
-                _LOGGER.debug(f"client._retry_call.Exception: {e}")
                 if e.error_code == "ERROR_GRPC_CONNECTION":
-                    _LOGGER.debug(
-                        f"client._retry_call.retry_call: {retries}  ||  _MAX_RETRIES: {_MAX_RETRIES}"
-                    )
                     if retries >= _MAX_RETRIES:
                         channel = e.meta.get("channel")
                         if channel in _GRPC_CHANNEL:
