@@ -271,7 +271,6 @@ def _pipeline(
 
 def _get_response_size(response_or_iterator: Any) -> int:
     try:
-        print(type(response_or_iterator))
         if isinstance(response_or_iterator, dict):
             response_size = len(json.dumps(response_or_iterator, ensure_ascii=False))
         elif isinstance(response_or_iterator, (bytes, bytearray)):
