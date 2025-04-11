@@ -25,6 +25,7 @@ class SpaceConnector(BaseConnector):
         endpoint: str = None,
         token: str = None,
         return_type: str = "dict",
+        timeout: int = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -32,6 +33,7 @@ class SpaceConnector(BaseConnector):
         self._endpoint = endpoint
         self._token = token
         self._return_type = return_type
+        self._timeout = timeout
 
         self._client = None
         self._endpoints: dict = self.config.get("endpoints", {})
@@ -95,6 +97,7 @@ class SpaceConnector(BaseConnector):
             endpoint=e["endpoint"],
             ssl_enabled=e["ssl_enabled"],
             max_message_length=1024 * 1024 * 256,
+            timeout=self._timeout,
         )
 
     @staticmethod
