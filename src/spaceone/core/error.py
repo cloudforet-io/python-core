@@ -250,6 +250,10 @@ class ERROR_GRPC_CONNECTION(ERROR_UNAVAILAVBLE):
     _message = "Server is unavailable. (channel = {channel}, message = {message})"
 
 
+class ERROR_GRPC_TIMEOUT(ERROR_GRPC_CONNECTION):
+    _message = "gRPC Timeout."
+
+
 class ERROR_GRPC_TLS_HANDSHAKE(ERROR_GRPC_CONNECTION):
     _message = "TLS handshake failed. (reason = {reason})"
 
