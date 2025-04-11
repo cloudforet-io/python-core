@@ -1,8 +1,9 @@
 import copy
 import functools
+import json
 import logging
 import time
-from typing import Generator, Union, Literal
+from typing import Generator, Union, Literal, Any
 
 from opentelemetry import trace
 from opentelemetry.trace import format_trace_id
@@ -244,7 +245,10 @@ def _pipeline(
             if print_info_log:
 
                 process_time = time.time() - start_time
-                _LOGGER.info(f"(RESPONSE) => SUCCESS (Time = {process_time:.2f}s)")
+                response_size = _get_response_size(response_or_iterator)
+                _LOGGER.info(
+                    f"(RESPONSE) => SUCCESS (Time = {process_time:.2f}s, Size = {response_size} bytes)",
+                )
 
         return response_or_iterator
 
@@ -263,6 +267,22 @@ def _pipeline(
 
     finally:
         delete_transaction()
+
+
+def _get_response_size(response_or_iterator: Any) -> int:
+    try:
+        if isinstance(response_or_iterator, dict):
+            response_size = len(json.dumps(response_or_iterator, ensure_ascii=False))
+        elif isinstance(response_or_iterator, (bytes, bytearray)):
+            response_size = len(response_or_iterator)
+        elif response_or_iterator is None:
+            response_size = 0
+        else:
+            response_size = -1
+    except Exception:
+        response_size = -1
+
+    return response_size
 
 
 def _error_handler(
