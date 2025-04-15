@@ -271,12 +271,20 @@ def _pipeline(
 
 def _get_response_size(response_or_iterator: Any) -> int:
     try:
-        if isinstance(response_or_iterator, dict):
+        if response_or_iterator is None:
+            return 0
+
+        if isinstance(response_or_iterator, tuple):
+            response_or_iterator = response_or_iterator[0]
+
+        if isinstance(response_or_iterator, (dict, list)):
             response_size = len(json.dumps(response_or_iterator, ensure_ascii=False))
-        elif isinstance(response_or_iterator, (bytes, bytearray)):
+        elif isinstance(response_or_iterator, (bytes, bytearray, str)):
             response_size = len(response_or_iterator)
-        elif response_or_iterator is None:
-            response_size = 0
+        elif hasattr(response_or_iterator, "to_json"):
+            response_size = len(response_or_iterator.to_json())
+        elif hasattr(response_or_iterator, "__dict__"):
+            response_size = len(json.dumps(response_or_iterator, ensure_ascii=False))
         else:
             response_size = -1
     except Exception:
