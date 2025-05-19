@@ -1,5 +1,6 @@
 import abc
 import logging
+import threading
 from typing import List
 from spaceone.core.base import CoreObject
 from spaceone.core import config
@@ -25,6 +26,7 @@ _HANDLER_INFO = {
     "mutation": [],
     "event": [],
 }
+_HANDLER_INIT_LOCK = threading.Lock()
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -145,5 +147,7 @@ def get_event_handlers() -> List[BaseEventHandler]:
 
 def _check_init_state() -> None:
     if not _HANDLER_INFO["init"]:
-        _init_handlers()
-        _HANDLER_INFO["init"] = True
+        with _HANDLER_INIT_LOCK:
+            if not _HANDLER_INFO["init"]:
+                _init_handlers()
+                _HANDLER_INFO["init"] = True
