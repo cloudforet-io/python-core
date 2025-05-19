@@ -26,7 +26,7 @@ _HANDLER_INFO = {
     "mutation": [],
     "event": [],
 }
-_HANDLER_THREAD_LOCK = threading.Lock()
+_HANDLER_INIT_LOCK = threading.Lock()
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ def get_event_handlers() -> List[BaseEventHandler]:
 
 def _check_init_state() -> None:
     if not _HANDLER_INFO["init"]:
-        with _HANDLER_THREAD_LOCK:
+        with _HANDLER_INIT_LOCK:
             if not _HANDLER_INFO["init"]:
                 _init_handlers()
                 _HANDLER_INFO["init"] = True
