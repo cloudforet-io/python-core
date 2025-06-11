@@ -37,7 +37,7 @@ class _ClientInterceptor(
         self._request_map = request_map
         self._channel_key = channel_key
         self.metadata = options.get("metadata", {})
-        self.timeout = timeout or 60
+        self.timeout = timeout or 180
 
     def _check_message(self, client_call_details, request_or_iterator, is_stream):
         if client_call_details.method in self._request_map:
