@@ -1076,6 +1076,44 @@ class MongoModel(Document, BaseModel):
         return {"$match": match_options}
 
     @classmethod
+    def _make_lookup_rule(cls, options):
+        return {"$lookup": options}
+
+    @classmethod
+    def _make_add_fields_rule(cls, options):
+        add_fields_options = {}
+
+        for field, conditional in options.items():
+            add_fields_options.update(
+                {field: cls._process_conditional_expression(conditional)}
+            )
+
+        return {"$addFields": add_fields_options}
+
+    @classmethod
+    def _process_conditional_expression(cls, expression):
+        if isinstance(expression, dict):
+            if_expression = expression["if"]
+
+            if isinstance(if_expression, dict):
+                replaced = {}
+                for k, v in if_expression.items():
+                    new_k = k.replace("__", "$")
+                    replaced[new_k] = v
+
+                if_expression = replaced
+
+            return {
+                "$cond": {
+                    "if": if_expression,
+                    "then": cls._process_conditional_expression(expression["then"]),
+                    "else": cls._process_conditional_expression(expression["else"]),
+                }
+            }
+
+        return expression
+
+    @classmethod
     def _make_aggregate_rules(cls, aggregate):
         _aggregate_rules = []
         _group_keys = []
@@ -1115,6 +1153,12 @@ class MongoModel(Document, BaseModel):
                 _aggregate_rules.append(rule)
             elif "match" in stage:
                 rule = cls._make_match_rule(stage["match"])
+                _aggregate_rules.append(rule)
+            elif "lookup" in stage:
+                rule = cls._make_lookup_rule(stage["lookup"])
+                _aggregate_rules.append(rule)
+            elif "add_fields" in stage:
+                rule = cls._make_add_fields_rule(stage["add_fields"])
                 _aggregate_rules.append(rule)
             else:
                 raise ERROR_REQUIRED_PARAMETER(
@@ -1514,7 +1558,9 @@ class MongoModel(Document, BaseModel):
         sort=None,
         start=None,
         end=None,
+        lookup=None,
         unwind=None,
+        add_fields=None,
         date_field="date",
         date_field_format="%Y-%m-%d",
         reference_filter=None,
@@ -1552,8 +1598,14 @@ class MongoModel(Document, BaseModel):
 
         aggregate = []
 
+        if lookup:
+            aggregate.append({"lookup": lookup})
+
         if unwind:
             aggregate.append({"unwind": unwind})
+
+        if add_fields:
+            aggregate.append({"add_fields": add_fields})
 
         aggregate.append({"group": {"keys": group_keys, "fields": group_fields}})
 
