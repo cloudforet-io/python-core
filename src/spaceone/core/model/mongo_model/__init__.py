@@ -590,9 +590,11 @@ class MongoModel(Document, BaseModel):
         }
 
     @classmethod
-    def _stat_with_unwind(
+    def _stat_with_pipeline(
         cls,
-        unwind: list,
+        lookup: list = None,
+        unwind: dict = None,
+        add_fields: dict = None,
         only: list = None,
         filter: list = None,
         filter_or: list = None,
@@ -600,39 +602,48 @@ class MongoModel(Document, BaseModel):
         page: dict = None,
         target: str = None,
     ):
-        if only is None:
-            raise ERROR_DB_QUERY(reason="unwind option requires only option.")
+        if unwind:
+            if only is None:
+                raise ERROR_DB_QUERY(reason="unwind option requires only option.")
 
-        if not isinstance(unwind, dict):
-            raise ERROR_DB_QUERY(reason="unwind option should be dict type.")
+            if not isinstance(unwind, dict):
+                raise ERROR_DB_QUERY(reason="unwind option should be dict type.")
 
-        if "path" not in unwind:
-            raise ERROR_DB_QUERY(reason="unwind option should have path key.")
+            if "path" not in unwind:
+                raise ERROR_DB_QUERY(reason="unwind option should have path key.")
 
-        unwind_path = unwind["path"]
-        aggregate = [{"unwind": unwind}]
+        aggregate = []
 
-        # Add project stage
-        project_fields = []
-        for key in only:
-            project_fields.append(
+        if lookup:
+            for lu in lookup:
+                aggregate.append({"lookup": lu})
+
+        if unwind:
+            aggregate.append({"unwind": unwind})
+
+        if add_fields:
+            aggregate.append({"add_fields": add_fields})
+
+        if only:
+            project_fields = []
+            for key in only:
+                project_fields.append(
+                    {
+                        "key": key,
+                        "name": key,
+                    }
+                )
+
+            aggregate.append(
                 {
-                    "key": key,
-                    "name": key,
+                    "project": {
+                        "exclude_keys": True,
+                        "only_keys": True,
+                        "fields": project_fields,
+                    }
                 }
             )
 
-        aggregate.append(
-            {
-                "project": {
-                    "exclude_keys": True,
-                    "only_keys": True,
-                    "fields": project_fields,
-                }
-            }
-        )
-
-        # Add sort stage
         if sort:
             aggregate.append({"sort": sort})
 
@@ -641,7 +652,7 @@ class MongoModel(Document, BaseModel):
             filter=filter,
             filter_or=filter_or,
             page=page,
-            tageet=target,
+            target=target,
             allow_disk_use=True,
         )
 
@@ -649,13 +660,15 @@ class MongoModel(Document, BaseModel):
             vos = []
             total_count = response.get("total_count", 0)
             for result in response.get("results", []):
-                unwind_data = utils.get_dict_value(result, unwind_path)
-                result = utils.change_dict_value(result, unwind_path, [unwind_data])
+                if unwind:
+                    unwind_path = unwind["path"]
+                    unwind_data = utils.get_dict_value(result, unwind_path)
+                    result = utils.change_dict_value(result, unwind_path, [unwind_data])
 
                 vo = cls(**result)
                 vos.append(vo)
         except Exception as e:
-            raise ERROR_DB_QUERY(reason=f"Failed to convert unwind result: {e}")
+            raise ERROR_DB_QUERY(reason=f"Failed to convert pipeline result: {e}")
 
         return vos, total_count
 
@@ -672,7 +685,9 @@ class MongoModel(Document, BaseModel):
         minimal=False,
         include_count=True,
         count_only=False,
+        lookup=None,
         unwind=None,
+        add_fields=None,
         reference_filter=None,
         target=None,
         hint=None,
@@ -683,9 +698,17 @@ class MongoModel(Document, BaseModel):
         sort = sort or []
         page = page or {}
 
-        if unwind:
-            return cls._stat_with_unwind(
-                unwind, only, filter, filter_or, sort, page, target
+        if unwind or lookup or add_fields:
+            return cls._stat_with_pipeline(
+                lookup=lookup,
+                unwind=unwind,
+                add_fields=add_fields,
+                only=only,
+                filter=filter,
+                filter_or=filter_or,
+                sort=sort,
+                page=page,
+                target=target,
             )
 
         else:
@@ -1599,7 +1622,8 @@ class MongoModel(Document, BaseModel):
         aggregate = []
 
         if lookup:
-            aggregate.append({"lookup": lookup})
+            for lu in lookup:
+                aggregate.append({"lookup": lu})
 
         if unwind:
             aggregate.append({"unwind": unwind})
