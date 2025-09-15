@@ -3,6 +3,8 @@ import logging
 from typing import Any, List, Tuple
 from google.protobuf.json_format import MessageToDict
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+from opentelemetry import trace
+from opentelemetry.trace import SpanKind
 
 from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
@@ -13,7 +15,7 @@ from spaceone.core.error import *
 __all__ = ["SpaceConnector"]
 
 _LOGGER = logging.getLogger(__name__)
-
+_TRACER = trace.get_tracer(__name__)
 
 class SpaceConnector(BaseConnector):
     name = "SpaceConnector"
@@ -46,7 +48,8 @@ class SpaceConnector(BaseConnector):
         return self._client
 
     def dispatch(self, method: str, params: dict = None, **kwargs) -> Any:
-        return self._call_api(method, params, **kwargs)
+        with _TRACER.start_as_current_span(method, kind=SpanKind.CLIENT):
+            return self._call_api(method, params, **kwargs)
 
     def _call_api(
         self,
