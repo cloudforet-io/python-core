@@ -6,7 +6,7 @@ import time
 from typing import Generator, Union, Literal, Any
 
 from opentelemetry import trace
-from opentelemetry.trace import format_trace_id
+from opentelemetry.trace import format_trace_id, SpanKind
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from spaceone.core.base import CoreObject
@@ -129,7 +129,9 @@ def transaction(
             _traceparent = self.metadata.get("traceparent")
 
             with _TRACER.start_as_current_span(
-                f"{self.resource}.{_verb}", context=_get_span_context(_traceparent)
+                f"{self.resource}.{_verb}", 
+                context=_get_span_context(_traceparent),
+                kind=SpanKind.SERVER
             ) as span:
                 self.current_span_context = span.get_span_context()
                 trace_id = format_trace_id(self.current_span_context.trace_id)
