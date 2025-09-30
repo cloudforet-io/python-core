@@ -723,6 +723,9 @@ class MongoModel(Document, BaseModel):
                 else:
                     _order_by.append(f'{sort_option["key"]}')
 
+            if sort:
+                _order_by.append("_id")
+
             try:
                 vos = cls._get_target_objects(target).filter(_filter)
 
