@@ -645,7 +645,12 @@ class MongoModel(Document, BaseModel):
             )
 
         if sort:
-            aggregate.append({"sort": sort})
+            # Add id as default sort if not already specified
+            sort_with_id = sort.copy()
+            has_id_sort = any(s.get("key") == "id" for s in sort_with_id)
+            if not has_id_sort:
+                sort_with_id.append({"key": "id", "desc": False})
+            aggregate.append({"sort": sort_with_id})
 
         response = cls.stat(
             aggregate=aggregate,
@@ -724,7 +729,7 @@ class MongoModel(Document, BaseModel):
                     _order_by.append(f'{sort_option["key"]}')
 
             if sort:
-                _order_by.append("_id")
+                _order_by.append("id")
 
             try:
                 vos = cls._get_target_objects(target).filter(_filter)
