@@ -1,8 +1,8 @@
+import base64
 import json
 
 from jwcrypto import jwk
 from jwcrypto import jwt as jwcrypto_jwt
-from jwcrypto.jws import JWS
 
 
 class JWTUtil:
@@ -54,16 +54,24 @@ class JWTUtil:
 
     @staticmethod
     def unverified_decode(token: str) -> dict:
-        # Deserialize JWS without verification
-        jws = JWS()
-        jws.deserialize(token, None)
+        parts = token.split(".")
+        if len(parts) != 3:
+            raise ValueError("Invalid JWT token format")
 
-        # Parse payload from JSON string
-        payload = jws.payload
-        if isinstance(payload, bytes):
-            payload = payload.decode("utf-8")
+        # Decode payload part (base64url)
+        payload_part = parts[1]
 
-        return json.loads(payload)
+        # Handle base64url padding
+        padding = 4 - len(payload_part) % 4
+        if padding != 4:
+            payload_part += "=" * padding
+
+        # Decode base64url
+        payload_bytes = base64.urlsafe_b64decode(payload_part)
+        payload_str = payload_bytes.decode("utf-8")
+
+        # Parse JSON
+        return json.loads(payload_str)
 
     @staticmethod
     def get_value_from_token(token: str, key: str, default: any = None) -> any:
