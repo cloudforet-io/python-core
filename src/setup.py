@@ -15,7 +15,8 @@
 
 
 import os
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 setup(
     name="spaceone_core",
@@ -55,7 +56,6 @@ setup(
         # crypto(jwt) packages
         "pycryptodome",
         "jwcrypto",
-        "python-jose",
         # utils packages
         "python-dateutil",
         "python-consul",

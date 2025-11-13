@@ -17,7 +17,6 @@ redis
 cachetools
 pycryptodome
 jwcrypto
-python-jose
 python-dateutil
 python-consul
 dnspython
