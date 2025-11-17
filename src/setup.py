@@ -19,7 +19,7 @@ import os
 from setuptools import setup, find_packages
 
 setup(
-    name="spaceone-core",
+    name="spaceone_core",
     version=os.environ.get("PACKAGE_VERSION"),
     description="Cloudforet Core Library",
     long_description="",
