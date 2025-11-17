@@ -3,6 +3,7 @@ grpcio
 grpcio-reflection
 google-api-core
 grpcio-health-checking
+grpcio-status
 fastapi
 fastapi-utils
 uvicorn
@@ -16,7 +17,6 @@ scheduler-cron
 cachetools
 pycryptodome
 jwcrypto
-python-jose
 python-dateutil
 python-consul
 dnspython

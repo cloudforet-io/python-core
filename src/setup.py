@@ -15,76 +15,65 @@
 
 
 import os
+
 from setuptools import setup, find_packages
 
 setup(
-    name='spaceone-core',
-    version=os.environ.get('PACKAGE_VERSION'),
-    description='Cloudforet Core Library',
-    long_description='',
-    url='https://cloudforet.io/',
-    author='MEGAZONE Cloud Corp.',
-    author_email='admin@spaceone.dev',
-    license='Apache License 2.0',
+    name="spaceone-core",
+    version=os.environ.get("PACKAGE_VERSION"),
+    description="Cloudforet Core Library",
+    long_description="",
+    url="https://cloudforet.io/",
+    author="MEGAZONE Cloud Corp.",
+    author_email="admin@spaceone.dev",
+    license="Apache License 2.0",
     packages=find_packages(),
     install_requires=[
         # grpc packages
         # 'grpcio',
-        'protobuf==3.*',
-        'grpcio-reflection',
-        'google-api-core',
-        'grpcio-health-checking',
-
+        "protobuf==3.*",
+        "grpcio-reflection",
+        "google-api-core",
+        "grpcio-health-checking",
         # fastapi packages
-        'fastapi',
-        'fastapi-utils',
-        'uvicorn',
-
+        "fastapi",
+        "fastapi-utils",
+        "uvicorn",
         # asyncio packages
-        'asyncio',
-
+        "asyncio",
         # data parser packages
-        'PyYAML',
-        'jsonschema',
-
+        "PyYAML",
+        "jsonschema",
         # test framework packages
-        'unittest-xml-reporting',
-        'factory-boy',
-
+        "unittest-xml-reporting",
+        "factory-boy",
         # scheduler packages
-        'schedule',
-        'scheduler-cron',
-
+        "schedule",
+        "scheduler-cron",
         # cache packages
-        'cachetools',
-
+        "cachetools",
         # crypto(jwt) packages
-        'pycryptodome',
-        'jwcrypto',
-        'python-jose',
-
+        "pycryptodome",
+        "jwcrypto",
         # utils packages
-        'python-dateutil',
-        'python-consul',
-        'dnspython',
-
+        "python-dateutil",
+        "python-consul",
+        "dnspython",
         # CLI packages
-        'click',
-
+        "click",
         # model packages
-        'pydantic',
-
+        "pydantic",
         # tracing packages
-        'opentelemetry-api',
-        'opentelemetry-sdk',
-        'opentelemetry-exporter-otlp-proto-grpc',
-        'opentelemetry-instrumentation-logging',
-        'opentelemetry-exporter-prometheus'
+        "opentelemetry-api",
+        "opentelemetry-sdk",
+        "opentelemetry-exporter-otlp-proto-grpc",
+        "opentelemetry-instrumentation-logging",
+        "opentelemetry-exporter-prometheus",
     ],
     zip_safe=False,
     entry_points={
-        'console_scripts': [
-            'spaceone = spaceone.core.command:cli',
+        "console_scripts": [
+            "spaceone = spaceone.core.command:cli",
         ]
     },
 )
